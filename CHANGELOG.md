@@ -28,7 +28,3 @@ First public beta.
 - Engine hang caused by an undrained stdout pipe
 - Pixelated app/tray icons; the tray icon now reflects connection state
 - Icon cache is cleared on update, so the new icon appears immediately
-
-### Removed
-- **AmneziaWG** support (obfuscated WireGuard). The bundled engine could not be driven reliably;
-  plain WireGuard works through sing-box and keeps full routing.

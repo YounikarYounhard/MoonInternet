@@ -29,6 +29,8 @@ Works with HAPP, INCY, V2Ray/Xray and Nekoray-style subscriptions.
 Grab the installer from [**Releases**](../../releases) and run it.
 It installs into `Program Files`, registers the privileged TUN helper and creates shortcuts.
 
+**Nothing else to install** — .NET is bundled inside the app (that's why the installer is ~72 MB).
+
 > Builds are **not code-signed**, so SmartScreen warns on first launch
 > (*More info → Run anyway*). See [Security](#security).
 
@@ -48,7 +50,7 @@ dotnet publish src\MoonInternet.TunService -c Release -r win-x64 --self-containe
 makensis build\installer.nsi
 ```
 
-Requirements: **.NET 9 SDK**, Windows 10/11 x64. NSIS only for the installer.
+Needed **to build**, not to run: **.NET 9 SDK**, Windows 10/11 x64. NSIS only if you also want the installer.
 
 ## Architecture
 
