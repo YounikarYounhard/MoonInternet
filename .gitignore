@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────
+#  Moon Internet — .gitignore
+#  Priority #1: never commit user data. A subscription URL is an
+#  access key; logs carry IPs and connection history.
+#  NOTE: keep comments on their OWN line — a trailing "# ..." becomes
+#  part of the pattern and silently breaks it.
+# ─────────────────────────────────────────────────────────────
+
+# ===== PRIVATE / SECRETS =====
+save/
+**/save/
+# runtime config: holds the user's subscription URL (an access token)
+settings.json
+theme.json
+tun.json
+wg.json
+*.log
+*.pcap
+
+# ===== Build output =====
+bin/
+obj/
+publish/
+# published app + installer -> ship via GitHub Releases instead
+dist/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ===== Bundled cores (large third-party binaries; see build/get-cores.ps1) =====
+cores/
+
+# ===== Geo databases (tens of MB, downloaded at runtime) =====
+*.dat
+*.srs
+
+# ===== IDE / tooling =====
+.vs/
+.vscode/
+.idea/
+.claude/
+*.swp
+*~
+
+# ===== OS junk =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ===== NuGet =====
+*.nupkg
+packages/
+.nuget/
+
+# ===== Secrets / signing =====
+.env
+*.pfx
+*.snk

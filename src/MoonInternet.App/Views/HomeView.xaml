@@ -1,0 +1,318 @@
+<UserControl x:Class="MoonInternet.App.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="clr-namespace:MoonInternet.App">
+    <Border Background="{StaticResource HomeGradient}">
+        <Grid Margin="16,10,16,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>   <!-- mode toggle -->
+                <RowDefinition Height="Auto"/>    <!-- connect hero -->
+                <RowDefinition Height="Auto"/>    <!-- compact stats + add/paste -->
+                <RowDefinition Height="Auto"/>    <!-- global ping/refresh (icons, fixed) -->
+                <RowDefinition Height="*"/>       <!-- subscriptions (scroll) -->
+            </Grid.RowDefinitions>
+
+            <!-- mode toggle -->
+            <Border Grid.Row="0" HorizontalAlignment="Center" CornerRadius="13" Background="#160A34" BorderBrush="#2C2150" BorderThickness="1" Padding="3">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="Прокси" Padding="28,7"
+                                 IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=TwoWay}"/>
+                    <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="TUN" Padding="32,7"
+                                 IsChecked="{Binding TunMode, Mode=TwoWay}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- connect hero -->
+            <StackPanel Grid.Row="1" Margin="0,10,0,2">
+                <Button Command="{Binding ConnectCommand}" IsEnabled="{Binding CanClick}" Cursor="Hand" HorizontalAlignment="Center"
+                        FocusVisualStyle="{x:Null}" Background="Transparent" BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <StackPanel>
+                                <!-- moon image = the button. Thin ring around it makes it read as a button. No glow disc. -->
+                                <Grid x:Name="moon" Width="204" Height="204" Background="Transparent" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                    <Grid.RenderTransform><ScaleTransform/></Grid.RenderTransform>
+                                    <!-- button ring: brightens on hover (whole round zone is clickable via Background=Transparent) -->
+                                    <Ellipse x:Name="ring" Width="198" Height="198" StrokeThickness="1.5" Stroke="White" Opacity="0.22"/>
+                                    <!-- OFF art (bundled default = Выключено.png); fixed square box → never cropped -->
+                                    <Image x:Name="moonOff" Source="{Binding MoonOffImage}" Stretch="Uniform" Width="172" Height="172"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <!-- ON art (bundled default = Вклучено.png); starts hidden -->
+                                    <Image x:Name="moonOn" Source="{Binding MoonOnImage}" Stretch="Uniform" Width="172" Height="172"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0"/>
+                                </Grid>
+                                <TextBlock Text="{Binding StateText}" HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ring" Storyboard.TargetProperty="Opacity" To="0.7" Duration="0:0:0.18"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ring" Storyboard.TargetProperty="Opacity" To="0.22" Duration="0:0:0.25"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="moon" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0.95" Duration="0:0:0.08"/>
+                                            <DoubleAnimation Storyboard.TargetName="moon" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="0.95" Duration="0:0:0.08"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="moon" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.14"/>
+                                            <DoubleAnimation Storyboard.TargetName="moon" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.14"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                                <!-- state change: current moon fades OUT, then the new one fades IN -->
+                                <DataTrigger Binding="{Binding MoonAwake}" Value="True">
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="moonOff" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22"/>
+                                            <DoubleAnimation Storyboard.TargetName="moonOn" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.20" Duration="0:0:0.28"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="moonOn" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22"/>
+                                            <DoubleAnimation Storyboard.TargetName="moonOff" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.20" Duration="0:0:0.28"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- selected server (hidden when none) — static, ellipsis if long, full name on hover -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0"
+                            Visibility="{Binding HasSelectedServer, Converter={StaticResource BoolVis}}">
+                    <Image Source="{Binding SelectedServerFlag}" Width="20" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <TextBlock Text="{Binding SelectedServerLabel}" Foreground="{StaticResource AccentText}" FontSize="14.5" FontWeight="Bold"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330" ToolTip="{Binding SelectedServerLabel}"/>
+                </StackPanel>
+
+                <!-- check connection + ping: fades + slides in when connected, out when disconnected -->
+                <Grid ClipToBounds="True" HorizontalAlignment="Center">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Opacity" Value="0"/>
+                            <Setter Property="MaxHeight" Value="0"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="MaxHeight" To="52" Duration="0:0:0.30"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" BeginTime="0:0:0.08" Duration="0:0:0.30"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="MaxHeight" To="0" BeginTime="0:0:0.10" Duration="0:0:0.26"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        </Storyboard></BeginStoryboard>
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding CheckConnectionCommand}" Padding="18,7">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xEC4A;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="Проверить соединение" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Border Visibility="{Binding HasCheckPing, Converter={StaticResource BoolVis}}" VerticalAlignment="Center"
+                                Margin="8,0,0,0" CornerRadius="9" Background="#2534D399" Padding="10,6">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Fill="{StaticResource Green}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding CheckPingText}" Foreground="{StaticResource Green}" FontSize="12.5" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <!-- compact stats + add / paste -->
+            <Grid Grid.Row="2" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="104"/>   <!-- Отдача / Приём (fixed → no shift) -->
+                    <ColumnDefinition Width="90"/>    <!-- Время / Трафик (fixed) -->
+                    <ColumnDefinition Width="*"/>       <!-- buttons fill the rest -->
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <StackPanel Margin="0,0,0,7">
+                        <TextBlock Text="Отдача" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                            <TextBlock Text="↑" Foreground="{StaticResource Green}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                            <TextBlock Text="{Binding UploadSpeed}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Приём" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                            <TextBlock Text="↓" Foreground="{StaticResource AccentText}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                            <TextBlock Text="{Binding DownloadSpeed}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Margin="0,0,0,7">
+                        <TextBlock Text="Время" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <TextBlock Text="{Binding ElapsedDisplay}" FontWeight="SemiBold" FontSize="13" Margin="0,1,0,0"/>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Трафик" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <TextBlock Text="{Binding SessionTraffic}" FontWeight="SemiBold" FontSize="13" Margin="0,1,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <Button Command="{Binding OpenAddDialogCommand}" Cursor="Hand" Margin="0,0,0,6" HorizontalAlignment="Stretch">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="b" CornerRadius="10" Background="#2C2058" Padding="14,9">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="#C4B4FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Добавить" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#382A6E"/></Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button Command="{Binding PasteImportCommand}" Cursor="Hand" HorizontalAlignment="Stretch">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="b" CornerRadius="10" Background="{StaticResource ChipBg}" Padding="14,9">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Вставить" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}"/></Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- subscriptions: collapsible list, scrolls with NO visible scrollbar (wheel handled in code-behind) -->
+            <ScrollViewer Grid.Row="4" x:Name="ListScroll" VerticalScrollBarVisibility="Hidden" Margin="0,12,0,0"
+                          PreviewMouseWheel="ListScroll_PreviewMouseWheel">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding Subscriptions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <!-- collapse/expand area -->
+                                            <Button Grid.Column="0" Command="{Binding ToggleCollapseCommand}" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="hb" Background="Transparent" CornerRadius="14" Padding="14,12">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0" x:Name="chev" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Margin="0,0,11,0"/>
+                                                                <StackPanel Grid.Column="1">
+                                                                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                                                                        <TextBlock Text="{Binding TrafficText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,12,0"/>
+                                                                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                                                                        <TextBlock Text="{Binding ExpiryText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,0,0"/>
+                                                                    </StackPanel>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="hb" Property="Background" Value="#12FFFFFF"/></Trigger>
+                                                            <DataTrigger Binding="{Binding IsCollapsed}" Value="True"><Setter TargetName="chev" Property="Text" Value="&#xE76C;"/></DataTrigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                            <!-- per-subscription actions -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,2" VerticalAlignment="Center" Margin="0,0,4,0">
+                                                    <TextBlock Text="{Binding Count}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                                </Border>
+                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="Пинговать эту подписку"
+                                                        Command="{Binding DataContext.PingSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;" ToolTip="Обновить эту подписку"
+                                                        Command="{Binding DataContext.RefreshSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;" ToolTip="Действия"
+                                                        Command="{Binding DataContext.OpenSubSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Border Margin="12,0,12,10" CornerRadius="10" Background="#1E1440" BorderBrush="#33B9A7FF" BorderThickness="1" Padding="12,10">
+                                            <Border.Visibility>
+                                                <MultiBinding Converter="{StaticResource AllVis}">
+                                                    <Binding Path="HasAnnouncement"/>
+                                                    <Binding Path="DataContext.ShowSubHeader" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                </MultiBinding>
+                                            </Border.Visibility>
+                                            <TextBlock Text="{Binding Announcement}" Foreground="#CFC7EC" FontSize="11.5" TextWrapping="Wrap" LineHeight="17"/>
+                                        </Border>
+                                        <ItemsControl Visibility="{Binding IsExpanded, Converter={StaticResource BoolVis}}" Margin="7,0,7,7"
+                                                      ItemsSource="{Binding ServersView}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border x:Name="row" CornerRadius="12" Padding="14,11" Margin="0,3" Cursor="Hand" BorderThickness="1">
+                                                        <Border.InputBindings>
+                                                            <MouseBinding MouseAction="LeftClick"
+                                                                          Command="{Binding DataContext.SelectServerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                          CommandParameter="{Binding}"/>
+                                                        </Border.InputBindings>
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{StaticResource Card}"/>
+                                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource CardHover}"/></Trigger>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                                                        <Setter Property="Background" Value="#251A44"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource ServerRowTemplate}"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Visibility="{Binding HasNoServers, Converter={StaticResource BoolVis}}"
+                            CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Text="Нет подписки" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="Нажмите «Добавить» или вставьте ссылку из буфера"
+                                       Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

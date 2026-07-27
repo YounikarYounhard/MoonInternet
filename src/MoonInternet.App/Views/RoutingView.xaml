@@ -1,0 +1,221 @@
+<UserControl x:Class="MoonInternet.App.Views.RoutingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
+    <UserControl.Resources>
+        <!-- one rule chip; the × (remove) shows only when the custom profile is active -->
+        <DataTemplate x:Key="RuleChip">
+            <Border Background="#1EFFFFFF" CornerRadius="7" Padding="8,3" Margin="0,0,6,6">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Value}" Foreground="{StaticResource TextPrimary}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="300"/>
+                    <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="9" Width="16" Height="16" Padding="0" Margin="6,0,0,0" VerticalAlignment="Center"
+                            Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondary}" Cursor="Hand"
+                            Visibility="{Binding DataContext.IsRoutingCustom, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"
+                            Command="{Binding DataContext.RemoveRuleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+        <ItemsPanelTemplate x:Key="Wrap"><WrapPanel/></ItemsPanelTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid Margin="24,20,24,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding BackToRoutingSettingsCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Маршрутизация" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- geo files -->
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Гео-файлы" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right" ToolTip="Обновить гео-файлы"
+                                    Command="{Binding RefreshGeoCommand}" IsEnabled="{Binding GeoRefreshing, Converter={StaticResource InvBool}}"/>
+                        </Grid>
+                        <Grid Margin="0,10,0,0">
+                            <TextBlock Text="geoip.dat" FontSize="12.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding GeoipInfo}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,8"/>
+                        <Grid>
+                            <TextBlock Text="geosite.dat" FontSize="12.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding GeositeInfo}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <TextBlock Text="{Binding GeoStatus}" Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="0,8,0,0"
+                                   Visibility="{Binding GeoRefreshing, Converter={StaticResource BoolVis}}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- source: INCY | HAPP | Свой -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Профиль:" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Border CornerRadius="10" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="3">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="INCY" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="incy" IsChecked="{Binding IsRoutingIncy, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="HAPP" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="happ" IsChecked="{Binding IsRoutingHapp, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="Свой" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="custom" IsChecked="{Binding IsRoutingCustom, Mode=OneWay}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- search across all three buckets -->
+                    <Border CornerRadius="11" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <Grid Grid.Column="1">
+                                <TextBlock Text="Поиск по правилам…" Foreground="{StaticResource TextMuted}" FontSize="13" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers><DataTrigger Binding="{Binding RuleSearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBox Text="{Binding RuleSearch, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0"
+                                         Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource TextPrimary}" VerticalContentAlignment="Center" FontSize="13" Padding="10,8"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- DIRECT -->
+                    <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource GlyphButton}" Width="24" Height="24" FontSize="11" Content="&#xE70D;" Command="{Binding ToggleBucketCommand}" CommandParameter="direct"/>
+                                    <TextBlock Text="DIRECT" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    <Border CornerRadius="8" Background="#2534D399" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DirectCount}" Foreground="{StaticResource Green}" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                </StackPanel>
+                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="+ Добавить" FontSize="12"
+                                        Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
+                                        Command="{Binding OpenAddRuleCommand}" CommandParameter="direct"/>
+                            </Grid>
+                            <TextBlock Text="Идёт напрямую, мимо VPN" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+                            <ItemsControl ItemsSource="{Binding DirectRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
+                                          Visibility="{Binding DirectOpen, Converter={StaticResource BoolVis}}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- PROXY -->
+                    <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource GlyphButton}" Width="24" Height="24" FontSize="11" Content="&#xE70D;" Command="{Binding ToggleBucketCommand}" CommandParameter="proxy"/>
+                                    <TextBlock Text="PROXY" Foreground="{StaticResource Accent}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    <Border CornerRadius="8" Background="#2E9D7BFF" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ProxyCount}" Foreground="{StaticResource AccentText}" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                </StackPanel>
+                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="+ Добавить" FontSize="12"
+                                        Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
+                                        Command="{Binding OpenAddRuleCommand}" CommandParameter="proxy"/>
+                            </Grid>
+                            <TextBlock Text="Пусто — всё остальное идёт через VPN" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+                            <ItemsControl ItemsSource="{Binding ProxyRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
+                                          Visibility="{Binding ProxyOpen, Converter={StaticResource BoolVis}}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- BLOCK -->
+                    <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource GlyphButton}" Width="24" Height="24" FontSize="11" Content="&#xE70D;" Command="{Binding ToggleBucketCommand}" CommandParameter="block"/>
+                                    <TextBlock Text="BLOCK" Foreground="{StaticResource Danger}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    <Border CornerRadius="8" Background="#33FF6B8A" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding BlockCount}" Foreground="{StaticResource Danger}" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                </StackPanel>
+                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="+ Добавить" FontSize="12"
+                                        Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
+                                        Command="{Binding OpenAddRuleCommand}" CommandParameter="block"/>
+                            </Grid>
+                            <TextBlock Text="Полностью блокируется" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+                            <ItemsControl ItemsSource="{Binding BlockRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
+                                          Visibility="{Binding BlockOpen, Converter={StaticResource BoolVis}}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ===== add-rule dialog ===== -->
+        <Border Panel.ZIndex="50" Background="#B3060410" Visibility="{Binding ShowRuleDialog, Converter={StaticResource BoolVis}}">
+            <Border Width="330" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="{Binding RuleBucketTitle}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseRuleDialogCommand}"/>
+                    </Grid>
+                    <TextBlock Text="Домен, IP/CIDR или тег geosite: / geoip:" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,12,0,6"/>
+                    <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding RuleInput, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenGeoBrowserCommand}" Padding="12,8" Margin="0,10,0,0" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Из гео-файла" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Отмена" Command="{Binding CloseRuleDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="Добавить" Command="{Binding ConfirmAddRuleCommand}" Padding="22,9"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ===== geo-tag browser ===== -->
+        <Border Panel.ZIndex="60" Background="#B3060410" Visibility="{Binding ShowGeoBrowser, Converter={StaticResource BoolVis}}">
+            <Border Width="360" MaxHeight="560" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top">
+                        <TextBlock Text="Гео-файл" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseGeoBrowserCommand}"/>
+                    </Grid>
+                    <TextBox DockPanel.Dock="Top" Style="{StaticResource DarkTextBox}" Margin="0,12,0,10"
+                             Text="{Binding GeoQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск тегов"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding GeoTags}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button HorizontalContentAlignment="Left" Cursor="Hand" Margin="0,0,0,2"
+                                            Command="{Binding DataContext.PickGeoTagCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="b" Background="Transparent" CornerRadius="8" Padding="10,7">
+                                                    <TextBlock Text="{Binding}" FontSize="12.5"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#18FFFFFF"/></Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

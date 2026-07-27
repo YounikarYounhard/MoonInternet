@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MoonInternet.Core\MoonInternet.Core.csproj" />
+    <ProjectReference Include="..\MoonInternet.Services\MoonInternet.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>MoonInternet</AssemblyName>
+    <RootNamespace>MoonInternet.App</RootNamespace>
+    <Version>0.9.0</Version>
+    <ApplicationIcon>Assets\moon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\moon.ico" />
+    <Resource Include="Assets\moon.png" />
+    <Resource Include="Assets\moon_full.png" />
+    <Resource Include="Assets\moon_crescent.png" />
+    <Resource Include="Assets\ping.png" />
+    <Resource Include="Assets\moon_on.png" />
+    <Resource Include="Assets\moon_off.png" />
+    <Resource Include="Assets\moon44.png" />
+    <Resource Include="Assets\reference.png" />
+    <Resource Include="Assets\btn_off.png" />
+    <Resource Include="Assets\btn_on.png" />
+    <Resource Include="Assets\nav.png" />
+    <Resource Include="Assets\flags\*.png" />
+  </ItemGroup>
+
+</Project>

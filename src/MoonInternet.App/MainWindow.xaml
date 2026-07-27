@@ -1,0 +1,279 @@
+<Window x:Class="MoonInternet.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:MoonInternet.App.Views"
+        xmlns:vm="clr-namespace:MoonInternet.App.ViewModels"
+        xmlns:app="clr-namespace:MoonInternet.App"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Moon Internet 0.9.0 beta" Height="788" Width="420"
+        WindowStyle="None" ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen" AllowsTransparency="True"
+        Background="{StaticResource WinBg}" Icon="Assets/moon.png" Foreground="{StaticResource TextPrimary}">
+
+    <Window.DataContext><vm:MainViewModel/></Window.DataContext>
+
+    <Window.Resources>
+        <!-- server row inside "Сменить сервер" (flag + checkmark + name; click selects/reconnects) -->
+        <Style x:Key="TrayServerItem" TargetType="MenuItem" BasedOn="{StaticResource TrayMenuItem}">
+            <Setter Property="Header" Value="{Binding}"/>
+            <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}"/>
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding FlagImage}" Width="18" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <EventSetter Event="Click" Handler="TrayServer_Click"/>
+        </Style>
+
+        <!-- tray menu (dark, themed, HAPP-style). DataContext set to the VM in code-behind. -->
+        <ContextMenu x:Key="TrayMenu" Style="{StaticResource TrayMenu}">
+            <MenuItem Header="{Binding TrayToggleText}" Style="{StaticResource TrayMenuItem}" Command="{Binding ConnectCommand}">
+                <MenuItem.Icon><Ellipse Width="9" Height="9" Fill="{Binding RingBrush}"/></MenuItem.Icon>
+            </MenuItem>
+
+            <MenuItem Header="Сменить сервер" Style="{StaticResource TrayMenuItem}"
+                      ItemsSource="{Binding TrayServers}" ItemContainerStyle="{StaticResource TrayServerItem}">
+                <MenuItem.Icon><TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+            </MenuItem>
+
+            <MenuItem Header="Пинг всех серверов" Style="{StaticResource TrayMenuItem}" Command="{Binding PingAllCommand}">
+                <MenuItem.Icon><TextBlock Text="&#xEC4A;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding CheckPingTrayText}" Style="{StaticResource TrayMenuItem}" Command="{Binding CheckConnectionCommand}">
+                <MenuItem.Icon><TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+            </MenuItem>
+
+            <MenuItem Header="Сортировка" Style="{StaticResource TrayMenuItem}">
+                <MenuItem.Icon><TextBlock Text="&#xE8CB;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+                <MenuItem Header="Обычная" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortDefault, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="default"/>
+                <MenuItem Header="По пингу" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortPing, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="ping"/>
+                <MenuItem Header="А–Я" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortName, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="name"/>
+                <MenuItem Header="Избранное" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortFavorite, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="favorite"/>
+            </MenuItem>
+
+            <MenuItem Header="Режим транспорта" Style="{StaticResource TrayMenuItem}">
+                <MenuItem.Icon><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+                <MenuItem Header="TUN" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding TunMode, Mode=OneWay}" Click="TrayTun_Click"/>
+                <MenuItem Header="Системный прокси" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=OneWay}" Click="TrayProxy_Click"/>
+            </MenuItem>
+
+            <MenuItem Header="Импорт из буфера" Style="{StaticResource TrayMenuItem}" Command="{Binding PasteImportCommand}">
+                <MenuItem.Icon><TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+            </MenuItem>
+
+            <MenuItem Header="Маршрутизация" Style="{StaticResource TrayMenuItem}" Click="TrayRouting_Click">
+                <MenuItem.Icon><TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+            </MenuItem>
+
+            <Separator Style="{StaticResource TraySep}"/>
+
+            <MenuItem Header="Показать окно" Style="{StaticResource TrayMenuItem}" Click="TrayShow_Click">
+                <MenuItem.Icon><TextBlock Text="&#xE740;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Выйти" Style="{StaticResource TrayMenuItem}" Click="TrayExit_Click">
+                <MenuItem.Icon><TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Danger}"/></MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+    </Window.Resources>
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="40" ResizeBorderThickness="0" CornerRadius="0" GlassFrameThickness="0"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid Background="{StaticResource WinBg}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- titlebar -->
+            <RowDefinition Height="*"/>       <!-- content -->
+            <RowDefinition Height="Auto"/>    <!-- bottom nav -->
+        </Grid.RowDefinitions>
+
+        <!-- ===== Titlebar ===== -->
+        <Border Grid.Row="0" Background="{StaticResource TitleBar}" Height="40">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Image Source="Assets/moon.png" Width="20" Height="20"/>
+                    <TextBlock Text="Moon Internet" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="9,0,0,0"/>
+                    <TextBlock Text="0.9.0 beta" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="8,1,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Height="40" Content="&#xE921;" Click="Minimize_Click"/>
+                    <Button Style="{StaticResource GlyphButton}" Height="40" Content="&#xE8BB;" Click="Close_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== Content ===== -->
+        <Grid Grid.Row="1">
+            <v:HomeView     Style="{StaticResource PageTransition}" Visibility="{Binding CurrentPage, Converter={StaticResource EnumVis}, ConverterParameter=Home}"/>
+            <v:ServersView  Style="{StaticResource PageTransition}" Visibility="{Binding CurrentPage, Converter={StaticResource EnumVis}, ConverterParameter=Servers}"/>
+            <v:RoutingView  Style="{StaticResource PageTransition}" Visibility="{Binding CurrentPage, Converter={StaticResource EnumVis}, ConverterParameter=Routing}"/>
+            <v:SettingsView Style="{StaticResource PageTransition}" Visibility="{Binding CurrentPage, Converter={StaticResource EnumVis}, ConverterParameter=Settings}"/>
+        </Grid>
+
+        <!-- ===== Bottom nav ===== -->
+        <Border Grid.Row="2" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0">
+            <Grid Height="70">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <RadioButton Grid.Column="0" GroupName="nav" Style="{StaticResource NavTab}" Tag="&#xE774;" Content="Сервера"
+                             Command="{Binding NavigateCommand}" CommandParameter="Servers"
+                             IsChecked="{Binding CurrentPage, Converter={StaticResource EnumBool}, ConverterParameter=Servers, Mode=OneWay}"/>
+
+                <!-- center Moon = Home -->
+                <Button Grid.Column="1" Width="60" Height="60" Margin="14,0,14,0" VerticalAlignment="Center" Cursor="Hand"
+                        FocusVisualStyle="{x:Null}" Command="{Binding NavigateCommand}" CommandParameter="Home">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Grid Background="Transparent">
+                                <Image x:Name="img" Source="{Binding NavMoonImage}" Width="56" Height="56" Stretch="Uniform" Opacity="0.92"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="img" Property="Opacity" Value="1"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <RadioButton Grid.Column="2" GroupName="nav" Style="{StaticResource NavTab}" Tag="&#xE713;" Content="Настройки"
+                             Command="{Binding NavigateCommand}" CommandParameter="Settings"
+                             IsChecked="{Binding IsSettingsSection, Mode=OneWay}"/>
+            </Grid>
+        </Border>
+
+        <!-- ===== Add server / subscription dialog (overlay) ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="50" Background="#B3060410"
+                Visibility="{Binding ShowAddDialog, Converter={StaticResource BoolVis}}">
+            <Border Width="330" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="{Binding DialogTitle}" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseAddDialogCommand}"/>
+                    </Grid>
+
+                    <TextBlock Text="Название (необязательно)" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,14,0,6"/>
+                    <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding NewSubName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Text="Ссылка (vless://, trojan://, hy2://, https://…)" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,12,0,6"/>
+                    <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SubscriptionUrl, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding PasteImportCommand}" Padding="12,8" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                <TextBlock Text="Из буфера" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Отмена" Command="{Binding CloseAddDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="Добавить" Command="{Binding ConfirmAddCommand}" Padding="22,9"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ===== Per-server config (JSON) dialog (overlay) ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="60" Background="#B3060410"
+                Visibility="{Binding ShowConfigDialog, Converter={StaticResource BoolVis}}">
+            <Border Width="368" MaxHeight="540" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,30,0">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding ConfigDialogTitle}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseConfigDialogCommand}"/>
+                    </Grid>
+
+                    <TextBlock Text="Конфигурация подключения" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,14,0,6"/>
+                    <Border CornerRadius="12" Background="#0B0916" BorderBrush="#2A2150" BorderThickness="1" Padding="14,12" MaxHeight="372">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                            <TextBlock app:JsonColorizer.Json="{Binding ConfigDialogJson}" Foreground="#CFC7EC"
+                                       FontFamily="Consolas, Cascadia Mono, Courier New" FontSize="12.5" LineHeight="18" TextWrapping="NoWrap"/>
+                        </ScrollViewer>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Закрыть" Command="{Binding CloseConfigDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Command="{Binding CopyConfigJsonCommand}" Padding="18,9">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                <TextBlock Text="Копировать" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ===== Action sheet: server "⋯" (in-window, slides from the bottom) ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="80" Background="#99060410"
+                Visibility="{Binding ShowServerSheet, Converter={StaticResource BoolVis}}">
+            <Border.InputBindings><MouseBinding MouseAction="LeftClick" Command="{Binding CloseServerSheetCommand}"/></Border.InputBindings>
+            <Border VerticalAlignment="Bottom" CornerRadius="18,18,0,0" Background="{StaticResource Card}"
+                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,1,1,0" Padding="10,10,10,14">
+                <StackPanel>
+                    <Border Width="38" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding SheetServer.Label}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE00B;" Content="{Binding SheetServer.FavoriteText}" Command="{Binding SheetToggleFavoriteCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xEC4A;" Content="Пинг" Command="{Binding SheetPingCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE7C3;" Content="Конфигурация" Command="{Binding SheetServerConfigCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="Копировать URL" Command="{Binding SheetCopyServerUrlCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="Показать QR-код" Command="{Binding SheetServerQrCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ===== Action sheet: subscription "⋯" ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="80" Background="#99060410"
+                Visibility="{Binding ShowSubSheet, Converter={StaticResource BoolVis}}">
+            <Border.InputBindings><MouseBinding MouseAction="LeftClick" Command="{Binding CloseSubSheetCommand}"/></Border.InputBindings>
+            <Border VerticalAlignment="Bottom" CornerRadius="18,18,0,0" Background="{StaticResource Card}"
+                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,1,1,0" Padding="10,10,10,14">
+                <StackPanel>
+                    <Border Width="38" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding SheetSub.Name}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE713;" Content="Настройки" Command="{Binding SheetSubSettingsCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="Копировать URL" Command="{Binding SheetCopySubUrlCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="Показать QR-код" Command="{Binding SheetSubQrCommand}"/>
+                    <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,6"/>
+                    <Button Style="{StaticResource SheetRowDanger}" Tag="&#xE74D;" Content="Удалить" Command="{Binding SheetDeleteSubCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ===== QR code dialog (overlay) ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="70" Background="#B3060410"
+                Visibility="{Binding ShowQrDialog, Converter={StaticResource BoolVis}}">
+            <Border Width="320" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="{Binding QrTitle}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,30,0"/>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseQrDialogCommand}"/>
+                    </Grid>
+                    <Border CornerRadius="12" Background="#0B0916" Padding="14" Margin="0,14,0,0" HorizontalAlignment="Center">
+                        <Image Source="{Binding QrImage}" Width="240" Height="240" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                    </Border>
+                    <TextBlock Text="{Binding QrSubtitle}" Foreground="{StaticResource TextSecondary}" FontSize="10.5" TextWrapping="Wrap"
+                               Margin="2,12,2,0" MaxHeight="50" TextTrimming="CharacterEllipsis"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Закрыть" Command="{Binding CloseQrDialogCommand}" Padding="18,9" Margin="0,16,0,0" HorizontalAlignment="Right"/>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</Window>

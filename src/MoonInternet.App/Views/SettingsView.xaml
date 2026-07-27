@@ -1,0 +1,966 @@
+<UserControl x:Class="MoonInternet.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
+    <UserControl.Resources>
+        <!-- hub category card: icon + title + chevron -->
+        <Style x:Key="HubCard" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="15,14">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Width="38" Height="38" CornerRadius="11" Background="#2C2058" VerticalAlignment="Center">
+                                    <TextBlock Text="{TemplateBinding Tag}" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                                    <TextBlock Text="{TemplateBinding Content}" FontSize="14.5" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{TemplateBinding ToolTip}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- link row inside a card: label + chevron, navigates via Command/CommandParameter -->
+        <Style x:Key="NavRow" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="Transparent" Padding="14,12">
+                            <Grid>
+                                <TextBlock Text="{TemplateBinding Content}" FontSize="13.5" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#12FFFFFF"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- "coming soon" placeholder row -->
+        <Style x:Key="SoonRow" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Card}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- ================= HUB ================= -->
+        <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=hub}">
+            <StackPanel Margin="24,20,24,24">
+                <TextBlock Text="Настройки" FontSize="26" FontWeight="Bold" Margin="2,4,0,2"/>
+                <TextBlock Text="Moon Internet · 0.9.0 beta" Foreground="{StaticResource TextSecondary}" FontSize="12.5" Margin="2,0,0,18"/>
+
+                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="Оформление" ToolTip="Тема, шрифт, цвета, иконки" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="Соединение" ToolTip="TUN, авто-переподключение, kill-switch" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="Маршрутизация" ToolTip="Профили, правила, приложения, DNS" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="Настройки подписок" ToolTip="Обновление, срок, авто-обновление" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="Настройки пинга" ToolTip="Как и когда измерять задержку" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="Авто" ToolTip="Автозапуск, автоподключение, трей" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="Логи" ToolTip="Диагностика и журналы" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE72E;" Content="Политика конфиденциальности" ToolTip="Как приложение обращается с данными" Command="{Binding OpenSettingsPageCommand}" CommandParameter="privacy"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="О приложении" ToolTip="Версии, ссылки, система" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= ОФОРМЛЕНИЕ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=appearance}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Оформление" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Тема -->
+                <TextBlock Text="ТЕМА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
+                    <ItemsControl ItemsSource="{Binding Presets}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource SecondaryButton}" Padding="12,7" Margin="0,0,8,8"
+                                        Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse Width="12" Height="12" VerticalAlignment="Center" Fill="{Binding Accent, Converter={StaticResource HexBrush}}"/>
+                                        <TextBlock Text="{Binding Name}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <!-- Цвета -->
+                <TextBlock Text="ЦВЕТА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="Цвет кнопок (акцент)" FontWeight="SemiBold" FontSize="13"/>
+                        <ItemsControl ItemsSource="{Binding AccentSwatches}" Margin="0,8,0,0">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Width="28" Height="28" Margin="0,0,8,0" Cursor="Hand"
+                                            Command="{Binding DataContext.SetAccentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                        <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="{Binding Converter={StaticResource HexBrush}}" Stroke="#50FFFFFF" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBox Style="{StaticResource DarkTextBox}" Width="130" Text="{Binding AccentHex, UpdateSourceTrigger=LostFocus}"/>
+                            <Border Width="28" Height="28" CornerRadius="7" Margin="10,0,0,0" Background="{Binding AccentHex, Converter={StaticResource HexBrush}}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Цвет интерфейса (фон)" FontWeight="SemiBold" FontSize="13" Margin="0,16,0,0"/>
+                        <ItemsControl ItemsSource="{Binding BgSwatches}" Margin="0,8,0,0">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Width="28" Height="28" Margin="0,0,8,0" Cursor="Hand"
+                                            Command="{Binding DataContext.SetBgColorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                        <Button.Template><ControlTemplate TargetType="Button"><Border CornerRadius="7" Background="{Binding Converter={StaticResource HexBrush}}" BorderBrush="#50FFFFFF" BorderThickness="1"/></ControlTemplate></Button.Template>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBox Style="{StaticResource DarkTextBox}" Width="130" Text="{Binding BgHex, UpdateSourceTrigger=LostFocus}"/>
+                            <Border Width="28" Height="28" CornerRadius="7" Margin="10,0,0,0" Background="{Binding BgHex, Converter={StaticResource HexBrush}}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Цвет текста" FontWeight="SemiBold" FontSize="13" Margin="0,16,0,0"/>
+                        <ItemsControl ItemsSource="{Binding TextSwatches}" Margin="0,8,0,0">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Width="28" Height="28" Margin="0,0,8,0" Cursor="Hand"
+                                            Command="{Binding DataContext.SetTextColorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                        <Button.Template><ControlTemplate TargetType="Button"><Border CornerRadius="7" Background="{Binding Converter={StaticResource HexBrush}}" BorderBrush="#50FFFFFF" BorderThickness="1"/></ControlTemplate></Button.Template>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBox Style="{StaticResource DarkTextBox}" Width="130" Text="{Binding TextHex, UpdateSourceTrigger=LostFocus}"/>
+                            <Border Width="28" Height="28" CornerRadius="7" Margin="10,0,0,0" Background="{Binding TextHex, Converter={StaticResource HexBrush}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Шрифт -->
+                <TextBlock Text="ШРИФТ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
+                    <ItemsControl ItemsSource="{Binding Fonts}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource SecondaryButton}" Padding="12,6" Margin="0,0,8,8"
+                                        Command="{Binding DataContext.SetFontCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                    <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <!-- Прозрачность интерфейса -->
+                <TextBlock Text="ПРОЗРАЧНОСТЬ ИНТЕРФЕЙСА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,12">
+                    <StackPanel>
+                        <TextBlock Text="Прозрачность окна" FontSize="14" FontWeight="SemiBold"/>
+                        <Slider Minimum="0.7" Maximum="1" Value="{Binding UiOpacity}" Margin="0,8,0,0"/>
+                        <TextBlock Text="Просвечивает рабочий стол сквозь окно." Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Иконка / картинки кнопки -->
+                <TextBlock Text="ИКОНКА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
+                    <StackPanel>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap"
+                                   Text="PNG с прозрачным фоном. Кнопка — квадрат ≥ 400×400. Луна в меню снизу ≥ 128×128. Пусто = встроенная."/>
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Подключено (полная)" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                            <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PickMoonOnCommand}" Content="Выбрать…" Padding="12,6" Margin="0,0,0,6"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Отключено (полумесяц)" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                            <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PickMoonOffCommand}" Content="Выбрать…" Padding="12,6" Margin="0,0,0,6"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Луна в меню снизу" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                            <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PickNavMoonCommand}" Content="Выбрать…" Padding="12,6"/>
+                        </Grid>
+                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding ResetMoonImagesCommand}" Content="Сбросить картинки" Padding="12,7" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Фон -->
+                <TextBlock Text="ФОН" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding PickBackgroundCommand}" Content="Выбрать…" Padding="14,8"/>
+                            <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearBackgroundCommand}" Content="Убрать" Padding="14,8" Margin="8,0,0,0"/>
+                            <TextBlock Text="{Binding BackgroundInfo}" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock Text="Прозрачность фона" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Width="140"/>
+                            <Slider Minimum="0.1" Maximum="1" Value="{Binding BgOpacity}" Width="180" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Язык -->
+                <TextBlock Text="ЯЗЫК" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Русский" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="Другие языки — позже" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ExportThemeCommand}" Content="Экспорт" Padding="14,8"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ImportThemeCommand}" Content="Импорт" Padding="14,8" Margin="8,0,0,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ResetThemeCommand}" Content="Сбросить тему" Padding="14,8" Margin="8,0,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= СОЕДИНЕНИЕ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=connection}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Соединение" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <StackPanel>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Авто-переподключение" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Если ядро упало — переподключиться автоматически" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoReconnect}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Kill Switch" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Блокировать трафик при отключении VPN" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding KillSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Button Command="{Binding ResetKillSwitchCommand}" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="b" Background="Transparent" Padding="12">
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="Сбросить Kill Switch" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource AccentText}"/>
+                                                <TextBlock Text="Удалить правила фаервола, если интернет заблокирован после краша" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#12FFFFFF"/></Trigger></ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Разрешить LAN подключения" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Исключить локальную сеть из VPN туннеля" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AllowLan}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Margin="12,0,12,12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="LAN через прокси" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Направить локальный трафик через VPN прокси" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding LanThroughProxy}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Кнопка &quot;Только прокси&quot;" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Показывать кнопку на главном экране" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowProxyOnlyButton}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <StackPanel Margin="12">
+                            <TextBlock Text="Дополнительные адреса в обход прокси" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="Хосты в обход системного прокси (напр. *.local)" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding ProxyBypassHosts, UpdateSourceTrigger=LostFocus}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <StackPanel Margin="12">
+                            <TextBlock Text="Локальный прокси" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding LocalProxyInfo}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="SOCKS5 / ПРОКСИ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <StackPanel>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="SOCKS5 авторизация" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Защищает локальный прокси от приложений, которые сканируют порты для обнаружения VPN" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Socks5Auth}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Visibility="{Binding Socks5Auth, Converter={StaticResource BoolVis}}">
+                            <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                            <Grid Margin="12">
+                                <TextBlock Text="Логин" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ProxyUser}" FontFamily="Consolas" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyUserCommand}" ToolTip="Скопировать логин"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Margin="12,0,12,12">
+                                <TextBlock Text="Пароль" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ProxyPassMasked}" FontFamily="Consolas" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyPassCommand}" ToolTip="Скопировать пароль"/>
+                                </StackPanel>
+                            </Grid>
+                            <Button Command="{Binding ResetProxyCredsCommand}" Cursor="Hand" HorizontalContentAlignment="Left" Margin="6,0,0,10">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="b" Background="Transparent" Padding="6,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Сбросить логин/пароль" Foreground="{StaticResource AccentText}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="Блокировать UDP" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Сломает DNS-over-UDP, QUIC, голосовые звонки, игры. Включайте только если знаете зачем" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding BlockUdp}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="HTTP-прокси авторизация" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Защитить HTTP-прокси теми же логином/паролем" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding HttpProxyAuth}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= МАРШРУТИЗАЦИЯ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=routing}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Маршрутизация" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <StackPanel>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Профили маршрутизации" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Раздельное туннелирование с профилями" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding UseRouting}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Button Command="{Binding NavigateCommand}" CommandParameter="Routing" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="b" Background="Transparent" Padding="12">
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="Настройки маршрутизации" FontSize="14" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding RoutingName, StringFormat='Профиль, правила · {0}'}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#12FFFFFF"/></Trigger></ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Фрагментация" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Разделение TLS hello для обхода блокировок" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding TlsFragment}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Margin="12,0,12,12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Мультиплексирование" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Мультиплексирование соединений" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Mux}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid Margin="12,0,12,12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Снифинг" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Определение протокола для маршрутизации" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Sniffing}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Button Command="{Binding OpenSettingsPageCommand}" CommandParameter="approuting" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="b" Background="Transparent" Padding="12">
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="Прокси по приложениям" FontSize="14" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Раздельное туннелирование по приложениям" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#12FFFFFF"/></Trigger></ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <StackPanel Margin="12">
+                            <Grid>
+                                <TextBlock Text="Предпочтительный IP" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding PreferredIpLabel}" Foreground="{StaticResource AccentText}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <Border CornerRadius="10" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="3" Margin="0,8,0,0">
+                                <UniformGrid Rows="1">
+                                    <RadioButton Style="{StaticResource SegButton}" GroupName="prefip" Content="IPv4" Command="{Binding SetPreferredIpCommand}" CommandParameter="ipv4" IsChecked="{Binding IsIpV4, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource SegButton}" GroupName="prefip" Content="IPv6" Command="{Binding SetPreferredIpCommand}" CommandParameter="ipv6" IsChecked="{Binding IsIpV6, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource SegButton}" GroupName="prefip" Content="AUTO" Command="{Binding SetPreferredIpCommand}" CommandParameter="auto" IsChecked="{Binding IsIpAuto, Mode=OneWay}"/>
+                                </UniformGrid>
+                            </Border>
+                        </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <StackPanel Margin="12">
+                            <Grid>
+                                <TextBlock Text="VPN DNS" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding VpnDnsLabel}" Foreground="{StaticResource AccentText}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <WrapPanel Margin="0,8,0,0">
+                                <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Cloudflare + Google" Margin="0,0,8,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="cf_google" IsChecked="{Binding IsDnsCfGoogle, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Google DNS" Margin="0,0,8,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="google" IsChecked="{Binding IsDnsGoogle, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Cloudflare" Margin="0,0,8,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="cloudflare" IsChecked="{Binding IsDnsCloudflare, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Quad9" Margin="0,0,8,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="quad9" IsChecked="{Binding IsDnsQuad9, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Свой" Margin="0,0,0,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="custom" IsChecked="{Binding IsDnsCustom, Mode=OneWay}"/>
+                            </WrapPanel>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding VpnDnsCustom, UpdateSourceTrigger=LostFocus}"
+                                     Visibility="{Binding IsDnsCustom, Converter={StaticResource BoolVis}}" Margin="0,2,0,0"/>
+                            <TextBlock Text="IP через запятую, напр. 8.8.8.8, 1.1.1.1" Foreground="{StaticResource TextSecondary}" FontSize="11" Margin="2,4,0,0"
+                                       Visibility="{Binding IsDnsCustom, Converter={StaticResource BoolVis}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= ПРОКСИ ПО ПРИЛОЖЕНИЯМ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=approuting}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Прокси по приложениям" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </StackPanel>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Раздельный туннель (только в TUN)" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Text="Какие приложения пускать мимо VPN — или только их через VPN." Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="Выкл" Command="{Binding SetAppRouteModeCommand}" CommandParameter="off" IsChecked="{Binding IsAppRouteOff, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="Мимо VPN" Command="{Binding SetAppRouteModeCommand}" CommandParameter="bypass" IsChecked="{Binding IsAppRouteBypass, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="Только VPN" Command="{Binding SetAppRouteModeCommand}" CommandParameter="only" IsChecked="{Binding IsAppRouteOnly, Mode=OneWay}"/>
+                        </StackPanel>
+                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding AddAppRouteCommand}" Content="+ Добавить приложение" Padding="12,7" Margin="0,12,0,0" HorizontalAlignment="Left"/>
+                        <ItemsControl ItemsSource="{Binding AppRouteApps}" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#22FFFFFF" CornerRadius="10" Padding="10,6" Margin="0,0,0,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid Grid.Column="0" Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                <TextBlock Text="&#xE7C4;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Image Source="{Binding Icon}" Stretch="Uniform"/>
+                                            </Grid>
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}"/>
+                                            <Button Grid.Column="2" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource GlyphButton}" ToolTip="Убрать"
+                                                    Command="{Binding DataContext.RemoveAppRouteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= АВТО ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=auto}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Авто" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <StackPanel>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Автозапуск с Windows" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Запускать Moon Internet при входе в систему" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Autostart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Авто-скрытие в трее" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Запускать сразу свёрнутым в системном трее" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding LaunchMinimized}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Авто-подключение при запуске" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Подключаться автоматически при старте приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoConnectOnStart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Margin="12,0,12,12" Visibility="{Binding AutoConnectOnStart, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="Какой сервер подключать" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="Первый" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="first" IsChecked="{Binding IsAutoFirst, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="Последний" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="last" IsChecked="{Binding IsAutoLast, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="Мин. пинг" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="lowest" IsChecked="{Binding IsAutoLowest, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="★ Избранное" Margin="0,0,0,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-first" IsChecked="{Binding IsAutoFav, Mode=OneWay}"/>
+                            </WrapPanel>
+                            <StackPanel Visibility="{Binding IsAutoFav, Converter={StaticResource BoolVis}}">
+                                <TextBlock Text="Какое избранное" FontSize="12" Foreground="{StaticResource TextSecondary}"/>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="Первое" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-first" IsChecked="{Binding IsAutoFavFirst, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="Последнее" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-last" IsChecked="{Binding IsAutoFavLast, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="Мин. пинг" Margin="0,0,0,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-lowest" IsChecked="{Binding IsAutoFavLowest, Mode=OneWay}"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= ПОДПИСКИ / ПИНГ / ЛОГИ (заглушки) ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=subs}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Настройки подписок" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <StackPanel>
+                        <Grid Margin="12,12,12,8">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Автообновление" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Обновлять подписки автоматически" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoUpdateSubs}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Margin="12,0,12,10" Visibility="{Binding AutoUpdateSubs, Converter={StaticResource BoolVis}}">
+                        <WrapPanel>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="По подписке" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="0" IsChecked="{Binding IsSubIntAuto, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="30 мин" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="30" IsChecked="{Binding IsSubInt30, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="1 час" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="60" IsChecked="{Binding IsSubInt60, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="2 часа" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="120" IsChecked="{Binding IsSubInt120, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="6 часов" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="360" IsChecked="{Binding IsSubInt360, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="12 часов" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="720" IsChecked="{Binding IsSubInt720, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="24 часа" Margin="0,0,0,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="1440" IsChecked="{Binding IsSubInt1440, Mode=OneWay}"/>
+                        </WrapPanel>
+                        <TextBlock Text="{Binding SubUpdateHint}" Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="1,0,0,0"/>
+                        </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Уведомлять об обновлении" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Показывать уведомление после обновления" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyOnUpdate}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Обновлять при запуске" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Обновлять подписки при старте приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding UpdateSubsOnStart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Пинг при запуске" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Тестировать задержку при запуске приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PingOnStart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Отправлять HWID" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Отправлять ID устройства в запросах подписки" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding SendHwid}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Показывать шапку подписки" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Приветствие / объявление от подписки на списке серверов" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowSubHeader}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6" Margin="0,10,0,0">
+                    <StackPanel>
+                        <Grid Margin="12,12,12,8">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Уведомление об истечении" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Предупреждать об истечении подписки" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyExpiry}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="12,0,12,10" Visibility="{Binding NotifyExpiry, Converter={StaticResource BoolVis}}">
+                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="1" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="1" IsChecked="{Binding IsExp1, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="3" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="3" IsChecked="{Binding IsExp3, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="5" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="5" IsChecked="{Binding IsExp5, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="7" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="7" IsChecked="{Binding IsExp7, Mode=OneWay}"/>
+                            <TextBlock Text="Уведомлять за (дней)" Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=ping}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Настройки пинга" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <TextBlock Text="ПРОТОКОЛ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <WrapPanel>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="Moon Ping" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="moon" IsChecked="{Binding IsPingMoon, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="TCP" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="tcp" IsChecked="{Binding IsPingTcp, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP GET" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httpget" IsChecked="{Binding IsPingHttpGet, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
+                </WrapPanel>
+                <TextBlock Text="Moon Ping — наш метод: быстрый TCP-хендшейк напрямую до сервера, мимо туннеля. Самая точная задержка канала до VPN." Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,16" TextWrapping="Wrap"/>
+
+                <TextBlock Text="ОТОБРАЖЕНИЕ ПИНГА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <WrapPanel>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Цифры" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="num" IsChecked="{Binding IsPingDispNum, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Шкала" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="bar" IsChecked="{Binding IsPingDispBar, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Оба" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="both" IsChecked="{Binding IsPingDispBoth, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Точки" Margin="0,0,0,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="dots" IsChecked="{Binding IsPingDispDots, Mode=OneWay}"/>
+                </WrapPanel>
+
+                <TextBlock Text="ТЕСТОВЫЙ URL" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,14,0,8"/>
+                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding PingTestUrl, UpdateSourceTrigger=LostFocus}"/>
+                <TextBlock Text="Пресеты" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="2,10,0,6"/>
+                <WrapPanel>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Google 204" Padding="12,7" Margin="0,0,8,8" Command="{Binding SetPingUrlCommand}" CommandParameter="https://www.gstatic.com/generate_204"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Cloudflare" Padding="12,7" Margin="0,0,8,8" Command="{Binding SetPingUrlCommand}" CommandParameter="https://cp.cloudflare.com/generate_204"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Apple" Padding="12,7" Margin="0,0,0,8" Command="{Binding SetPingUrlCommand}" CommandParameter="https://captive.apple.com"/>
+                </WrapPanel>
+                <TextBlock Text="Используется для HTTP GET / HEAD. Moon Ping и TCP проверяют сам сервер." Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,14" TextWrapping="Wrap"/>
+
+                <TextBlock Text="ТАЙМ-АУТ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,12">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Тайм-аут пинга" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="Максимальное время ожидания ответа" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE738;" Command="{Binding PingTimeoutDecCommand}" ToolTip="Меньше"/>
+                            <Border CornerRadius="8" Background="#2C2058" Padding="10,4" Margin="6,0" MinWidth="42">
+                                <TextBlock Text="{Binding PingTimeoutText}" Foreground="{StaticResource AccentText}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE710;" Command="{Binding PingTimeoutIncCommand}" ToolTip="Больше"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=logs}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Логи" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <StackPanel>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Вести логи" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Записывать журналы ядра для диагностики" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding LogsEnabled}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Visibility="{Binding LogsEnabled, Converter={StaticResource BoolVis}}">
+                            <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                            <StackPanel Margin="12">
+                                <TextBlock Text="Уровень" FontSize="14" FontWeight="SemiBold"/>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Ошибки" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="error" IsChecked="{Binding IsLogErr, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Предупреждения" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="warn" IsChecked="{Binding IsLogWarn, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Инфо" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="info" IsChecked="{Binding IsLogInfo, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Отладка" Margin="0,0,0,8" Command="{Binding SetLogLevelCommand}" CommandParameter="debug" IsChecked="{Binding IsLogDebug, Mode=OneWay}"/>
+                                </WrapPanel>
+                            </StackPanel>
+                            <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                            <StackPanel Margin="12">
+                                <TextBlock Text="Сколько хранить логи" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Старые записи удаляются автоматически при запуске" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="1 день" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="1" IsChecked="{Binding IsKeep1, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="3 дня" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="3" IsChecked="{Binding IsKeep3, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="7 дней" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="7" IsChecked="{Binding IsKeep7, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="30 дней" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="30" IsChecked="{Binding IsKeep30, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="Всегда" Margin="0,0,0,8" Command="{Binding SetLogKeepCommand}" CommandParameter="0" IsChecked="{Binding IsKeepForever, Mode=OneWay}"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <TextBlock Text="Размер логов" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding LogsSizeInfo}" Foreground="{StaticResource AccentText}" FontSize="13" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogsFolderCommand}" Content="Открыть папку" Padding="14,8"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" Content="Очистить логи" Padding="14,8" Margin="8,0,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=privacy}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Политика конфиденциальности" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,16">
+                    <StackPanel>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Moon Internet — локальный VPN-клиент. Ниже — как приложение обращается с вашими данными."/>
+
+                        <TextBlock Text="Мы не собираем данные" FontWeight="SemiBold" FontSize="14" Margin="0,16,0,4"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Приложение работает на вашем устройстве. Разработчик не получает ваши данные: нет аккаунтов, телеметрии, аналитики и обращений «домой»."/>
+
+                        <TextBlock Text="Данные на устройстве" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Подписки, список серверов, ключи и пароли доступа хранятся локально в папке приложения (папка «save») и не покидают ваш компьютер. Удаление приложения удаляет их."/>
+
+                        <TextBlock Text="Ваш трафик" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Трафик идёт через серверы, которые вы добавили сами (по ссылке-подписке). Их операторы обрабатывают трафик по своим правилам — ознакомьтесь с их политикой. Само приложение ваш трафик не логирует и никуда не пересылает."/>
+
+                        <TextBlock Text="Сетевые обращения" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Приложение обращается только к: (1) вашим URL-подпискам — чтобы получить список серверов; (2) источникам гео-правил (например, GitHub) — чтобы скачать файлы маршрутизации, если включён роутинг. Больше никуда."/>
+
+                        <TextBlock Text="Логи" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Технические логи для диагностики соединения хранятся локально и не отправляются. Их можно открыть в разделе «Логи»."/>
+
+                        <TextBlock Text="Права" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Режим TUN требует прав администратора (системная служба туннеля). Она нужна только для маршрутизации трафика и не собирает данные."/>
+
+                        <TextBlock Text="Изменения" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Политика может обновляться вместе с приложением."/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= О ПРИЛОЖЕНИИ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=about}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="О приложении" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <TextBlock Text="ИНФОРМАЦИЯ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+                    <StackPanel>
+                        <Grid Margin="14,11">
+                            <TextBlock Text="Версия Xray" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding XrayVersion}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
+                        <Grid Margin="14,11">
+                            <TextBlock Text="Версия sing-box" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding SingBoxVersion}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
+                        <Grid Margin="14,11">
+                            <TextBlock Text="Версия приложения" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding AppVersion}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="ССЫЛКИ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+                    <StackPanel>
+                        <Button Style="{StaticResource NavRow}" Content="Условия использования" Command="{Binding OpenSettingsPageCommand}" CommandParameter="terms"/>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
+                        <Button Style="{StaticResource NavRow}" Content="Политика конфиденциальности" Command="{Binding OpenSettingsPageCommand}" CommandParameter="privacy"/>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
+                        <Button Style="{StaticResource NavRow}" Content="Сторонние библиотеки" Command="{Binding OpenSettingsPageCommand}" CommandParameter="libs"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="Это приложение — только прокси-инструмент. Мы не собираем персональные данные и не предоставляем прокси-услуги."
+                           Foreground="{StaticResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap" TextAlignment="Center" Margin="10,12,10,0"/>
+
+                <TextBlock Text="СИСТЕМА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+                    <StackPanel>
+                        <Grid Margin="14,11">
+                            <TextBlock Text="Платформа" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding OsPlatform}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
+                        <Grid Margin="14,11">
+                            <TextBlock Text="Архитектура" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding OsArch}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
+                        <Grid Margin="14,11">
+                            <TextBlock Text=".NET" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding DotNetVersion}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
+                        <Grid Margin="14,11">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="HWID" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding HwidDisplay}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="10,0,6,0" TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyHwidCommand}" ToolTip="Скопировать HWID"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= УСЛОВИЯ ИСПОЛЬЗОВАНИЯ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=terms}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Условия использования" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </StackPanel>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,16">
+                    <StackPanel>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                                   Text="Moon Internet предоставляется «как есть», без каких-либо гарантий. Приложение — только инструмент для подключения к прокси/VPN-серверам, которые вы добавляете сами."/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20" Margin="0,12,0,0"
+                                   Text="Вы сами отвечаете за серверы и подписки, которые используете, и за соблюдение законов вашей страны. Разработчик не предоставляет прокси-услуги и не несёт ответственности за содержимое трафика."/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20" Margin="0,12,0,0"
+                                   Text="Используя приложение, вы соглашаетесь с этими условиями."/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= СТОРОННИЕ БИБЛИОТЕКИ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=libs}">
+            <StackPanel Margin="24,20,24,24">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                    <TextBlock Text="Сторонние библиотеки" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </StackPanel>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,14">
+                    <StackPanel>
+                        <TextBlock Text="Ядра" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,6"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12.5" LineHeight="20" TextWrapping="Wrap"
+                                   Text="• xray-core — MPL-2.0&#x0a;• sing-box — GPL-3.0&#x0a;• tun2socks (hev-socks5-tunnel)&#x0a;• amneziawg-go"/>
+                        <TextBlock Text="Библиотеки .NET" FontWeight="SemiBold" FontSize="13" Margin="0,14,0,6"/>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12.5" LineHeight="20" TextWrapping="Wrap"
+                                   Text="• CommunityToolkit.Mvvm — MIT&#x0a;• H.NotifyIcon.Wpf — MIT&#x0a;• QRCoder — MIT"/>
+                        <TextBlock Foreground="{StaticResource TextMuted}" FontSize="11.5" Margin="0,14,0,0" TextWrapping="Wrap"
+                                   Text="Полные тексты лицензий поставляются вместе с соответствующими компонентами."/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
