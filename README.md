@@ -1,108 +1,107 @@
 # 🌙 Moon Internet
 
-A customizable VPN/proxy client for Windows — WPF / .NET 9.
-Works with HAPP, INCY, V2Ray/Xray and Nekoray-style subscriptions.
+Кастомизируемый VPN/прокси-клиент для Windows — WPF / .NET 9.
+Работает с подписками HAPP, INCY, V2Ray/Xray и совместимыми.
 
-**Кастомизируемый VPN/прокси-клиент для Windows.** Подписки HAPP, INCY, V2Ray/Xray и совместимые.
+*[English version](README-EN.md)*
 
-*[Версия на русском](README-RU.md)*
-
-> **Status: 0.9.0 beta.** Usable day to day, but expect rough edges.
-> The UI is currently **Russian only**.
+> **Статус: 0.9.0 beta.** Приложением можно пользоваться каждый день, но шероховатости есть.
+> Интерфейс пока **только на русском**.
 
 ---
 
-## Features
+## Возможности
 
-- **Protocols** — VLESS (Reality / XHTTP / gRPC / WS / TCP), VMess, Trojan, Shadowsocks, Hysteria2, WireGuard
-- **Two modes** — full **TUN** tunnel (via a privileged helper) or **system proxy** (no admin needed)
-- **Subscriptions** — auto-update on the panel's own interval, traffic/expiry, the panel's welcome banner, and an offline cache so servers stay visible without internet
-- **Routing** — Direct / Proxy / Block by domain, IP or `geosite:` / `geoip:` tags. Import from HAPP/INCY or build your own, with a searchable browser over the geo database
-- **Split tunnel** — send selected apps around the VPN (or only them through it)
-- **Per-server tools** — favourites, ping, config viewer (highlighted JSON), copy link, QR code
-- **Live stats** — real upload/download speed and session traffic, read from the core
-- **Tray** — connect, switch server, ping, sorting, transport mode
-- **Appearance** — themes, accent/background/text colours, font, window transparency, custom moon artwork
+- **Протоколы** — VLESS (Reality / XHTTP / gRPC / WS / TCP), VMess, Trojan, Shadowsocks, Hysteria2, WireGuard
+- **Два режима** — полноценный **TUN**-туннель (через служебный компонент) или **системный прокси** (без прав администратора)
+- **Подписки** — автообновление по интервалу самой панели, трафик и срок действия, приветственная шапка, **офлайн-кэш**: серверы видны даже без интернета
+- **Маршрутизация** — Direct / Proxy / Block по доменам, IP и тегам `geosite:` / `geoip:`. Импорт из HAPP/INCY или свой профиль с поиском по гео-базе
+- **Раздельный туннель** — выбранные приложения мимо VPN (или наоборот, только они через VPN)
+- **Действия с сервером** — избранное, пинг, просмотр конфигурации (JSON с подсветкой), копирование ссылки, QR-код
+- **Живая статистика** — реальная скорость приёма/отдачи и трафик за сессию, прямо из ядра
+- **Трей** — подключение, смена сервера, пинг, сортировка, режим транспорта
+- **Оформление** — темы, цвета кнопок/фона/текста, шрифт, прозрачность окна, свои картинки луны
 
-## Install
+## Установка
 
-Grab the installer from [**Releases**](../../releases) and run it.
-It installs into `Program Files`, registers the privileged TUN helper and creates shortcuts.
+Скачайте установщик из [**Releases**](../../releases) и запустите.
+Он ставит приложение в `Program Files`, регистрирует служебный компонент для TUN и создаёт ярлыки.
 
-**Nothing else to install** — .NET is bundled inside the app (that's why the installer is ~72 MB).
+**Больше ничего ставить не нужно** — .NET уже внутри приложения (поэтому установщик и весит ~72 МБ).
 
-> Builds are **not code-signed**, so SmartScreen warns on first launch
-> (*More info → Run anyway*). See [Security](#security).
+> Сборки **не подписаны сертификатом**, поэтому при первом запуске SmartScreen покажет
+> предупреждение (*Подробнее → Выполнить в любом случае*). Подробности — в разделе [Безопасность](#безопасность).
 
-## Build from source
+## Сборка из исходников
 
 ```powershell
-git clone https://github.com/<you>/moon-internet.git
+git clone https://github.com/<вы>/moon-internet.git
 cd moon-internet
 
-# tunnel engines are not in the repo (~120 MB of third-party binaries)
+# ядра не лежат в репозитории (~120 МБ сторонних бинарников)
 powershell -ExecutionPolicy Bypass -File build\get-cores.ps1
 
 dotnet publish src\MoonInternet.App        -c Release -r win-x64 --self-contained true -o dist\app
 dotnet publish src\MoonInternet.TunService -c Release -r win-x64 --self-contained true -o dist\app
 
-# optional: build the installer (needs NSIS)
+# по желанию: собрать установщик (нужен NSIS)
 makensis build\installer.nsi
 ```
 
-Needed **to build**, not to run: **.NET 9 SDK**, Windows 10/11 x64. NSIS only if you also want the installer.
+Нужно **для сборки**, а не для запуска: **.NET 9 SDK**, Windows 10/11 x64. NSIS — только если хотите собрать ещё и установщик.
 
-## Architecture
+## Архитектура
 
-Moon Internet **does not reimplement any protocol**. The orchestration is written in C#
-(link/subscription parsing, config generation, routing, IPC, TUN lifecycle, UI) while the
-actual traffic is handled by proven engines — the same approach Happ, Nekoray and v2rayN take.
+Moon Internet **не переизобретает протоколы**. На C# написана вся оркестрация — разбор
+ссылок и подписок, генерация конфигов, маршрутизация, IPC, работа с TUN, интерфейс,
+а сам трафик обрабатывают проверенные ядра. Так же устроены Happ, Nekoray и v2rayN.
 
 ```
-MoonInternet.App          WPF UI (MVVM)
-MoonInternet.Core         models, parsers, config generators
-MoonInternet.Services     connection manager, cores, subscriptions, ping, geo
-MoonInternet.TunService   privileged helper (SYSTEM) — TUN adapter + routes
+MoonInternet.App          интерфейс WPF (MVVM)
+MoonInternet.Core         модели, парсеры, генераторы конфигов
+MoonInternet.Services     менеджер подключения, ядра, подписки, пинг, гео
+MoonInternet.TunService   служебный компонент (SYSTEM) — TUN-адаптер и маршруты
 ```
 
-Why the split: full TUN on Windows needs a network adapter and routing-table edits, which
-require elevation. The helper runs as a SYSTEM scheduled task, so the app itself stays
-de-elevated and there's no UAC prompt on every launch. Without the helper, TUN falls back
-to system-proxy mode.
+Зачем разделение: полноценный TUN в Windows требует создания сетевого адаптера и правки
+таблицы маршрутизации, а это невозможно без повышения прав. Служебный компонент работает
+как задача от имени SYSTEM, поэтому само приложение остаётся без прав администратора и UAC
+не спрашивает разрешение при каждом запуске. Если компонента нет — TUN переключается
+на режим системного прокси.
 
-Engines: **xray-core** (VLESS/VMess/Trojan/SS + router), **sing-box** (TUN, Hysteria2,
-WireGuard), **tun2socks** (alternative TUN engine).
+Ядра: **xray-core** (VLESS/VMess/Trojan/SS + роутер), **sing-box** (TUN, Hysteria2,
+WireGuard), **tun2socks** (альтернативный TUN).
 
-## Privacy
+## Конфиденциальность
 
-- No accounts, no telemetry, no analytics, no phoning home.
-- Subscriptions, servers and keys stay **on your machine**, in the app's `save\` folder.
-- The app contacts exactly two kinds of endpoint: **your** subscription URLs, and the
-  geo-rule sources on GitHub (only when routing is enabled).
-- Logs are local and never uploaded.
+- Никаких аккаунтов, телеметрии, аналитики и обращений «домой».
+- Подписки, серверы и ключи хранятся **только на вашем компьютере**, в папке `save\`.
+- Приложение обращается ровно к двум типам адресов: **ваши** ссылки-подписки и источники
+  гео-правил на GitHub (и только если включена маршрутизация).
+- Логи локальные и никуда не отправляются.
 
-## Security
+## Безопасность
 
-Release builds are **unsigned**, which explains two things:
+Сборки **не подписаны**, отсюда две вещи:
 
-1. **SmartScreen** warns about an unknown publisher.
-2. **Heuristic AV hits** (a couple of engines out of ~60). An unsigned .NET binary that
-   bundles VPN engines and edits routes looks unusual to ML scanners. If that bothers you,
-   build from source — the steps above produce the same application.
+1. **SmartScreen** предупреждает о неизвестном издателе.
+2. **Срабатывания эвристики антивирусов** (пара движков из ~60). Неподписанное .NET-приложение,
+   которое несёт в себе VPN-ядра и правит маршруты, для ML-сканеров выглядит подозрительно.
+   Если это смущает — соберите из исходников, инструкция выше даёт то же самое приложение.
 
-The TUN helper listens on **loopback only** (`127.0.0.1:35555`) and accepts only its own
-small command set.
+Служебный компонент слушает **только localhost** (`127.0.0.1:35555`) и принимает лишь свой
+небольшой набор команд.
 
-## Third-party
+## Сторонние компоненты
 
-Engines and libraries keep their own licenses — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-sing-box and tun2socks are GPL-3.0 and are shipped **unmodified**.
+Ядра и библиотеки распространяются под своими лицензиями — см. [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+sing-box и tun2socks под GPL-3.0 и поставляются **без изменений**.
 
-## License
+## Лицензия
 
-[MIT](LICENSE) — covers the Moon Internet source code.
+[MIT](LICENSE) — на исходный код Moon Internet.
 
 ---
 
-*This app is a proxy tool. It provides no VPN service of its own — you bring your own
-servers. You are responsible for how you use it and for the laws that apply to you.*
+*Это приложение — прокси-инструмент. Оно не предоставляет VPN-услуг: серверы вы добавляете
+свои. Вы сами отвечаете за то, как его используете, и за соблюдение законов вашей страны.*
