@@ -5,6 +5,8 @@ Works with HAPP, INCY, V2Ray/Xray and Nekoray-style subscriptions.
 
 **Кастомизируемый VPN/прокси-клиент для Windows.** Подписки HAPP, INCY, V2Ray/Xray и совместимые.
 
+*[Версия на русском](README-RU.md)*
+
 > **Status: 0.9.0 beta.** Usable day to day, but expect rough edges.
 > The UI is currently **Russian only**.
 
