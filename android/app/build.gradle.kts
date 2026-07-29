@@ -13,11 +13,12 @@ android {
         applicationId = "cc.moon.internet"
         minSdk = 24                     // Android 7.0 — VpnService + modern TLS
         targetSdk = 35
-        versionCode = 1
+        // has to go up on every published APK, or the phone refuses to install over the old one
+        versionCode = 2
         versionName = "0.9.0-beta"
 
-        // The sing-box core is built for arm64 only, so shipping other ABIs would just be
-        // an app that crashes the moment it tries to connect.
+        // The core is built for arm64 only, so shipping other ABIs would just be an app that
+        // crashes the moment it tries to connect.
         ndk { abiFilters += "arm64-v8a" }
     }
 

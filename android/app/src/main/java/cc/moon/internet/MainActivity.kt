@@ -31,15 +31,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -74,8 +71,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Edge to edge. The phone's own bars stay on screen — the app just paints underneath
+        // them, so the back/home buttons sit on our background instead of a black strip.
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        hideSystemBars()
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightNavigationBars = false
+        if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
 
         setContent {
             val state by vm.state.collectAsState()
@@ -94,11 +94,9 @@ class MainActivity : ComponentActivity() {
                 val geoStatus by vm.geoStatus.collectAsState()
 
                 var page by remember { mutableStateOf(Page.Home) }
-                // one scroll state per list, so the nav bar can react to the direction of travel
+                // one scroll state per list, so switching tabs comes back where you left off
                 val homeScroll = rememberLazyListState()
                 val serversScroll = rememberLazyListState()
-                val activeScroll = if (page == Page.Servers) serversScroll else homeScroll
-                val navVisible = rememberNavVisibility(activeScroll, page)
                 var settingsPage by remember { mutableStateOf<SettingsPage?>(null) }
                 // sub-pages can open other sub-pages (About → Terms), so back needs a stack
                 val settingsBack = remember { mutableStateListOf<SettingsPage>() }
@@ -145,26 +143,27 @@ class MainActivity : ComponentActivity() {
                 val selected = servers.firstOrNull { it.raw == state.selectedServerRaw } ?: servers.firstOrNull()
                 val collapsed = state.collapsed.toSet()
 
+                // The page background goes behind the insets, not inside them: in landscape the
+                // cutout and the nav bar sit on the sides, and a Scaffold-coloured strip there
+                // framed the screen in black.
+                Box(
+                    Modifier.fillMaxSize().background(
+                        if (page == Page.Home) Moon.HomeGradient
+                        else androidx.compose.ui.graphics.SolidColor(Moon.WinBg)
+                    )
+                ) {
                 Scaffold(
-                    containerColor = Moon.WinBg,
+                    containerColor = Color.Transparent,
                     // dynamic: 0 while the bars are hidden, real height the moment they return,
                     // so nothing is ever overlapped and nothing reserves dead space
                     contentWindowInsets = WindowInsets.safeDrawing,
                     bottomBar = {
-                        // hides on the way down, returns on the way up; the Scaffold shrinks the
-                        // content padding with it, so no dead strip is left behind
-                        AnimatedVisibility(
-                            visible = navVisible,
-                            enter = slideInVertically { it } + fadeIn(),
-                            exit = slideOutVertically { it } + fadeOut(),
-                        ) {
-                            BottomNav(
-                                page = page,
-                                onServers = { page = Page.Servers },
-                                onHome = { page = Page.Home },
-                                onSettings = { if (page == Page.Settings) settingsPage = null else page = Page.Settings },
-                            )
-                        }
+                        BottomNav(
+                            page = page,
+                            onServers = { page = Page.Servers },
+                            onHome = { page = Page.Home },
+                            onSettings = { if (page == Page.Settings) settingsPage = null else page = Page.Settings },
+                        )
                     },
                     snackbarHost = {
                         SnackbarHost(snackbar) { data ->
@@ -311,28 +310,13 @@ class MainActivity : ComponentActivity() {
 
                     }
                 }
+                }
             }
         }
 
         // a share link opened from the browser / another app
         intent?.dataString?.let { vm.addSubscription(it) }
         if (intent?.getBooleanExtra(EXTRA_CONNECT_NOW, false) == true) onToggle()
-    }
-
-    /**
-     * MIUI brings the bars back after a swipe, a permission dialog or the recents screen, and
-     * they stay until asked again — so re-hide them every time we regain focus.
-     */
-    private fun hideSystemBars() {
-        WindowInsetsControllerCompat(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemBars()
     }
 
     private fun onToggle() {
@@ -382,28 +366,49 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Bottom nav, matching the desktop window: Сервера on the left, Настройки on the right and the
- * moon in the middle — the moon is a bare image with no caption under it.
+ * Bottom nav: Сервера on the left, Настройки on the right and the moon in the middle, the same
+ * three the desktop window has.
+ *
+ * It is a card that floats clear of the screen edge, with the phone's own back/home buttons
+ * below it on our background rather than on a black strip. It never hides — a bar that comes
+ * and goes with the scroll direction is exactly what made "Главная" unreachable before.
  */
 @Composable
 private fun BottomNav(page: Page, onServers: () -> Unit, onHome: () -> Unit, onSettings: () -> Unit) {
-    Surface(color = Moon.SidebarBg) {
-        Box {
-            Box(Modifier.fillMaxWidth().height(1.dp).background(Moon.BorderSoft))
+    Box(
+        Modifier
+            .fillMaxWidth()
+            // the inset first, so the card sits above the system buttons and the gap between
+            // them stays filled with the Scaffold background
+            .navigationBarsPadding()
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
+        Surface(
+            color = Moon.SidebarBg,
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, Moon.BorderSoft),
+            tonalElevation = 0.dp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Row(
-                Modifier.fillMaxWidth().height(70.dp),
+                Modifier.fillMaxWidth().height(68.dp).padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 NavTab("Сервера", Icons.Filled.Dns, page == Page.Servers, Modifier.weight(1f), onServers)
 
+                // 52dp of moon in a 68dp row left it touching both edges of the card; it has to
+                // sit inside with air around it like the two tabs do
                 Box(
-                    Modifier.padding(horizontal = 14.dp).size(60.dp).clickable(onClick = onHome),
+                    Modifier.padding(horizontal = 10.dp).size(54.dp)
+                        .clip(CircleShape)
+                        .background(if (page == Page.Home) Moon.Accent.copy(alpha = 0.16f) else Color.Transparent)
+                        .clickable(onClick = onHome),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         painterResource(R.drawable.ic_moon), "Главная",
                         tint = Color.Unspecified,
-                        modifier = Modifier.size(56.dp).graphicsLayer { alpha = if (page == Page.Home) 1f else 0.92f },
+                        modifier = Modifier.size(42.dp).graphicsLayer { alpha = if (page == Page.Home) 1f else 0.9f },
                     )
                 }
 
@@ -414,6 +419,7 @@ private fun BottomNav(page: Page, onServers: () -> Unit, onHome: () -> Unit, onS
     }
 }
 
+/** One side tab. The active one gets a tinted pill behind it instead of only a colour change. */
 @Composable
 private fun NavTab(
     text: String,
@@ -423,7 +429,12 @@ private fun NavTab(
     onClick: () -> Unit,
 ) {
     Column(
-        modifier.fillMaxHeight().clickable(onClick = onClick),
+        modifier
+            .padding(vertical = 6.dp)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (active) Moon.Accent.copy(alpha = 0.14f) else Color.Transparent)
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -432,43 +443,4 @@ private fun NavTab(
         Text(text, color = if (active) Moon.TextPrimary else Moon.TextSecondary, fontSize = 11.5.sp,
              fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
     }
-}
-
-
-/**
- * True while the nav bar should be on screen: hidden once the user scrolls down, shown again on
- * any upward movement, and always shown at the very top or bottom of the list.
- *
- * The thresholds matter — reacting to every pixel made the bar flicker, and hiding it at the end
- * of the list left the last row unreachable behind it.
- */
-@Composable
-private fun rememberNavVisibility(state: LazyListState, page: Page): Boolean {
-    if (page != Page.Home && page != Page.Servers) return true
-    var visible by remember { mutableStateOf(true) }
-    var lastIndex by remember { mutableIntStateOf(0) }
-    var lastOffset by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(state) {
-        snapshotFlow {
-            Triple(
-                state.firstVisibleItemIndex,
-                state.firstVisibleItemScrollOffset,
-                state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0,
-            )
-        }.collect { (index, offset, lastVisible) ->
-            val total = state.layoutInfo.totalItemsCount
-            val atTop = index == 0 && offset < 40
-            val atBottom = total > 0 && lastVisible >= total - 1
-
-            val delta = if (index == lastIndex) offset - lastOffset else (index - lastIndex) * 1000
-            when {
-                atTop || atBottom -> visible = true       // both ends always show the bar
-                delta > 24 -> visible = false             // clearly scrolling down
-                delta < -24 -> visible = true             // clearly scrolling up
-            }
-            lastIndex = index; lastOffset = offset
-        }
-    }
-    return visible
 }

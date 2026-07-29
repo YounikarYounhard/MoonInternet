@@ -64,7 +64,8 @@ fun HomeScreen(
 ) {
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize().background(Moon.HomeGradient).padding(horizontal = 16.dp),
+        // the gradient is painted by the activity, behind the window insets — see BottomNav
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ---- Прокси / TUN --------------------------------------------------
