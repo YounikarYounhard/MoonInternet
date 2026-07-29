@@ -72,6 +72,7 @@ class MoonTileService : TileService() {
             val server = store.autoTarget()
             if (server == null || !XrayConfig.supports(server.protocol)) return@launch
 
+            val socks = cc.moon.internet.core.freeLocalPort(st.socksPort)
             val config = runCatching {
                 XrayConfig.build(
                     server = server,
@@ -84,8 +85,9 @@ class MoonTileService : TileService() {
                     mux = st.mux,
                     preferredIp = st.preferredIp,
                     logLevel = if (st.logsEnabled) st.logLevel else "none",
-                    socksPort = st.socksPort,
-                    httpPort = st.httpPort,
+                    // another VPN client on the phone probably owns 10808/10809 already
+                    socksPort = socks,
+                    httpPort = cc.moon.internet.core.freeLocalPort(st.httpPort, avoid = setOf(socks)),
                     proxyUser = st.proxyUser,
                     proxyPass = st.proxyPass,
                     socksAuth = st.socks5Auth,

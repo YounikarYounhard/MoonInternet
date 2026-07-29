@@ -14,6 +14,35 @@ import org.json.JSONObject
  * Input is a TUN fd handed over by VpnService; xray's own `tun` inbound reads it, so there is
  * no separate tun2socks process.
  */
+/**
+ * The nearest port at or above [preferred] that we can actually bind, or [preferred] itself if
+ * none of the next few are free either (let xray report it then).
+ *
+ * 10808/10809 are v2rayNG's defaults, so INCY, HAPP and v2RayTun all sit on them — and if one of
+ * them is running, xray refuses to start at all: a busy inbound is a fatal config error, not a
+ * warning. That surfaced as a bare "не удалось подключиться" with the real reason
+ * (`address already in use`) only in logcat.
+ *
+ * 0 means the listener is switched off and is passed through untouched.
+ *
+ * [avoid] holds the ports handed out by earlier calls. Without it SOCKS and HTTP both probe
+ * against the OS only, so with 10808 taken they would both be told 10809 is free and land on
+ * the same number — a self-collision that replaces one bug with another.
+ */
+fun freeLocalPort(preferred: Int, listen: String = "127.0.0.1", avoid: Set<Int> = emptySet()): Int {
+    if (preferred <= 0) return preferred
+    for (port in preferred until preferred + 12) {
+        if (port in avoid) continue
+        val free = runCatching {
+            java.net.ServerSocket().use {
+                it.bind(java.net.InetSocketAddress(listen, port))
+            }
+        }.isSuccess
+        if (free) return port
+    }
+    return preferred
+}
+
 object XrayConfig {
 
     /**

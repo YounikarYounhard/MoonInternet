@@ -3,6 +3,7 @@ package cc.moon.internet
 import cc.moon.internet.core.Protocol
 import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.core.XrayConfig
+import cc.moon.internet.core.freeLocalPort
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -106,6 +107,21 @@ class CoreLogicTest {
         val socks = (0 until ins.length()).map { ins.getJSONObject(it) }.first { it.getString("tag") == "socks-in" }
         assertEquals("127.0.0.1", socks.getString("listen"))
         assertEquals(10808, socks.getInt("port"))
+    }
+
+    @Test
+    fun `a busy local port is stepped over, and zero means off`() {
+        java.net.ServerSocket().use { squatter ->
+            squatter.bind(java.net.InetSocketAddress("127.0.0.1", 0))
+            val taken = squatter.localPort
+            // this is the INCY case: another client already listens there, and xray treats a
+            // busy inbound as fatal, so we have to move rather than fail
+            val socks = freeLocalPort(taken)
+            assertEquals(taken + 1, socks)
+            // ...and the second listener must not be handed the same number
+            assertEquals(taken + 2, freeLocalPort(taken, avoid = setOf(socks)))
+        }
+        assertEquals(0, freeLocalPort(0))
     }
 
     @Test

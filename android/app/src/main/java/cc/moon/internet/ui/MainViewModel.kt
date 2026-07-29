@@ -292,6 +292,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         val st = store.state.value
+
+        // Another VPN client on the phone probably owns 10808/10809 already — see freeLocalPort.
+        val listen = if (st.allowLan) "0.0.0.0" else "127.0.0.1"
+        val socks = freeLocalPort(st.socksPort, listen)
+        val http = freeLocalPort(st.httpPort, listen, avoid = setOf(socks))
+        if (socks != st.socksPort || http != st.httpPort) {
+            _status.value = "Порт занят другим VPN, слушаю $socks/$http"
+        }
+
         var config = runCatching {
             XrayConfig.build(
                 server = s,
@@ -304,8 +313,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 mux = st.mux,
                 preferredIp = st.preferredIp,
                 logLevel = if (st.logsEnabled) st.logLevel else "none",
-                socksPort = st.socksPort,
-                httpPort = st.httpPort,
+                socksPort = socks,
+                httpPort = http,
                 proxyUser = st.proxyUser,
                 proxyPass = st.proxyPass,
                 socksAuth = st.socks5Auth,

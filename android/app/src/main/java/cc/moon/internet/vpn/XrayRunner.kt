@@ -42,8 +42,17 @@ class XrayRunner(private val ctx: Context, private val onStopped: () -> Unit) {
                 return 0
             }
         })
-        c.startLoop(configJson, tunFd)
+        // The handle is stored *before* startLoop, and a failed start is torn down here.
+        // startLoop binds the inbounds one by one and throws on the first that fails — the
+        // ones already listening stay listening. Assigning core afterwards meant stop() had
+        // nothing to call, so a failed connect leaked the local proxy port and the next
+        // attempt died on "address already in use" against ourselves.
         core = c
+        runCatching { c.startLoop(configJson, tunFd) }.onFailure {
+            runCatching { c.stopLoop() }
+            core = null
+            throw it
+        }
     }
 
     fun stop() {
