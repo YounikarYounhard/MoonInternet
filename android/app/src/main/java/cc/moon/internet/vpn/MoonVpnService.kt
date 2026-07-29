@@ -168,10 +168,21 @@ class MoonVpnService : VpnService() {
                 // the same class of bug that bit the Windows helper.
                 stopCore()
 
+                // Android hands the tunnel to one app at a time. If another VPN took the slot
+                // while we were idle we are no longer the prepared package, and establish()
+                // would just return null — the mystery "не удалось подключиться". Only the
+                // system dialog can take the slot back, and confirming it is also what stops
+                // the other VPN, which is exactly how every other client does this.
+                if (tun && VpnService.prepare(this@MoonVpnService) != null) {
+                    askForVpnSlot()
+                    return@launch
+                }
+
                 // Proxy mode runs the core with no TUN: only the local SOCKS/HTTP listeners,
                 // so nothing is captured system-wide. fd 0 tells xray there is no tun device.
                 val fd = if (tun) {
-                    establish(profileName, mtu, appMode, apps) ?: error("система не выдала VPN-разрешение")
+                    establish(profileName, mtu, appMode, apps)
+                        ?: run { askForVpnSlot(); return@launch }
                 } else null
                 tunFd = fd
 
@@ -193,6 +204,23 @@ class MoonVpnService : VpnService() {
                 stopTunnel()
             }
         }
+    }
+
+    /**
+     * Hands the connect back to the activity so it can show the system VPN dialog with a result
+     * callback. Confirming it revokes whichever VPN currently holds the slot and reconnects us;
+     * a service cannot do that itself, it has no way to hear the answer.
+     */
+    private fun askForVpnSlot() {
+        lastError.value = "Занято другим VPN — подтвердите замену"
+        runCatching {
+            startActivity(
+                Intent(this, cc.moon.internet.MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .putExtra(cc.moon.internet.MainActivity.EXTRA_CONNECT_NOW, true)
+            )
+        }
+        stopTunnel()
     }
 
     /**

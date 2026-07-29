@@ -66,6 +66,7 @@ fun HomeScreen(
         state = listState,
         // the gradient is painted by the activity, behind the window insets — see BottomNav
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(bottom = bottomNavSpace()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ---- Прокси / TUN --------------------------------------------------

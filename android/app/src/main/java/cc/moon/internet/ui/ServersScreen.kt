@@ -64,7 +64,11 @@ fun ServersScreen(
         }
     }
 
-    LazyColumn(Modifier.fillMaxSize().background(Moon.WinBg).padding(horizontal = 16.dp), state = listState) {
+    LazyColumn(
+        Modifier.fillMaxSize().background(Moon.WinBg).padding(horizontal = 16.dp),
+        state = listState,
+        contentPadding = PaddingValues(bottom = bottomNavSpace()),
+    ) {
         item {
             Row(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 12.dp)) {
                 Column(Modifier.weight(1f)) {

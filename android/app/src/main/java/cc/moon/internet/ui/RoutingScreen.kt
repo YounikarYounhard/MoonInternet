@@ -52,7 +52,10 @@ fun RoutingScreen(
             Spacer(Modifier.width(6.dp))
             Text("Маршрутизация", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = Moon.TextPrimary)
         }
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        LazyColumn(
+            Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(bottom = bottomNavSpace()),
+        ) {
 
         // ---- geo files ----------------------------------------------------
         item {

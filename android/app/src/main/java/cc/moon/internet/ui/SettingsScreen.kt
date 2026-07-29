@@ -60,12 +60,14 @@ fun SettingsScreen(state: AppState, onOpen: (SettingsPage) -> Unit) {
             Text("Moon Internet · 0.9.0 beta", fontSize = 12.5.sp, color = Moon.TextSecondary,
                  modifier = Modifier.padding(top = 2.dp))
         }
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+        LazyColumn(
+            Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            contentPadding = PaddingValues(bottom = bottomNavSpace()),
+        ) {
             items(SettingsPage.hub.size) { i ->
                 val p = SettingsPage.hub[i]
                 HubCard(p.icon, p.title, p.subtitle) { onOpen(p) }
             }
-            item { Spacer(Modifier.height(40.dp)) }
         }
     }
 }
@@ -96,7 +98,10 @@ fun SettingsDetail(
         Box(Modifier.padding(horizontal = 24.dp)) {
             PageHeader(page.title, big = page.title.length < 20, onBack = onBack)
         }
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+        LazyColumn(
+            Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            contentPadding = PaddingValues(bottom = bottomNavSpace()),
+        ) {
             item {
             when (page) {
                 SettingsPage.Appearance -> AppearancePage(state, onSet)

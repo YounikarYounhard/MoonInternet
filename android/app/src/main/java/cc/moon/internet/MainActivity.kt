@@ -13,10 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Settings
@@ -154,17 +153,12 @@ class MainActivity : ComponentActivity() {
                 ) {
                 Scaffold(
                     containerColor = Color.Transparent,
-                    // dynamic: 0 while the bars are hidden, real height the moment they return,
-                    // so nothing is ever overlapped and nothing reserves dead space
-                    contentWindowInsets = WindowInsets.safeDrawing,
-                    bottomBar = {
-                        BottomNav(
-                            page = page,
-                            onServers = { page = Page.Servers },
-                            onHome = { page = Page.Home },
-                            onSettings = { if (page == Page.Settings) settingsPage = null else page = Page.Settings },
-                        )
-                    },
+                    // Top and sides only. The nav is no longer a bottomBar: it floats over the
+                    // page, so the page has to run all the way to the bottom of the window for
+                    // the content to show through around the card and under the phone's buttons.
+                    // What keeps the last row reachable is bottomNavSpace() on each list.
+                    contentWindowInsets = WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
                     snackbarHost = {
                         SnackbarHost(snackbar) { data ->
                             Snackbar(
@@ -177,6 +171,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                 ) { pad ->
+                    Box(Modifier.fillMaxSize()) {
                     Box(Modifier.padding(pad)) {
                         when (page) {
                             Page.Home -> HomeScreen(
@@ -309,14 +304,45 @@ class MainActivity : ComponentActivity() {
                         qrOf?.let { (title, url) -> QrDialog(title, url) { qrOf = null } }
 
                     }
+
+                    // outside the padded Box on purpose: it has to sit over the nav inset too
+                    BottomNav(
+                        page = page,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        onServers = { page = Page.Servers },
+                        onHome = { page = Page.Home },
+                        onSettings = { if (page == Page.Settings) settingsPage = null else page = Page.Settings },
+                    )
                 }
-                }
+                }   // Scaffold content
+                }   // background Box
             }
         }
 
+        handleIntent(intent)
+    }
+
+    /**
+     * singleTask means a second launch lands here, not in onCreate. Without this the tile and
+     * the service's "another VPN holds the slot" bounce did nothing at all whenever the app
+     * happened to be running already.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
         // a share link opened from the browser / another app
         intent?.dataString?.let { vm.addSubscription(it) }
-        if (intent?.getBooleanExtra(EXTRA_CONNECT_NOW, false) == true) onToggle()
+        if (intent?.getBooleanExtra(EXTRA_CONNECT_NOW, false) == true) {
+            intent.removeExtra(EXTRA_CONNECT_NOW)   // or every rotation would reconnect
+            // connect, never toggle: the service bounces us here while it is still tearing the
+            // old attempt down, and onToggle() would read that as "already on" and disconnect
+            val consent = VpnService.prepare(this)
+            if (consent != null) vpnPermission.launch(consent) else vm.connect()
+        }
     }
 
     private fun onToggle() {
@@ -369,17 +395,22 @@ class MainActivity : ComponentActivity() {
  * Bottom nav: Сервера on the left, Настройки on the right and the moon in the middle, the same
  * three the desktop window has.
  *
- * It is a card that floats clear of the screen edge, with the phone's own back/home buttons
- * below it on our background rather than on a black strip. It never hides — a bar that comes
- * and goes with the scroll direction is exactly what made "Главная" unreachable before.
+ * Only the card is painted — everything around it is transparent, so the page keeps scrolling
+ * underneath and behind the phone's own back/home buttons. It never hides: a bar that came and
+ * went with the scroll direction is exactly what made "Главная" unreachable before.
  */
 @Composable
-private fun BottomNav(page: Page, onServers: () -> Unit, onHome: () -> Unit, onSettings: () -> Unit) {
+private fun BottomNav(
+    page: Page,
+    modifier: Modifier = Modifier,
+    onServers: () -> Unit,
+    onHome: () -> Unit,
+    onSettings: () -> Unit,
+) {
     Box(
-        Modifier
+        modifier
             .fillMaxWidth()
-            // the inset first, so the card sits above the system buttons and the gap between
-            // them stays filled with the Scaffold background
+            // the inset first, so the card clears the system buttons instead of sitting on them
             .navigationBarsPadding()
             .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {

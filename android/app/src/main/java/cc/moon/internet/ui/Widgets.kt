@@ -26,6 +26,19 @@ import androidx.compose.ui.unit.sp
  * App.xaml / SettingsView.xaml so a screen ported from XAML lines up without re-tuning.
  */
 
+/**
+ * Empty room the floating bottom nav needs at the end of a scrolling page.
+ *
+ * The bar has no background of its own around the card — the page scrolls underneath it — so
+ * nothing reserves this space in the layout. Every LazyColumn has to add it as contentPadding
+ * or its last row ends up parked under the bar with no way to reach it.
+ *
+ * 8 + 68 + 8 is the bar's own box; the inset is the phone's back/home buttons below it.
+ */
+@Composable
+fun bottomNavSpace(): androidx.compose.ui.unit.Dp =
+    84.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
 /** HubCard: 38dp rounded icon tile + title + subtitle + chevron. */
 @Composable
 fun HubCard(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
