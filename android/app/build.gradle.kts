@@ -1,0 +1,91 @@
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+android {
+    namespace = "cc.moon.internet"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "cc.moon.internet"
+        minSdk = 24                     // Android 7.0 — VpnService + modern TLS
+        targetSdk = 35
+        versionCode = 1
+        versionName = "0.9.0-beta"
+
+        // The sing-box core is built for arm64 only, so shipping other ABIs would just be
+        // an app that crashes the moment it tries to connect.
+        ndk { abiFilters += "arm64-v8a" }
+    }
+
+    signingConfigs {
+        create("release") {
+            val ks = file("moon-release.jks")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = "moonbeta"
+                keyAlias = "moon"
+                keyPassword = "moonbeta"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose = true }
+
+    packaging {
+        resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
+    }
+}
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+    // android.jar's org.json is a stub that throws; the real one lets config tests run on the JVM
+    testImplementation("org.json:json:20240303")
+
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    implementation(composeBom)
+
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.navigation:navigation-compose:2.8.5")
+
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    // QR codes for sharing servers
+    implementation("com.google.zxing:core:3.5.3")
+
+    // camera preview + frame analysis for the QR scanner
+    implementation("androidx.camera:camera-camera2:1.4.1")
+    implementation("androidx.camera:camera-lifecycle:1.4.1")
+    implementation("androidx.camera:camera-view:1.4.1")
+
+    // sing-box engine (libbox AAR) — the single core that speaks every protocol we need.
+    // Dropped into app/libs by build/get-libbox.ps1
+    implementation(fileTree("libs") { include("*.aar") })
+}

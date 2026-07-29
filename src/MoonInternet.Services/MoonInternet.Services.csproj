@@ -5,9 +5,19 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <!--
+      Portable on purpose: the Windows-only calls (registry, WinINet) now live in
+      Platform/WindowsPlatform.cs behind [SupportedOSPlatform], so the same assembly runs on
+      Linux, where Platform/LinuxPlatform.cs takes over.
+    -->
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- registry access for the Windows implementation -->
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+  </ItemGroup>
 
 </Project>

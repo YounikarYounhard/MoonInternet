@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:MoonInternet.Desktop.Views"
+        xmlns:vm="clr-namespace:MoonInternet.Desktop.ViewModels"
+        x:Class="MoonInternet.Desktop.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Moon Internet 0.9.0 beta"
+        Width="420" Height="788"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        Background="{StaticResource WinBg}"
+        Icon="avares://MoonInternet/Assets/moon.png">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ===== Titlebar (we draw our own, same as the WPF build) ===== -->
+        <Border Grid.Row="0" Background="{StaticResource TitleBar}" Height="40"
+                PointerPressed="TitleBar_PointerPressed">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Image Source="avares://MoonInternet/Assets/moon.png" Width="20" Height="20" />
+                    <TextBlock Text="Moon Internet" FontSize="12.5" FontWeight="Bold"
+                               Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="9,0,0,0" />
+                    <TextBlock Text="0.9.0 beta" FontSize="11" Foreground="{StaticResource TextMuted}"
+                               VerticalAlignment="Center" Margin="8,1,0,0" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Classes="glyph" Content="—" Height="40" Width="44" Click="Minimize_Click" />
+                    <Button Classes="glyph" Content="✕" Height="40" Width="44" Click="Close_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== Content ===== -->
+        <Panel Grid.Row="1">
+            <v:HomeView     IsVisible="{Binding IsHome}" />
+            <v:ServersView  IsVisible="{Binding IsServers}" />
+            <v:RoutingView  IsVisible="{Binding IsRouting}" />
+            <v:SettingsView IsVisible="{Binding IsSettings}" />
+        </Panel>
+
+        <!-- ===== Bottom nav: Сервера | moon | Настройки ===== -->
+        <Border Grid.Row="2" Background="{StaticResource SidebarBg}"
+                BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto,*" Height="70">
+
+                <Button Grid.Column="0" Classes="glyph" Background="Transparent"
+                        Command="{Binding NavigateCommand}" CommandParameter="Servers"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <PathIcon Data="{StaticResource ServersIcon}" Width="20" Height="20"
+                                  Foreground="{Binding ServersTint}" />
+                        <TextBlock Text="Сервера" FontSize="11.5" Margin="0,4,0,0"
+                                   HorizontalAlignment="Center" Foreground="{Binding ServersTint}" />
+                    </StackPanel>
+                </Button>
+
+                <!-- centre moon = Home, no caption under it -->
+                <Button Grid.Column="1" Classes="glyph" Width="60" Height="60" Margin="14,0"
+                        VerticalAlignment="Center" Padding="0"
+                        Command="{Binding NavigateCommand}" CommandParameter="Home">
+                    <Image Source="avares://MoonInternet/Assets/moon.png" Width="56" Height="56" />
+                </Button>
+
+                <Button Grid.Column="2" Classes="glyph" Background="Transparent"
+                        Command="{Binding NavigateCommand}" CommandParameter="Settings"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <PathIcon Data="{StaticResource SettingsIcon}" Width="20" Height="20"
+                                  Foreground="{Binding SettingsTint}" />
+                        <TextBlock Text="Настройки" FontSize="11.5" Margin="0,4,0,0"
+                                   HorizontalAlignment="Center" Foreground="{Binding SettingsTint}" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

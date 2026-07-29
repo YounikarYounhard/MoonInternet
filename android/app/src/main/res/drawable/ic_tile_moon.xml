@@ -1,0 +1,26 @@
+<!--
+    Crescent for the Quick Settings tile. Drawn as a path rather than scaled from the launcher
+    PNG: the shade tints the icon a flat colour and renders it small, so a photo of a moon turns
+    into a grey blob — a clean crescent stays readable at 24dp.
+
+    The group mirrors it horizontally and scales it up: the source path only fills the middle of
+    its 24×24 box, which made the tile icon look tiny next to the stock ones.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="-1.25"
+        android:scaleY="1.25">
+
+        <!-- Full disc minus an offset disc = crescent. -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M20.2,15.7c-1.1,0.5 -2.3,0.8 -3.6,0.8 -4.7,0 -8.5,-3.8 -8.5,-8.5 0,-1.7 0.5,-3.3 1.4,-4.6C5.3,4.5 2.5,8 2.5,12.2c0,5.1 4.2,9.3 9.3,9.3 3.7,0 6.9,-2.1 8.4,-5.2 0.1,-0.2 0.1,-0.4 0,-0.5 -0.1,-0.1 -0.3,-0.2 -0.4,-0.1z" />
+    </group>
+</vector>

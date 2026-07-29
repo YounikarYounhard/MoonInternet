@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws everything; this only keeps the launch window dark so there is no white flash. -->
+    <style name="Theme.Moon" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0D0A18</item>
+        <item name="android:statusBarColor">#0D0A18</item>
+        <item name="android:navigationBarColor">#0A0814</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

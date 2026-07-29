@@ -60,3 +60,22 @@ packages/
 *.pfx
 *.snk
 .tools/
+
+# ===== Android =====
+# Gradle output and caches (hundreds of MB)
+android/build/
+android/app/build/
+android/.gradle/
+android/.idea/
+android/captures/
+# machine-specific SDK paths
+android/local.properties
+# the signing key: whoever holds it can publish updates as us
+*.jks
+*.keystore
+# prebuilt core, produced by android/build-xray.ps1 (19 MB)
+android/app/libs/*.aar
+
+# ===== Avalonia / Linux build =====
+src/MoonInternet.Desktop/bin/
+src/MoonInternet.Desktop/obj/

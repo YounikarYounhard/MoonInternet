@@ -1,18 +1,13 @@
-using Microsoft.Win32;
+using MoonInternet.Services.Platform;
 
 namespace MoonInternet.Services;
 
-/// <summary>Per-user autostart via the HKCU Run key (no admin needed).</summary>
+/// <summary>
+/// Per-user autostart. The OS-specific part moved to <see cref="IPlatformIntegration"/> —
+/// HKCU Run key on Windows, an XDG .desktop file on Linux. Neither needs admin.
+/// </summary>
 public static class Autostart
 {
-    private const string Key = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string Name = "MoonInternet";
-
-    public static void Apply(bool enabled, string exePath)
-    {
-        using var k = Registry.CurrentUser.OpenSubKey(Key, writable: true);
-        if (k is null) return;
-        if (enabled) k.SetValue(Name, $"\"{exePath}\"");
-        else if (k.GetValue(Name) is not null) k.DeleteValue(Name, throwOnMissingValue: false);
-    }
+    public static void Apply(bool enabled, string exePath) =>
+        PlatformIntegration.Current.SetAutostart(enabled, exePath);
 }

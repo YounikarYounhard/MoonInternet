@@ -6,3 +6,30 @@
 *.dll binary
 *.dat binary
 *.srs binary
+*.ttf binary
+*.jar binary
+*.aar binary
+*.apk binary
+
+# Anything a Linux/Android toolchain executes must keep LF, or gradlew dies
+# with "bad interpreter: /bin/sh^M" on the CI runner.
+gradlew text eol=lf
+*.sh text eol=lf
+
+# ===== GitHub language stats =====
+# Without this the repo reads as "XML" — resource files and .csproj outnumber
+# the code that actually does something.
+*.axaml linguist-language=XAML
+*.xaml linguist-language=XAML
+*.csproj linguist-detectable=false
+*.props linguist-detectable=false
+*.nsi linguist-language=NSIS
+
+gradlew linguist-vendored
+gradlew.bat linguist-vendored
+android/gradle/** linguist-vendored
+android/**/res/values*/** linguist-generated
+**/fonts/** linguist-vendored
+
+docs/** linguist-documentation
+*.md linguist-documentation
