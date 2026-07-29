@@ -1,14 +1,20 @@
 # 🌙 Moon Internet
 
-A customizable VPN/proxy client for Windows — WPF / .NET 9.
+A customizable VPN/proxy client for **Windows** (WPF / .NET 9) and **Android** (Kotlin / Compose).
 Works with HAPP, INCY, V2Ray/Xray and Nekoray-style subscriptions.
 
-**Кастомизируемый VPN/прокси-клиент для Windows.** Подписки HAPP, INCY, V2Ray/Xray и совместимые.
+**Кастомизируемый VPN/прокси-клиент для Windows и Android.** Подписки HAPP, INCY, V2Ray/Xray и совместимые.
 
 *[Версия на русском](README.md)*
 
 > **Status: 0.9.0 beta.** Usable day to day, but expect rough edges.
 > The UI is currently **Russian only**.
+
+| Platform | State | Download |
+|---|---|---|
+| Windows 10/11 x64 | released | `MoonInternet-Setup-*.exe` |
+| Android 7.0+ (arm64) | beta | `MoonInternet-*.apk` |
+| Linux | draft, not shipped | — |
 
 ---
 
@@ -24,7 +30,7 @@ Works with HAPP, INCY, V2Ray/Xray and Nekoray-style subscriptions.
 - **Tray** — connect, switch server, ping, sorting, transport mode
 - **Appearance** — themes, accent/background/text colours, font, window transparency, custom moon artwork
 
-## Install
+## Install (Windows)
 
 Grab the installer from [**Releases**](../../releases) and run it.
 It installs into `Program Files`, registers the privileged TUN helper and creates shortcuts.
@@ -33,6 +39,21 @@ It installs into `Program Files`, registers the privileged TUN helper and create
 
 > Builds are **not code-signed**, so SmartScreen warns on first launch
 > (*More info → Run anyway*). See [Security](#security).
+
+## Android
+
+Not a loose "mobile edition" — the same screens ported over: same four tabs, same nine
+settings pages, same measurements. Subscriptions, routing and config generation mirror
+the desktop code.
+
+- Protocols: VLESS (Reality / XHTTP / gRPC / WS / TCP), VMess, Trojan, Shadowsocks, Hysteria2
+- Tunnels through **xray's built-in TUN inbound** — the `VpnService` descriptor goes straight into the core, no tun2socks
+- Local proxy mode: SOCKS5 + HTTP on the device, the way v2rayNG does it
+- Per-app split tunnel with the app list and icons
+- QR scanner, quick-settings tile (connect / pause / disconnect), speed and traffic in the notification
+- Pings every server on launch, but at most 6 at a time, so the provider's panel survives it
+
+Install the APK from [Releases](../../releases). WireGuard and the theming options are not ported yet.
 
 ## Build from source
 
@@ -52,6 +73,19 @@ makensis build\installer.nsi
 
 Needed **to build**, not to run: **.NET 9 SDK**, Windows 10/11 x64. NSIS only if you also want the installer.
 
+### Android
+
+```powershell
+# the core: xray-core wrapped for Android (2dust/AndroidLibXrayLite) — ~19 MB, kept out of the repo
+powershell -ExecutionPolicy Bypass -File android\build-xray.ps1
+
+cd android
+.\gradlew assembleRelease
+```
+
+The script downloads Go itself if you don't have it. You need the Android SDK + NDK and
+JDK 17; point `MOON_TOOLCHAIN` at them (defaults to `C:\moonbuild`). **arm64 only.**
+
 ## Architecture
 
 Moon Internet **does not reimplement any protocol**. The orchestration is written in C#
@@ -59,24 +93,36 @@ Moon Internet **does not reimplement any protocol**. The orchestration is writte
 actual traffic is handled by proven engines — the same approach Happ, Nekoray and v2rayN take.
 
 ```
-MoonInternet.App          WPF UI (MVVM)
-MoonInternet.Core         models, parsers, config generators
-MoonInternet.Services     connection manager, cores, subscriptions, ping, geo
-MoonInternet.TunService   privileged helper (SYSTEM) — TUN adapter + routes
+src/MoonInternet.App          WPF UI (MVVM)
+src/MoonInternet.Core         models, parsers, config generators
+src/MoonInternet.Services     connection manager, cores, subscriptions, ping, geo
+src/MoonInternet.TunService   privileged helper (SYSTEM) — TUN adapter + routes
+src/MoonInternet.Desktop      Avalonia draft (Linux), not shipped
+
+android/app/.../core          parsers and config generator — a port of Core
+android/app/.../data          subscriptions, storage, geo
+android/app/.../vpn           VpnService, xray, quick-settings tile
+android/app/.../ui            Compose screens — a port of the XAML
 ```
 
-Why the split: full TUN on Windows needs a network adapter and routing-table edits, which
+Why the split on Windows: full TUN needs a network adapter and routing-table edits, which
 require elevation. The helper runs as a SYSTEM scheduled task, so the app itself stays
 de-elevated and there's no UAC prompt on every launch. Without the helper, TUN falls back
 to system-proxy mode.
 
-Engines: **xray-core** (VLESS/VMess/Trojan/SS + router), **sing-box** (TUN, Hysteria2,
-WireGuard), **tun2socks** (alternative TUN engine).
+Android needs none of that: `VpnService` hands over the tunnel descriptor and it goes
+straight into xray's built-in TUN inbound.
+
+Engines: **xray-core** (VLESS/VMess/Trojan/SS + router; the same core on Android, via
+AndroidLibXrayLite), **sing-box** (TUN, Hysteria2, WireGuard), **tun2socks** (alternative
+TUN engine). `MoonInternet.Services` targets `net8.0` with the OS-specific parts behind
+`IPlatform` — which is what the Linux draft builds on.
 
 ## Privacy
 
 - No accounts, no telemetry, no analytics, no phoning home.
-- Subscriptions, servers and keys stay **on your machine**, in the app's `save\` folder.
+- Subscriptions, servers and keys stay **on your device**: the app's `save\` folder on
+  Windows, the app's private storage on Android.
 - The app contacts exactly two kinds of endpoint: **your** subscription URLs, and the
   geo-rule sources on GitHub (only when routing is enabled).
 - Logs are local and never uploaded.
