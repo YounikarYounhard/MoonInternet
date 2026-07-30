@@ -12,7 +12,6 @@
 |---|---|---|
 | Windows 10/11 x64 | релиз | `MoonInternet-Setup-*.exe` |
 | Android 7.0+ (arm64) | бета | `MoonInternet-*.apk` |
-| Linux | черновик, не собирается в релиз | — |
 
 ---
 
@@ -96,7 +95,6 @@ src/MoonInternet.App          интерфейс WPF (MVVM)
 src/MoonInternet.Core         модели, парсеры, генераторы конфигов
 src/MoonInternet.Services     менеджер подключения, ядра, подписки, пинг, гео
 src/MoonInternet.TunService   служебный компонент (SYSTEM) — TUN-адаптер и маршруты
-src/MoonInternet.Desktop      черновик Avalonia (Linux), в релиз не идёт
 
 android/app/.../core          парсеры и генератор конфигов — порт Core
 android/app/.../data          подписки, хранилище, гео
@@ -115,8 +113,7 @@ android/app/.../ui            экраны на Compose — порт XAML
 
 Ядра: **xray-core** (VLESS/VMess/Trojan/SS + роутер; на Android — он же, через
 AndroidLibXrayLite), **sing-box** (TUN, Hysteria2, WireGuard), **tun2socks**
-(альтернативный TUN). `MoonInternet.Services` собирается под `net8.0`, а всё
-специфичное для ОС спрятано за `IPlatform` — отсюда и черновик под Linux.
+(альтернативный TUN).
 
 ## Конфиденциальность
 

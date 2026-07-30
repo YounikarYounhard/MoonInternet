@@ -14,7 +14,6 @@ Works with HAPP, INCY, V2Ray/Xray and Nekoray-style subscriptions.
 |---|---|---|
 | Windows 10/11 x64 | released | `MoonInternet-Setup-*.exe` |
 | Android 7.0+ (arm64) | beta | `MoonInternet-*.apk` |
-| Linux | draft, not shipped | — |
 
 ---
 
@@ -97,7 +96,6 @@ src/MoonInternet.App          WPF UI (MVVM)
 src/MoonInternet.Core         models, parsers, config generators
 src/MoonInternet.Services     connection manager, cores, subscriptions, ping, geo
 src/MoonInternet.TunService   privileged helper (SYSTEM) — TUN adapter + routes
-src/MoonInternet.Desktop      Avalonia draft (Linux), not shipped
 
 android/app/.../core          parsers and config generator — a port of Core
 android/app/.../data          subscriptions, storage, geo
@@ -115,8 +113,7 @@ straight into xray's built-in TUN inbound.
 
 Engines: **xray-core** (VLESS/VMess/Trojan/SS + router; the same core on Android, via
 AndroidLibXrayLite), **sing-box** (TUN, Hysteria2, WireGuard), **tun2socks** (alternative
-TUN engine). `MoonInternet.Services` targets `net8.0` with the OS-specific parts behind
-`IPlatform` — which is what the Linux draft builds on.
+TUN engine).
 
 ## Privacy
 
