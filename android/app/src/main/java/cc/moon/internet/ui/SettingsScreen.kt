@@ -429,6 +429,10 @@ private fun SubsPage(
             RowDivider()
             SwitchRow("Показывать шапку подписки", "Приветствие / объявление от подписки на списке серверов",
                 state.showSubHeader) { v -> onSet { copy(showSubHeader = v) } }
+
+            RowDivider()
+            SwitchRow("Показывать количество серверов", "Кружок с числом рядом с названием подписки",
+                state.showServerCount) { v -> onSet { copy(showServerCount = v) } }
         }
 
         Spacer(Modifier.height(10.dp))

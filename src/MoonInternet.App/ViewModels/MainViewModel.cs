@@ -858,6 +858,7 @@ public partial class MainViewModel : ObservableObject
         PingMethod = _settings.PingMethod; PingDisplay = _settings.PingDisplay;
         PingTestUrl = _settings.PingTestUrl; PingTimeoutMs = _settings.PingTimeoutMs;
         PingStagger = _settings.PingStagger; PingStaggerMs = _settings.PingStaggerMs;
+        ShowServerCount = _settings.ShowServerCount;
         PingEveryMinutes = _settings.PingEveryMinutes;
         AutoUpdateSubs = _settings.AutoUpdateSubs; AutoUpdateSubsMinutes = _settings.AutoUpdateSubsMinutes;
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
@@ -1183,6 +1184,9 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>How many servers we probe at once. More than this looks like a port scan.</summary>
     public int PingParallel => 6;
+
+    [ObservableProperty] private bool showServerCount = true;
+    partial void OnShowServerCountChanged(bool value) { _settings.ShowServerCount = value; _settings.Save(); }
 
     [ObservableProperty] private bool pingStagger;
     partial void OnPingStaggerChanged(bool value) { _settings.PingStagger = value; _settings.Save(); }

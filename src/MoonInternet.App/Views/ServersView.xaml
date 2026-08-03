@@ -133,7 +133,7 @@
                                         </Button.Template>
                                     </Button>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
-                                        <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,2" VerticalAlignment="Center" Margin="0,0,4,0">
+                                        <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,2" VerticalAlignment="Center" Margin="0,0,4,0" Visibility="{Binding DataContext.ShowServerCount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
                                             <TextBlock Text="{Binding Count}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
                                         </Border>
                                         <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="Пинговать эту подписку"

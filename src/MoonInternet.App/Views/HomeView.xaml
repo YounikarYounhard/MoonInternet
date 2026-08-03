@@ -261,7 +261,7 @@
                                             </Button>
                                             <!-- per-subscription actions -->
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,2" VerticalAlignment="Center" Margin="0,0,4,0">
+                                                <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,2" VerticalAlignment="Center" Margin="0,0,4,0" Visibility="{Binding DataContext.ShowServerCount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
                                                     <TextBlock Text="{Binding Count}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
                                                 </Border>
                                                 <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="Пинговать эту подписку"
@@ -319,8 +319,16 @@
                             CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,14">
                         <StackPanel>
                             <TextBlock Text="Нет подписки" FontSize="14" FontWeight="SemiBold"/>
-                            <TextBlock Text="Нажмите «Добавить» или вставьте ссылку из буфера"
+                            <TextBlock Text="Добавьте ссылку или вставьте её из буфера"
                                        Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                            <!-- Both ways in, right where there is nothing else to do yet. No QR
+                                 scan here: that needs a camera, so it is the phone's button. -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,14,0,0">
+                                <Button Style="{StaticResource RoundAction}" Command="{Binding OpenAddDialogCommand}"
+                                        Content="&#xE710;" ToolTip="Добавить подписку" Margin="0,0,10,0"/>
+                                <Button Style="{StaticResource RoundAction}" Command="{Binding PasteImportCommand}"
+                                        Content="&#xE77F;" ToolTip="Вставить из буфера"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

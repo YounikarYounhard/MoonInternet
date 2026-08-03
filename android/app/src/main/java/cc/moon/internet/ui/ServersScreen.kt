@@ -32,6 +32,7 @@ fun ServersScreen(
     collapsed: Set<String>,
     sort: String,
     showSubHeader: Boolean,
+    showServerCount: Boolean,
     onSort: (String) -> Unit,
     onToggleCollapse: (String) -> Unit,
     onSelect: (ServerProfile) -> Unit,
@@ -130,6 +131,7 @@ fun ServersScreen(
             val shown = visible(sub.servers)
             if (shown.isNotEmpty() || query.isBlank()) {
                 SubGroup(
+                    showServerCount = showServerCount,
                     sub = sub, servers = shown, collapsed = sub.url in collapsed, showHeader = showSubHeader,
                     selected = selected, pings = pings, isFavorite = isFavorite,
                     onToggleCollapse = { onToggleCollapse(sub.url) },
@@ -166,6 +168,7 @@ private fun ChipSection(title: String, options: List<String>, selected: String, 
 
 @Composable
 private fun SubGroup(
+    showServerCount: Boolean,
     sub: Subscription,
     servers: List<ServerProfile>,
     collapsed: Boolean,
@@ -208,7 +211,7 @@ private fun SubGroup(
                     }
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent) {
+                    if (showServerCount) Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent) {
                         Text("${servers.size}", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                              color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }

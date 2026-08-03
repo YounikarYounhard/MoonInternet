@@ -570,6 +570,14 @@
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowSubHeader}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Показывать количество серверов" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                <TextBlock Text="Кружок с числом рядом с названием подписки" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowServerCount}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
 

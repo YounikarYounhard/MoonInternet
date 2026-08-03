@@ -42,6 +42,7 @@ data class AppState(
     val sniffing: Boolean = true,
     val blockUdp: Boolean = false,
     val preferredIp: String = "auto",   // auto | ipv4 | ipv6
+    val showServerCount: Boolean = true,   // кружок с числом серверов у подписки
     val pingMethod: String = "moon",    // moon | tcp | httpget | httphead | stability
     val pingStagger: Boolean = false,   // space the probes out instead of firing them all at once
     val pingStaggerMs: Int = 150,       // gap between them when staggering

@@ -60,6 +60,8 @@ fun HomeScreen(
     onPingSub: (Subscription) -> Unit,
     onRefreshSub: (Subscription) -> Unit,
     sortedIn: (Subscription) -> List<ServerProfile>,
+    onScanQr: () -> Unit,
+    showServerCount: Boolean,
     updateAvailable: Boolean,
     onUpdates: () -> Unit,
     listState: androidx.compose.foundation.lazy.LazyListState,
@@ -204,6 +206,7 @@ fun HomeScreen(
         items(subscriptions.size) { i ->
             val sub = subscriptions[i]
             SubscriptionCard(
+                    showServerCount = showServerCount,
                 sub = sub,
                 collapsed = sub.url in collapsed,
                 showHeader = showSubHeader,
@@ -231,8 +234,19 @@ fun HomeScreen(
                     Column(Modifier.padding(16.dp)) {
                         Text("Нет подписки", color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(3.dp))
-                        Text("Нажмите «Добавить» или вставьте ссылку из буфера",
+                        Text("Отсканируйте QR-код или вставьте ссылку из буфера",
                             color = Moon.TextSecondary, fontSize = 12.sp)
+
+                        // Both ways in, right where there is nothing else to do yet — without
+                        // this the only route is the Добавить button further up the screen.
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = 14.dp),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            EmptyAction(Icons.Filled.QrCodeScanner, "Сканировать QR", onScanQr)
+                            Spacer(Modifier.width(10.dp))
+                            EmptyAction(Icons.Filled.ContentPaste, "Вставить из буфера", onPaste)
+                        }
                     }
                 }
             }
@@ -318,6 +332,7 @@ private fun ActionButton(
 
 @Composable
 private fun SubscriptionCard(
+    showServerCount: Boolean,
     sub: Subscription,
     servers: List<ServerProfile>,
     collapsed: Boolean,
@@ -363,7 +378,7 @@ private fun SubscriptionCard(
                     }
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent) {
+                    if (showServerCount) Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent) {
                         Text("${sub.servers.size}", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                              color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -472,4 +487,20 @@ fun pingColorOf(ms: Int) = when {
     ms < 100 -> Moon.Green
     ms < 250 -> Color(0xFFF5C042)
     else -> Color(0xFFFF8A5B)
+}
+
+/** A small round icon button for the empty-subscription card. */
+@Composable
+private fun EmptyAction(icon: androidx.compose.ui.graphics.vector.ImageVector, hint: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Moon.ChipBg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+        modifier = Modifier.size(44.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, hint, tint = Moon.AccentText, modifier = Modifier.size(20.dp))
+        }
+    }
 }

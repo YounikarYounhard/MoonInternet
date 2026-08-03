@@ -40,6 +40,7 @@ public sealed class AppSettings
     public string PingDisplay { get; set; } = "num";           // num | bar | both | dots
     public string PingTestUrl { get; set; } = "https://www.gstatic.com/generate_204";
     public int PingTimeoutMs { get; set; } = 4000;             // per-probe timeout
+    public bool ShowServerCount { get; set; } = true;   // badge with the number of servers on a subscription
     public bool PingStagger { get; set; }                      // space the probes out instead of all at once
     public int PingStaggerMs { get; set; } = 150;              // gap between them when staggering
     public int PingEveryMinutes { get; set; }                  // 0 = off; re-ping in the background this often
