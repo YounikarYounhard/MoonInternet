@@ -221,6 +221,33 @@ private fun ConnectionPage(
             SwitchRow("HTTP-прокси авторизация", "Защитить HTTP-прокси теми же логином/паролем",
                 state.httpProxyAuth) { v -> onSet { copy(httpProxyAuth = v) } }
         }
+
+        // Приоритет трафика — бета, выключено по умолчанию. Same three modes as the desktop.
+        SectionLabel("ПРИОРИТЕТ ТРАФИКА")
+        MoonCard(padding = 14) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Приоритет трафика", color = Moon.TextPrimary, fontSize = 14.sp,
+                     fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(8.dp))
+                Surface(shape = RoundedCornerShape(6.dp), color = Color(0x33F5C042)) {
+                    Text("БЕТА", color = Color(0xFFF5C042), fontSize = 9.5.sp,
+                         fontWeight = FontWeight.Bold,
+                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp))
+                }
+            }
+            Text(
+                "Не даёт закачке забить очередь, из-за которой в играх и звонках подскакивает " +
+                    "пинг. Укорачивает буфер и отключает мультиплексирование. Скорость закачки " +
+                    "может немного снизиться.",
+                color = Moon.TextSecondary, fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+            ChipFlow(
+                listOf("off" to "Выключен", "balance" to "Баланс", "games" to "Игры и звонки"),
+                state.trafficPriority,
+            ) { onSet { copy(trafficPriority = it) } }
+        }
     }
 }
 

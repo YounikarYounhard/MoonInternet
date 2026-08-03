@@ -164,3 +164,75 @@ private fun SheetItem(icon: ImageVector, text: String, onClick: () -> Unit, tint
         Text(text, color = tint, fontSize = 14.sp)
     }
 }
+
+
+/**
+ * Обновление — the dialog behind the tile on Home. Mirrors the desktop overlay: installed and
+ * published versions, what changed, and a download that hands off to the browser.
+ */
+@Composable
+fun UpdateDialog(
+    currentVersion: String,
+    release: cc.moon.internet.data.ReleaseInfo?,
+    status: String,
+    available: Boolean,
+    onCheck: () -> Unit,
+    onDownload: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Moon.Card,
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.FileDownload, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Обновление", color = Moon.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column {
+                Row {
+                    Column(Modifier.weight(1f)) {
+                        Text("Установлена", color = Moon.TextSecondary, fontSize = 11.5.sp)
+                        Text(currentVersion, color = Moon.TextPrimary, fontSize = 15.sp,
+                             fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("На GitHub", color = Moon.TextSecondary, fontSize = 11.5.sp)
+                        Text(release?.version ?: "—", color = Moon.TextPrimary, fontSize = 15.sp,
+                             fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                    }
+                }
+                if (status.isNotBlank()) {
+                    Text(status, color = Moon.AccentText, fontSize = 12.5.sp,
+                         modifier = Modifier.padding(top = 12.dp))
+                }
+                if (available && !release?.notes.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp), color = Color(0xFF0B0916),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2150)),
+                        modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp),
+                    ) {
+                        Text(release!!.notes, color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp,
+                             modifier = Modifier.verticalScroll(rememberScrollState()).padding(14.dp, 12.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (available) {
+                TextButton(onClick = onDownload) {
+                    Text("Скачать", color = Moon.Accent, fontWeight = FontWeight.SemiBold)
+                }
+            } else {
+                TextButton(onClick = onCheck) { Text("Проверить", color = Moon.Accent) }
+            }
+        },
+        dismissButton = {
+            if (available) TextButton(onClick = onCheck) { Text("Проверить", color = Moon.TextSecondary) }
+            else TextButton(onClick = onDismiss) { Text("Закрыть", color = Moon.TextSecondary) }
+        },
+    )
+}

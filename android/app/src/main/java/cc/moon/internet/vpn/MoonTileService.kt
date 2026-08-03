@@ -83,6 +83,7 @@ class MoonTileService : TileService() {
                     blockUdp = st.blockUdp,
                     tlsFragment = st.tlsFragment,
                     mux = st.mux,
+                    trafficPriority = st.trafficPriority,
                     preferredIp = st.preferredIp,
                     logLevel = if (st.logsEnabled) st.logLevel else "none",
                     // another VPN client on the phone probably owns 10808/10809 already

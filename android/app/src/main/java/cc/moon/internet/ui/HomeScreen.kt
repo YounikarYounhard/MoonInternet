@@ -60,6 +60,8 @@ fun HomeScreen(
     onPingSub: (Subscription) -> Unit,
     onRefreshSub: (Subscription) -> Unit,
     sortedIn: (Subscription) -> List<ServerProfile>,
+    updateAvailable: Boolean,
+    onUpdates: () -> Unit,
     listState: androidx.compose.foundation.lazy.LazyListState,
 ) {
     LazyColumn(
@@ -69,17 +71,34 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = bottomNavSpace()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // ---- Прокси / TUN --------------------------------------------------
+        // ---- Прокси / TUN, с плиткой обновления слева ----------------------
         item {
             Spacer(Modifier.height(12.dp))
-            Surface(
-                shape = RoundedCornerShape(13.dp),
-                color = Color(0xFF160A34),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2150)),
-            ) {
-                Row(Modifier.padding(3.dp)) {
-                    SegButton("Прокси", !tunMode) { onTunMode(false) }
-                    SegButton("TUN", tunMode) { onTunMode(true) }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Surface(
+                    shape = RoundedCornerShape(13.dp),
+                    color = Color(0xFF160A34),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2150)),
+                ) {
+                    Row(Modifier.padding(3.dp)) {
+                        SegButton("Прокси", !tunMode) { onTunMode(false) }
+                        SegButton("TUN", tunMode) { onTunMode(true) }
+                    }
+                }
+
+                // red dot in the corner when a newer release exists — same as on the desktop
+                Box(Modifier.align(Alignment.CenterStart).size(38.dp)) {
+                    IconButton(onClick = onUpdates, modifier = Modifier.size(38.dp)) {
+                        Icon(Icons.Filled.FileDownload, "Обновления",
+                             tint = Moon.TextSecondary, modifier = Modifier.size(19.dp))
+                    }
+                    if (updateAvailable) {
+                        Box(
+                            Modifier.align(Alignment.TopEnd).padding(top = 3.dp, end = 3.dp)
+                                .size(9.dp).clip(CircleShape).background(Moon.Danger)
+                                .border(1.5.dp, Color(0xFF1A0B44), CircleShape)
+                        )
+                    }
                 }
             }
         }

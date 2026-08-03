@@ -38,6 +38,7 @@ data class AppState(
     // connection tuning, same switches as the desktop settings page
     val tlsFragment: Boolean = false,
     val mux: Boolean = false,
+    val trafficPriority: String = "off",   // off | balance | games — БЕТА, выключено по умолчанию
     val sniffing: Boolean = true,
     val blockUdp: Boolean = false,
     val preferredIp: String = "auto",   // auto | ipv4 | ipv6

@@ -48,7 +48,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    // buildConfig so the version lives in one place — versionName above — instead of being
+    // typed into the About page and the update check separately and drifting apart.
+    buildFeatures { compose = true; buildConfig = true }
 
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")

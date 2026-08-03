@@ -59,11 +59,35 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _elapsed = MutableStateFlow("—")
     val elapsed = _elapsed.asStateFlow()
 
+    // ---- обновления ------------------------------------------------------
+    private val _release = MutableStateFlow<cc.moon.internet.data.ReleaseInfo?>(null)
+    val release = _release.asStateFlow()
+
+    private val _updateAvailable = MutableStateFlow(false)
+    val updateAvailable = _updateAvailable.asStateFlow()
+
+    private val _updateStatus = MutableStateFlow("")
+    val updateStatus = _updateStatus.asStateFlow()
+
+    val appVersion: String = cc.moon.internet.BuildConfig.VERSION_NAME
+
+    /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
+    fun checkUpdate() = viewModelScope.launch {
+        _updateStatus.value = "Проверяю…"
+        val r = cc.moon.internet.data.UpdateService.latest()
+        if (r == null) { _updateStatus.value = "Не удалось проверить — нет связи с GitHub"; return@launch }
+        _release.value = r
+        _updateAvailable.value = cc.moon.internet.data.UpdateService.isNewer(r.version, appVersion)
+        _updateStatus.value =
+            if (_updateAvailable.value) "Доступна версия ${r.version}" else "У вас последняя версия"
+    }
+
     init {
         viewModelScope.launch {
             store.load()                                  // offline first: servers show instantly
             if (store.state.value.updateOnStart) refreshAll(silent = true) else if (store.state.value.pingOnStart) pingAll()
         }
+        checkUpdate()
         viewModelScope.launch { watchTraffic() }
         viewModelScope.launch {
             vpnState.collect { s ->
@@ -311,6 +335,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 blockUdp = st.blockUdp,
                 tlsFragment = st.tlsFragment,
                 mux = st.mux,
+                trafficPriority = st.trafficPriority,
                 preferredIp = st.preferredIp,
                 logLevel = if (st.logsEnabled) st.logLevel else "none",
                 socksPort = socks,

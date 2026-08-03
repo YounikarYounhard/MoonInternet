@@ -29,6 +29,13 @@ import org.json.JSONObject
  * against the OS only, so with 10808 taken they would both be told 10809 is free and land on
  * the same number — a self-collision that replaces one bug with another.
  */
+/** Per-connection buffer in kB for a priority mode, or null to leave xray on its own default. */
+fun bufferSizeKb(trafficPriority: String): Int? = when (trafficPriority) {
+    "balance" -> 256
+    "games" -> 64
+    else -> null
+}
+
 fun freeLocalPort(preferred: Int, listen: String = "127.0.0.1", avoid: Set<Int> = emptySet()): Int {
     if (preferred <= 0) return preferred
     for (port in preferred until preferred + 12) {
@@ -81,6 +88,12 @@ object XrayConfig {
         blockUdp: Boolean = false,
         tlsFragment: Boolean = false,
         mux: Boolean = false,
+        /**
+         * off | balance | games — BETA, off by default. Same three modes as the desktop build.
+         * See [bufferSizeKb]: what ruins a call while something downloads is the queue, not the
+         * speed, so this shortens the buffer and forces mux off.
+         */
+        trafficPriority: String = "off",
         preferredIp: String = "auto",
         logLevel: String = "warning",
         /** Local SOCKS/HTTP listeners, the way v2rayNG and HAPP expose them to other apps. */
@@ -143,7 +156,9 @@ object XrayConfig {
             else -> "UseIP"
         }
         val outbounds = JSONArray()
-            .put(buildOutbound(server, mux = mux, fragment = tlsFragment))
+            // mux is forced off by the priority modes: with it on, every connection shares one
+            // stream and a download blocks the game's packets outright
+            .put(buildOutbound(server, mux = mux && trafficPriority == "off", fragment = tlsFragment))
             .put(JSONObject().put("tag", "direct").put("protocol", "freedom")
                 .put("settings", JSONObject().put("domainStrategy", domainStrategy)))
             .put(JSONObject().put("tag", "block").put("protocol", "blackhole"))
@@ -159,9 +174,15 @@ object XrayConfig {
         cfg.put("dns", buildDns(routing, dns, server, dnsList))
         cfg.put("routing", buildRouting(routing, server, hasGeoFiles, blockUdp))
         cfg.put("stats", JSONObject())
-        cfg.put("policy", JSONObject().put("system", JSONObject()
+        val policy = JSONObject().put("system", JSONObject()
             .put("statsOutboundUplink", true)
-            .put("statsOutboundDownlink", true)))
+            .put("statsOutboundDownlink", true))
+        // Level 0 is what ordinary traffic runs at, so this is where the priority mode bites:
+        // a smaller buffer stops a bulk transfer running ahead of everything else.
+        bufferSizeKb(trafficPriority)?.let { kb ->
+            policy.put("levels", JSONObject().put("0", JSONObject().put("bufferSize", kb)))
+        }
+        cfg.put("policy", policy)
         return cfg.toString(2)
     }
 

@@ -98,6 +98,9 @@ class MainActivity : ComponentActivity() {
                 val checkPing by vm.checkPing.collectAsState()
                 val geoBusy by vm.geoBusy.collectAsState()
                 val geoStatus by vm.geoStatus.collectAsState()
+                val updateAvailable by vm.updateAvailable.collectAsState()
+                val release by vm.release.collectAsState()
+                val updateStatus by vm.updateStatus.collectAsState()
 
                 var page by remember { mutableStateOf(Page.Home) }
                 // one scroll state per list, so switching tabs comes back where you left off
@@ -115,6 +118,7 @@ class MainActivity : ComponentActivity() {
                 var serverMenu by remember { mutableStateOf<ServerProfile?>(null) }
                 var jsonOf by remember { mutableStateOf<ServerProfile?>(null) }
                 var qrOf by remember { mutableStateOf<Pair<String, String>?>(null) }
+                var showUpdate by remember { mutableStateOf(false) }
                 var addRuleTo by remember { mutableStateOf<String?>(null) }
                 val snackbar = remember { SnackbarHostState() }
 
@@ -209,6 +213,8 @@ class MainActivity : ComponentActivity() {
                                 onPingSub = { vm.pingSubscription(it.url) },
                                 onRefreshSub = { vm.refreshSubscription(it.url) },
                                 sortedIn = vm::sortedIn,
+                                updateAvailable = updateAvailable,
+                                onUpdates = { showUpdate = true },
                                 listState = homeScroll,
                             )
 
@@ -315,6 +321,26 @@ class MainActivity : ComponentActivity() {
                         }
                         qrOf?.let { (title, url) -> QrDialog(title, url) { qrOf = null } }
 
+                        
+
+                        if (showUpdate) UpdateDialog(
+
+                            currentVersion = vm.appVersion,
+
+                            release = release,
+
+                            status = updateStatus,
+
+                            available = updateAvailable,
+
+                            onCheck = { vm.checkUpdate() },
+
+                            onDownload = { openUrl(release?.apkUrl ?: release?.pageUrl) },
+
+                            onDismiss = { showUpdate = false },
+
+                        )
+
                     }
 
                     // outside the padded Box on purpose: it has to sit over the nav inset too
@@ -394,6 +420,18 @@ class MainActivity : ComponentActivity() {
         val cb = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val text = cb.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
         if (text.isBlank()) vm.notImplemented("Буфер пуст") else vm.addSubscription(text)
+    }
+
+    /**
+     * Hands the release off to the browser. The APK goes through the package installer either
+     * way, so fetching it ourselves would only add a copy we then have to hand over.
+     */
+    private fun openUrl(url: String?) {
+        if (url.isNullOrBlank()) return
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }
 
     private fun copy(text: String, message: String) {
