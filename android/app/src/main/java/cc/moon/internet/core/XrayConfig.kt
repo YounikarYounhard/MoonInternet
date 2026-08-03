@@ -96,6 +96,8 @@ object XrayConfig {
         trafficPriority: String = "off",
         preferredIp: String = "auto",
         logLevel: String = "warning",
+        /** Where the core should write its log, or null to leave it in logcat only. */
+        logFile: String? = null,
         /** Local SOCKS/HTTP listeners, the way v2rayNG and HAPP expose them to other apps. */
         socksPort: Int = 10808,
         httpPort: Int = 10809,
@@ -107,7 +109,12 @@ object XrayConfig {
         dnsList: List<String> = listOf("1.1.1.1", "8.8.8.8"),
     ): String {
         val cfg = JSONObject()
-        cfg.put("log", JSONObject().put("loglevel", logLevel))
+        // The core writes to a file when we give it one; without a path it only reaches logcat,
+        // which the Логи page cannot show a size for or clear. That is why that page used to be
+        // decorative — the size was a hardcoded dash.
+        val log = JSONObject().put("loglevel", logLevel)
+        if (logLevel != "none" && !logFile.isNullOrBlank()) log.put("error", logFile)
+        cfg.put("log", log)
 
         val sniff = JSONObject()
             .put("enabled", sniffing)

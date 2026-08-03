@@ -338,6 +338,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 trafficPriority = st.trafficPriority,
                 preferredIp = st.preferredIp,
                 logLevel = if (st.logsEnabled) st.logLevel else "none",
+                logFile = if (st.logsEnabled) cc.moon.internet.data.LogStore.file(getApplication()).absolutePath else null,
                 socksPort = socks,
                 httpPort = http,
                 proxyUser = st.proxyUser,
@@ -479,7 +480,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         reconnectIfConnected()
     }
 
-    fun clearLogs() { _status.value = "Журнал ядра ведёт система, отдельный файл не пишется" }
+    fun clearLogs() {
+        cc.moon.internet.data.LogStore.clear(getApplication())
+        _status.value = "Логи очищены"
+    }
+
+    /** Size of the core log for the settings row. */
+    fun logsSize(): String = cc.moon.internet.data.LogStore.size(getApplication())
+
+    /** Last lines of the core log, for the viewer. */
+    fun logsTail(): String = cc.moon.internet.data.LogStore.tail(getApplication())
 
     fun setProxyMode(tun: Boolean) = viewModelScope.launch {
         store.update { it.copy(tunMode = tun) }

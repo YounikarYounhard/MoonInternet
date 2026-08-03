@@ -86,6 +86,7 @@ class MoonTileService : TileService() {
                     trafficPriority = st.trafficPriority,
                     preferredIp = st.preferredIp,
                     logLevel = if (st.logsEnabled) st.logLevel else "none",
+                    logFile = if (st.logsEnabled) cc.moon.internet.data.LogStore.file(applicationContext).absolutePath else null,
                     // another VPN client on the phone probably owns 10808/10809 already
                     socksPort = socks,
                     httpPort = cc.moon.internet.core.freeLocalPort(st.httpPort, avoid = setOf(socks)),

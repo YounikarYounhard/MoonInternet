@@ -260,7 +260,8 @@ class MainActivity : ComponentActivity() {
                                     state = state,
                                     routing = vm.activeRouting(),
                                     apps = installedApps,
-                                    logsSize = "—",
+                                    // recomputed whenever the page opens, not once at startup
+                                    logsSize = remember(settingsPage) { vm.logsSize() },
                                     xrayVersion = xrayVersion,
                                     onBack = { settingsPage = settingsBack.removeLastOrNull() },
                                     onOpen = { settingsBack.add(sp); settingsPage = it },
