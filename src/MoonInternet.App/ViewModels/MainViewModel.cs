@@ -805,6 +805,7 @@ public partial class MainViewModel : ObservableObject
         PingMethod = _settings.PingMethod; PingDisplay = _settings.PingDisplay;
         PingTestUrl = _settings.PingTestUrl; PingTimeoutMs = _settings.PingTimeoutMs;
         PingStagger = _settings.PingStagger; PingStaggerMs = _settings.PingStaggerMs;
+        PingEveryMinutes = _settings.PingEveryMinutes;
         AutoUpdateSubs = _settings.AutoUpdateSubs; AutoUpdateSubsMinutes = _settings.AutoUpdateSubsMinutes;
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
         PingOnStart = _settings.PingOnStart; SendHwid = _settings.SendHwid;
@@ -1067,6 +1068,58 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private bool pingStagger;
     partial void OnPingStaggerChanged(bool value) { _settings.PingStagger = value; _settings.Save(); }
+
+    // ---- автопроверка ----------------------------------------------------
+    private IDisposable? _autoPingTimer;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAutoPingOff), nameof(IsAutoPing1), nameof(IsAutoPing5),
+                              nameof(IsAutoPing10), nameof(IsAutoPing15), nameof(IsAutoPing20), nameof(IsAutoPing30))]
+    private int pingEveryMinutes;
+
+    public bool IsAutoPingOff => PingEveryMinutes == 0;
+    public bool IsAutoPing1 => PingEveryMinutes == 1;
+    public bool IsAutoPing5 => PingEveryMinutes == 5;
+    public bool IsAutoPing10 => PingEveryMinutes == 10;
+    public bool IsAutoPing15 => PingEveryMinutes == 15;
+    public bool IsAutoPing20 => PingEveryMinutes == 20;
+    public bool IsAutoPing30 => PingEveryMinutes == 30;
+
+    [RelayCommand] private void SetAutoPing(string m) { if (int.TryParse(m, out var v)) PingEveryMinutes = v; }
+
+    partial void OnPingEveryMinutesChanged(int value)
+    {
+        _settings.PingEveryMinutes = value; _settings.Save();
+        RestartAutoPing();
+    }
+
+    /// <summary>
+    /// Re-measures on the chosen interval so the list is fresh when it is opened. Off by default:
+    /// a probe to every server on a timer is traffic the user did not ask for.
+    /// </summary>
+    private void RestartAutoPing()
+    {
+        _autoPingTimer?.Dispose();
+        _autoPingTimer = null;
+        if (PingEveryMinutes <= 0) return;
+
+        var t = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMinutes(PingEveryMinutes),
+        };
+        // Skip a round rather than queue up: with "стабильность" a pass can outlast the interval,
+        // and stacking them would leave several cores running at once.
+        t.Tick += async (_, _) => { if (!_autoPingBusy) { _autoPingBusy = true; try { await PingAll(); } finally { _autoPingBusy = false; } } };
+        t.Start();
+        _autoPingTimer = new TimerHandle(t);
+    }
+
+    private bool _autoPingBusy;
+
+    private sealed class TimerHandle(System.Windows.Threading.DispatcherTimer t) : IDisposable
+    {
+        public void Dispose() => t.Stop();
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsStagger50), nameof(IsStagger150), nameof(IsStagger300))]

@@ -34,9 +34,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _busy = MutableStateFlow(false)
     val busy = _busy.asStateFlow()
 
-    /** raw share link → ping in ms (-1 failed). */
+    /** raw share link → ping in ms (-1 failed, -2 unknown/not measured). */
     private val _pings = MutableStateFlow<Map<String, Int>>(emptyMap())
     val pings = _pings.asStateFlow()
+
+    /** Share links currently being measured — those rows show a spinner instead of a number. */
+    private val _pinging = MutableStateFlow<Set<String>>(emptySet())
+    val pinging = _pinging.asStateFlow()
+
+    /** True while any subscription-wide ping or refresh is running, for the button spinners. */
+    private val _pingingAll = MutableStateFlow(false)
+    val pingingAll = _pingingAll.asStateFlow()
 
     /** result of "Проверить соединение" — shown next to the button while connected. */
     private val _checkPing = MutableStateFlow("")
@@ -106,6 +114,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         // the tunnel reports failures on its own thread — surface them instead of silently going dark
         viewModelScope.launch { vpnError.filterNotNull().collect { _status.value = it } }
+        viewModelScope.launch { autoPingLoop() }
+    }
+
+    /**
+     * Re-measures in the background on the interval the user picked, off by default.
+     *
+     * Checks the setting every minute rather than sleeping for the whole interval, so changing it
+     * takes effect now instead of after the old one finally elapses. Skips a round while the
+     * screen is not in use — the point is to have fresh numbers when the list is opened, not to
+     * keep the radio busy in a pocket.
+     */
+    private suspend fun autoPingLoop() {
+        var sinceLastRun = 0
+        while (true) {
+            kotlinx.coroutines.delay(60_000)
+            val every = store.state.value.pingEveryMinutes
+            if (every <= 0) { sinceLastRun = 0; continue }
+            sinceLastRun++
+            if (sinceLastRun < every) continue
+            sinceLastRun = 0
+            val servers = store.state.value.subscriptions.flatMap { it.servers }
+            if (servers.isNotEmpty()) pingServers(servers)
+        }
     }
 
     // ---- subscriptions ---------------------------------------------------
@@ -247,32 +278,59 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun pingServers(servers: List<ServerProfile>) {
         val targets = servers.filter { !it.raw.isNullOrBlank() }
         if (targets.isEmpty()) return
+        val st = store.state.value
         _status.value = "Пингую ${targets.size}…"
 
-        val gate = kotlinx.coroutines.sync.Semaphore(PING_PARALLEL)
-        kotlinx.coroutines.coroutineScope {
-            targets.map { s ->
-                async(Dispatchers.IO) {
-                    gate.withPermit {
-                        val ms = measurePing(s)
-                        s.raw?.let { raw -> _pings.update { it + (raw to ms) } }
+        // rows show a spinner instead of a stale number while they are being measured
+        _pinging.value = targets.mapNotNull { it.raw }.toSet()
+
+        // Стабильность starts a core per server, so one at a time — six at once would be six
+        // cores and the phone would feel it.
+        val parallel = if (st.pingMethod == "stability") 1 else PING_PARALLEL
+        val gate = kotlinx.coroutines.sync.Semaphore(parallel)
+        try {
+            kotlinx.coroutines.coroutineScope {
+                targets.mapIndexed { i, s ->
+                    async(Dispatchers.IO) {
+                        // Optional stagger: thirty handshakes in one instant look like a port
+                        // scan and some providers throttle or drop the volley.
+                        if (st.pingStagger && st.pingStaggerMs > 0) {
+                            kotlinx.coroutines.delay(i.toLong() * st.pingStaggerMs)
+                        }
+                        gate.withPermit {
+                            val ms = measurePing(s)
+                            s.raw?.let { raw ->
+                                _pings.update { it + (raw to ms) }
+                                _pinging.update { it - raw }
+                            }
+                        }
                     }
-                }
-            }.forEach { it.await() }
+                }.forEach { it.await() }
+            }
+        } finally {
+            _pinging.value = emptySet()
+            _status.value = ""
         }
-        _status.value = ""
     }
 
     /**
-     * The four methods the desktop offers:
-     *  moon / tcp — TCP handshake straight to the server, outside the tunnel (channel latency);
-     *  httpget / httphead — a real request to the test URL, which measures the whole path.
+     * The same five methods as the desktop.
+     *
+     *  moon / tcp          — TCP handshake straight to the server. Channel latency, and all it
+     *                        proves is that something is listening on the port.
+     *  httpget / httphead  — an HTTP request to the server itself, time to first byte.
+     *  stability           — a real connection through the protocol; see [XrayRunner.measureOutbound].
+     *
+     * httpget/httphead used to request the *test URL* instead of the server, which measured the
+     * path to gstatic and handed every server the same number no matter what — that is the
+     * "only our method works" report.
      */
     private fun measurePing(s: ServerProfile): Int {
         val st = store.state.value
         val timeout = st.pingTimeoutMs
         return when (st.pingMethod) {
-            "httpget", "httphead" -> httpPing(st.pingTestUrl, timeout, head = st.pingMethod == "httphead")
+            "stability" -> stabilityPing(s, st.pingTestUrl)
+            "httpget", "httphead" -> httpPing(s, timeout, head = st.pingMethod == "httphead")
             else -> tcpPing(s.address, s.port, timeout)
         }
     }
@@ -283,15 +341,35 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         (System.currentTimeMillis() - t0).toInt()
     } catch (_: Exception) { -1 }
 
-    private fun httpPing(url: String, timeout: Int, head: Boolean): Int = try {
+    /** Time to first byte from the server's own port — not from the test URL. */
+    private fun httpPing(s: ServerProfile, timeout: Int, head: Boolean): Int = try {
         val t0 = System.currentTimeMillis()
-        (java.net.URL(url).openConnection() as java.net.HttpURLConnection).run {
+        val scheme = if (s.port == 80) "http" else "https"
+        (java.net.URL("$scheme://${s.address}:${s.port}/").openConnection() as java.net.HttpURLConnection).run {
             connectTimeout = timeout; readTimeout = timeout
+            instanceFollowRedirects = false
             requestMethod = if (head) "HEAD" else "GET"
-            try { responseCode } finally { disconnect() }
+            // A VLESS/Trojan port answers no HTTP at all; the connect time is still a real
+            // round-trip, so a read failure after a successful connect is not a dead server.
+            try { responseCode } catch (_: Exception) { }
+            disconnect()
         }
         (System.currentTimeMillis() - t0).toInt()
     } catch (_: Exception) { -1 }
+
+    /**
+     * Raises a real connection through this server and fetches the test URL over it. Slower than
+     * a handshake, and the only method here that can tell a working protocol from an open port.
+     */
+    private fun stabilityPing(s: ServerProfile, url: String): Int {
+        if (!XrayConfig.supports(s.protocol)) return -2   // unknown, not down
+        val cfg = runCatching {
+            XrayConfig.buildProxyOnly(
+                XrayConfig.build(server = s, routing = null, hasGeoFiles = false, logLevel = "none")
+            )
+        }.getOrNull() ?: return -1
+        return cc.moon.internet.vpn.XrayRunner.measureOutbound(cfg, url)
+    }
 
     /**
      * Real end-to-end check. The core measures it itself: our own process is excluded from the

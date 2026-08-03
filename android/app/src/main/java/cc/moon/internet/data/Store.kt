@@ -42,7 +42,10 @@ data class AppState(
     val sniffing: Boolean = true,
     val blockUdp: Boolean = false,
     val preferredIp: String = "auto",   // auto | ipv4 | ipv6
-    val pingMethod: String = "moon",    // moon (tcp) | url
+    val pingMethod: String = "moon",    // moon | tcp | httpget | httphead | stability
+    val pingStagger: Boolean = false,   // space the probes out instead of firing them all at once
+    val pingStaggerMs: Int = 150,       // gap between them when staggering
+    val pingEveryMinutes: Int = 0,      // 0 = off; otherwise re-ping in the background this often
     val pingDisplay: String = "num",    // num | dot | both | off
     val pingTestUrl: String = "https://www.gstatic.com/generate_204",
     val pingTimeoutMs: Int = 4000,

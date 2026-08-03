@@ -42,6 +42,7 @@ public sealed class AppSettings
     public int PingTimeoutMs { get; set; } = 4000;             // per-probe timeout
     public bool PingStagger { get; set; }                      // space the probes out instead of all at once
     public int PingStaggerMs { get; set; } = 150;              // gap between them when staggering
+    public int PingEveryMinutes { get; set; }                  // 0 = off; re-ping in the background this often
     // Subscription settings
     public bool AutoUpdateSubs { get; set; } = true;           // periodic auto-refresh (subscriptions ship an interval)
     public int AutoUpdateSubsMinutes { get; set; }             // 0 = use the subscription's own interval; else 30|60|120|360|720|1440

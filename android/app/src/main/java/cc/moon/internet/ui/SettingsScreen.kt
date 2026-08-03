@@ -474,13 +474,48 @@ private fun PingPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
     Column {
         SectionLabel("ПРОТОКОЛ", top = 0)
         ChipFlow(
-            listOf("moon" to "Moon Ping", "tcp" to "TCP", "httpget" to "HTTP GET", "httphead" to "HTTP HEAD"),
+            listOf("moon" to "Moon Ping", "tcp" to "TCP", "httpget" to "HTTP GET",
+                   "httphead" to "HTTP HEAD", "stability" to "Стабильность"),
             state.pingMethod,
         ) { v -> onSet { copy(pingMethod = v) } }
-        Text("Moon Ping — наш метод: быстрый TCP-хендшейк напрямую до сервера, мимо туннеля. " +
-             "Самая точная задержка канала до VPN.",
+        Text("Moon Ping, TCP и HTTP отвечают на вопрос «порт кто-то слушает». Это не то же самое, " +
+             "что «протокол работает»: CDN, промежуточный сервер провайдера или протухший ключ " +
+             "рукопожатие тоже завершат, и мёртвый сервер покажет бодрые 30 мс.",
              color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 16.sp,
-             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 16.dp))
+             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 6.dp))
+        Text("Стабильность — единственный метод, который поднимает настоящее соединение и делает " +
+             "через него запрос. Медленнее остальных, зато не врёт.",
+             color = Moon.AccentText, fontSize = 11.5.sp, lineHeight = 16.sp,
+             modifier = Modifier.padding(start = 4.dp, bottom = 16.dp))
+
+        SectionLabel("ПОРЯДОК ПРОВЕРКИ", top = 0)
+        MoonCard {
+            SwitchRow("Проверять по очереди",
+                "Разносить проверки во времени, а не бить все разом. Некоторые провайдеры " +
+                    "принимают залп из тридцати соединений за скан портов и режут его",
+                state.pingStagger) { v -> onSet { copy(pingStagger = v) } }
+            if (state.pingStagger) {
+                RowDivider()
+                Column(Modifier.padding(12.dp)) {
+                    Text("Задержка между проверками", color = Moon.TextSecondary, fontSize = 11.5.sp)
+                    Spacer(Modifier.height(8.dp))
+                    ChipFlow(listOf("50" to "50 мс", "150" to "150 мс", "300" to "300 мс"),
+                             state.pingStaggerMs.toString()) { v -> onSet { copy(pingStaggerMs = v.toInt()) } }
+                }
+            }
+        }
+
+        SectionLabel("АВТОПРОВЕРКА")
+        MoonCard(padding = 14) {
+            Text("Перемеряет пинги в фоне, чтобы к открытию списка числа были свежими.",
+                 color = Moon.TextSecondary, fontSize = 12.sp)
+            Spacer(Modifier.height(10.dp))
+            ChipFlow(
+                listOf("0" to "Выключено", "1" to "1 мин", "5" to "5 мин", "10" to "10 мин",
+                       "15" to "15 мин", "20" to "20 мин", "30" to "30 мин"),
+                state.pingEveryMinutes.toString(),
+            ) { v -> onSet { copy(pingEveryMinutes = v.toInt()) } }
+        }
 
         SectionLabel("ОТОБРАЖЕНИЕ ПИНГА", top = 0)
         ChipFlow(

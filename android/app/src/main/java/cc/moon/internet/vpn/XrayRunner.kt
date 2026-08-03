@@ -21,6 +21,19 @@ class XrayRunner(private val ctx: Context, private val onStopped: () -> Unit) {
     companion object {
         /** Core version string, for the About page. */
         fun version(): String = runCatching { Libv2ray.checkVersionX() }.getOrDefault("—")
+
+        /**
+         * Delay through a real connection, in ms, or -1 if it never completed.
+         *
+         * The core builds the outbound from [configJson], dials it and fetches [url] over it, so
+         * a number coming back means this server actually carried the request. A TCP handshake
+         * cannot tell that: a CDN, a middlebox or a stale key all complete one, and the row then
+         * shows a healthy figure for a server nothing can pass through.
+         */
+        fun measureOutbound(configJson: String, url: String): Int =
+            runCatching { Libv2ray.measureOutboundDelay(configJson, url).toInt() }
+                .getOrDefault(-1)
+                .let { if (it <= 0) -1 else it }
     }
 
     private var core: CoreController? = null
