@@ -39,6 +39,11 @@ public partial class App : Application
             { IsBackground = true, Name = "MoonShowSignal" }.Start();
 
         base.OnStartup(e);
+
+        // Before the window: every localised string is a DynamicResource, and with no dictionary
+        // merged they resolve to nothing and the whole UI comes up blank.
+        Localization.Loc.Apply(Localization.Loc.Resolve(AppSettings.Load().Language));
+
         ActiveTheme = ThemeStore.Load();
         ThemeService.ApplyColors(ActiveTheme); // colours before the window renders (window bg/font applied on Loaded)
         _window = new MainWindow();

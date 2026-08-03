@@ -55,6 +55,7 @@ public sealed class AppSettings
     public bool NotifyExpiry { get; set; } = true;             // warn before the subscription expires
     public int ExpiryNotifyDays { get; set; } = 3;             // 1 | 3 | 5 | 7
     public string? Hwid { get; set; }                          // stable per-install device id (generated once)
+    public string? Language { get; set; }                      // "ru" | "en"; null = follow the system
     // Tunnel tuning
     public bool TlsFragment { get; set; }                      // split the TLS ClientHello
     public bool Mux { get; set; }                              // connection multiplexing

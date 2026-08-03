@@ -15,14 +15,14 @@
         <!-- header -->
         <Grid Grid.Row="0" Margin="0,2,0,12">
             <StackPanel>
-                <TextBlock Text="Сервера" FontSize="21" FontWeight="Bold"/>
+                <TextBlock Text="{DynamicResource S_ServersView_001}" FontSize="21" FontWeight="Bold"/>
                 <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"
                            Text="{Binding TotalServers, Mode=OneWay, StringFormat={}{0} серверов}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                <Button Style="{StaticResource GlyphButton}" Width="34" Height="34" Content="&#xEC4A;" ToolTip="Пинговать все"
+                <Button Style="{StaticResource GlyphButton}" Width="34" Height="34" Content="&#xEC4A;" ToolTip="{DynamicResource S_ServersView_002}"
                         Command="{Binding PingAllCommand}"/>
-                <Button Style="{StaticResource GlyphButton}" Width="34" Height="34" Content="&#xE72C;" ToolTip="Обновить все подписки"
+                <Button Style="{StaticResource GlyphButton}" Width="34" Height="34" Content="&#xE72C;" ToolTip="{DynamicResource S_ServersView_003}"
                         Command="{Binding RefreshAllCommand}"/>
             </StackPanel>
         </Grid>
@@ -33,13 +33,13 @@
             <Button Grid.Column="0" Style="{StaticResource PrimaryButton}" Command="{Binding OpenAddDialogCommand}" Margin="0,0,4,0" Padding="14,10">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                    <TextBlock Text="Добавить" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource S_ServersView_004}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PasteImportCommand}" Margin="4,0,0,0" Padding="14,10">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                    <TextBlock Text="Вставить" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource S_ServersView_005}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
         </Grid>
@@ -50,7 +50,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="13,0,0,0"/>
                 <Grid Grid.Column="1">
-                    <TextBlock Text="Поиск серверов…" Foreground="{StaticResource TextMuted}" FontSize="13.5" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False">
+                    <TextBlock Text="{DynamicResource S_ServersView_006}" Foreground="{StaticResource TextMuted}" FontSize="13.5" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -67,7 +67,7 @@
 
         <!-- protocol filter -->
         <StackPanel Grid.Row="3" Margin="0,0,0,8">
-            <TextBlock Text="ПРОТОКОЛ" Foreground="{StaticResource SectionLabel}" FontSize="10" FontWeight="SemiBold" Margin="2,0,0,6"/>
+            <TextBlock Text="{DynamicResource S_ServersView_007}" Foreground="{StaticResource SectionLabel}" FontSize="10" FontWeight="SemiBold" Margin="2,0,0,6"/>
             <!-- "Все" + only the protocols that actually exist — one ItemsControl so chips flow/wrap naturally -->
             <ItemsControl ItemsSource="{Binding FilterChips}">
                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -88,12 +88,12 @@
 
         <!-- sort -->
         <StackPanel Grid.Row="4" Margin="0,0,0,8">
-            <TextBlock Text="СОРТИРОВКА" Foreground="{StaticResource SectionLabel}" FontSize="10" FontWeight="SemiBold" Margin="2,0,0,6"/>
+            <TextBlock Text="{DynamicResource S_ServersView_008}" Foreground="{StaticResource SectionLabel}" FontSize="10" FontWeight="SemiBold" Margin="2,0,0,6"/>
             <WrapPanel>
-                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="Обычная" Margin="0,0,8,8" Command="{Binding SetSortCommand}" CommandParameter="default" IsChecked="{Binding IsSortDefault, Mode=OneWay}"/>
-                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="↕ Пинг" Margin="0,0,8,8" Command="{Binding SetSortCommand}" CommandParameter="ping" IsChecked="{Binding IsSortPing, Mode=OneWay}"/>
-                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="А–Я" Margin="0,0,8,8" Command="{Binding SetSortCommand}" CommandParameter="name" IsChecked="{Binding IsSortName, Mode=OneWay}"/>
-                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="★ Избранное" Margin="0,0,0,8" Command="{Binding SetSortCommand}" CommandParameter="favorite" IsChecked="{Binding IsSortFavorite, Mode=OneWay}"/>
+                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="{DynamicResource S_ServersView_009}" Margin="0,0,8,8" Command="{Binding SetSortCommand}" CommandParameter="default" IsChecked="{Binding IsSortDefault, Mode=OneWay}"/>
+                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="{DynamicResource S_ServersView_010}" Margin="0,0,8,8" Command="{Binding SetSortCommand}" CommandParameter="ping" IsChecked="{Binding IsSortPing, Mode=OneWay}"/>
+                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="{DynamicResource S_ServersView_011}" Margin="0,0,8,8" Command="{Binding SetSortCommand}" CommandParameter="name" IsChecked="{Binding IsSortName, Mode=OneWay}"/>
+                <RadioButton Style="{StaticResource Chip}" GroupName="sort" Content="{DynamicResource S_ServersView_012}" Margin="0,0,0,8" Command="{Binding SetSortCommand}" CommandParameter="favorite" IsChecked="{Binding IsSortFavorite, Mode=OneWay}"/>
             </WrapPanel>
         </StackPanel>
 
@@ -137,7 +137,7 @@
                                             <TextBlock Text="{Binding Count}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
                                         </Border>
                                         <Grid Width="30" Height="28">
-                                                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="Пинговать эту подписку"
+                                                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="{DynamicResource S_ServersView_013}"
                                                 Command="{Binding DataContext.PingSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                                     <Ellipse Width="13" Height="13" StrokeThickness="2" Stroke="{StaticResource AccentText}" StrokeDashArray="3 2"
                                                              RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False"
@@ -150,9 +150,9 @@
                                                         </Ellipse.Triggers>
                                                     </Ellipse>
                                                 </Grid>
-                                        <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;" ToolTip="Обновить эту подписку"
+                                        <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;" ToolTip="{DynamicResource S_ServersView_014}"
                                                 Command="{Binding DataContext.RefreshSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                        <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;" ToolTip="Действия"
+                                        <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;" ToolTip="{DynamicResource S_ServersView_015}"
                                                 Command="{Binding DataContext.OpenSubSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                     </StackPanel>
                                 </Grid>

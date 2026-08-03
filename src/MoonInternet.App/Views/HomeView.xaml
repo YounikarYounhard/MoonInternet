@@ -16,7 +16,7 @@
             <Grid Grid.Row="0">
                 <Border HorizontalAlignment="Center" CornerRadius="13" Background="#160A34" BorderBrush="#2C2150" BorderThickness="1" Padding="3">
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="Прокси" Padding="28,7"
+                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="{DynamicResource S_HomeView_001}" Padding="28,7"
                                      IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=TwoWay}"/>
                         <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="TUN" Padding="32,7"
                                      IsChecked="{Binding TunMode, Mode=TwoWay}"/>
@@ -138,7 +138,7 @@
                         <Button Style="{StaticResource SecondaryButton}" Command="{Binding CheckConnectionCommand}" Padding="18,7">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xEC4A;" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="Проверить соединение" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource S_HomeView_002}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Border Visibility="{Binding HasCheckPing, Converter={StaticResource BoolVis}}" VerticalAlignment="Center"
@@ -162,14 +162,14 @@
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                     <StackPanel Margin="0,0,0,7">
-                        <TextBlock Text="Отдача" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <TextBlock Text="{DynamicResource S_HomeView_003}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
                             <TextBlock Text="↑" Foreground="{StaticResource Green}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,3,0"/>
                             <TextBlock Text="{Binding UploadSpeed}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
                         </StackPanel>
                     </StackPanel>
                     <StackPanel>
-                        <TextBlock Text="Приём" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <TextBlock Text="{DynamicResource S_HomeView_004}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
                             <TextBlock Text="↓" Foreground="{StaticResource AccentText}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,3,0"/>
                             <TextBlock Text="{Binding DownloadSpeed}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
@@ -179,11 +179,11 @@
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <StackPanel Margin="0,0,0,7">
-                        <TextBlock Text="Время" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <TextBlock Text="{DynamicResource S_HomeView_005}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                         <TextBlock Text="{Binding ElapsedDisplay}" FontWeight="SemiBold" FontSize="13" Margin="0,1,0,0"/>
                     </StackPanel>
                     <StackPanel>
-                        <TextBlock Text="Трафик" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
+                        <TextBlock Text="{DynamicResource S_HomeView_006}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                         <TextBlock Text="{Binding SessionTraffic}" FontWeight="SemiBold" FontSize="13" Margin="0,1,0,0"/>
                     </StackPanel>
                 </StackPanel>
@@ -195,7 +195,7 @@
                                 <Border x:Name="b" CornerRadius="10" Background="#2C2058" Padding="14,9">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="#C4B4FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                        <TextBlock Text="Добавить" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{DynamicResource S_HomeView_007}" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -210,7 +210,7 @@
                                 <Border x:Name="b" CornerRadius="10" Background="{StaticResource ChipBg}" Padding="14,9">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                        <TextBlock Text="Вставить" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{DynamicResource S_HomeView_008}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -265,7 +265,7 @@
                                                     <TextBlock Text="{Binding Count}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
                                                 </Border>
                                                 <Grid Width="30" Height="28">
-                                                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="Пинговать эту подписку"
+                                                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="{DynamicResource S_HomeView_009}"
                                                         Command="{Binding DataContext.PingSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                                     <Ellipse Width="13" Height="13" StrokeThickness="2" Stroke="{StaticResource AccentText}" StrokeDashArray="3 2"
                                                              RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False"
@@ -278,9 +278,9 @@
                                                         </Ellipse.Triggers>
                                                     </Ellipse>
                                                 </Grid>
-                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;" ToolTip="Обновить эту подписку"
+                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;" ToolTip="{DynamicResource S_HomeView_010}"
                                                         Command="{Binding DataContext.RefreshSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;" ToolTip="Действия"
+                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;" ToolTip="{DynamicResource S_HomeView_011}"
                                                         Command="{Binding DataContext.OpenSubSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                             </StackPanel>
                                         </Grid>
@@ -330,16 +330,16 @@
                     <Border Visibility="{Binding HasNoServers, Converter={StaticResource BoolVis}}"
                             CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,14">
                         <StackPanel>
-                            <TextBlock Text="Нет подписки" FontSize="14" FontWeight="SemiBold"/>
-                            <TextBlock Text="Добавьте ссылку или вставьте её из буфера"
+                            <TextBlock Text="{DynamicResource S_HomeView_012}" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="{DynamicResource S_HomeView_013}"
                                        Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
                             <!-- Both ways in, right where there is nothing else to do yet. No QR
                                  scan here: that needs a camera, so it is the phone's button. -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,14,0,0">
                                 <Button Style="{StaticResource RoundAction}" Command="{Binding OpenAddDialogCommand}"
-                                        Content="&#xE710;" ToolTip="Добавить подписку" Margin="0,0,10,0"/>
+                                        Content="&#xE710;" ToolTip="{DynamicResource S_HomeView_014}" Margin="0,0,10,0"/>
                                 <Button Style="{StaticResource RoundAction}" Command="{Binding PasteImportCommand}"
-                                        Content="&#xE77F;" ToolTip="Вставить из буфера"/>
+                                        Content="&#xE77F;" ToolTip="{DynamicResource S_HomeView_015}"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>

@@ -79,7 +79,7 @@
                 Visibility="{Binding IsSettingsSubPage, Converter={StaticResource BoolVis}}"
                 shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <StackPanel Orientation="Horizontal">
-                <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="{DynamicResource S_SettingsView_001}"/>
                 <TextBlock Text="{Binding SettingsPageTitle}" FontSize="22" FontWeight="Bold" Margin="6,0,0,0"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
@@ -90,19 +90,19 @@
         <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=hub}">
             <StackPanel Margin="24,20,24,24">
-                <TextBlock Text="Настройки" FontSize="26" FontWeight="Bold" Margin="2,4,0,2"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_002}" FontSize="26" FontWeight="Bold" Margin="2,4,0,2"/>
                 <TextBlock Text="Moon Internet · 0.9.0 beta" Foreground="{StaticResource TextSecondary}" FontSize="12.5" Margin="2,0,0,18"/>
 
-                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="Оформление" ToolTip="Шрифт" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="Подключение" ToolTip="TUN, авто-переподключение, kill-switch" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="Маршрутизация" ToolTip="Профили, правила, приложения, DNS" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="Настройки подписок" ToolTip="Обновление, срок, авто-обновление" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="Настройки пинга" ToolTip="Как и когда измерять задержку" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="Авто" ToolTip="Автозапуск, автоподключение, трей" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="Логи" ToolTip="Диагностика и журналы" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="{DynamicResource S_SettingsView_003}" ToolTip="{DynamicResource S_SettingsView_004}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="{DynamicResource S_SettingsView_005}" ToolTip="{DynamicResource S_SettingsView_006}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="{DynamicResource S_SettingsView_007}" ToolTip="{DynamicResource S_SettingsView_008}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="{DynamicResource S_SettingsView_009}" ToolTip="{DynamicResource S_SettingsView_010}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="{DynamicResource S_SettingsView_011}" ToolTip="{DynamicResource S_SettingsView_012}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="{DynamicResource S_SettingsView_013}" ToolTip="{DynamicResource S_SettingsView_014}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="{DynamicResource S_SettingsView_015}" ToolTip="{DynamicResource S_SettingsView_016}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
                 <!-- Политики конфиденциальности здесь нет: она открывается из «О приложении»,
                      где ей и место, и в хабе не занимает строку. -->
-                <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="О приложении" ToolTip="Версии, ссылки, система" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="{DynamicResource S_SettingsView_017}" ToolTip="{DynamicResource S_SettingsView_018}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
             </StackPanel>
         </ScrollViewer>
 
@@ -114,7 +114,7 @@
                 <!-- Шрифт — единственное, что осталось настраиваемым. Темы, цвета, прозрачность,
                      картинки луны и фон убраны: слишком много ручек ради того, что почти никто
                      не трогает, а поддерживать их надо было в обеих версиях. -->
-                <TextBlock Text="ШРИФТ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_019}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
                     <ItemsControl ItemsSource="{Binding Fonts}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -141,8 +141,8 @@
                     <StackPanel>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Авто-переподключение" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Если ядро упало — переподключиться автоматически" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_020}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_021}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoReconnect}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -150,7 +150,7 @@
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
                                 <TextBlock Text="Kill Switch" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Блокировать трафик при отключении VPN" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_022}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding KillSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -160,8 +160,8 @@
                                     <Border x:Name="b" Background="Transparent" Padding="12">
                                         <Grid>
                                             <StackPanel>
-                                                <TextBlock Text="Сбросить Kill Switch" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource AccentText}"/>
-                                                <TextBlock Text="Удалить правила фаервола, если интернет заблокирован после краша" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_023}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource AccentText}"/>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_024}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                             </StackPanel>
                                             <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                         </Grid>
@@ -173,64 +173,64 @@
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Разрешить LAN подключения" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Исключить локальную сеть из VPN туннеля" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_025}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_026}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AllowLan}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Grid Margin="12,0,12,12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="LAN через прокси" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Направить локальный трафик через VPN прокси" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_027}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_028}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding LanThroughProxy}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Кнопка &quot;Только прокси&quot;" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Показывать кнопку на главном экране" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_029}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_030}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowProxyOnlyButton}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <StackPanel Margin="12">
-                            <TextBlock Text="Дополнительные адреса в обход прокси" FontSize="14" FontWeight="SemiBold"/>
-                            <TextBlock Text="Хосты в обход системного прокси (напр. *.local)" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_031}" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_032}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding ProxyBypassHosts, UpdateSourceTrigger=LostFocus}" Margin="0,8,0,0"/>
                         </StackPanel>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <StackPanel Margin="12">
-                            <TextBlock Text="Локальный прокси" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_033}" FontSize="14" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding LocalProxyInfo}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="SOCKS5 / ПРОКСИ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_034}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,12,0">
-                                <TextBlock Text="SOCKS5 авторизация" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Защищает локальный прокси от приложений, которые сканируют порты для обнаружения VPN" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_035}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_036}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Socks5Auth}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <StackPanel Visibility="{Binding Socks5Auth, Converter={StaticResource BoolVis}}">
                             <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                             <Grid Margin="12">
-                                <TextBlock Text="Логин" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_037}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding ProxyUser}" FontFamily="Consolas" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyUserCommand}" ToolTip="Скопировать логин"/>
+                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyUserCommand}" ToolTip="{DynamicResource S_SettingsView_038}"/>
                                 </StackPanel>
                             </Grid>
                             <Grid Margin="12,0,12,12">
-                                <TextBlock Text="Пароль" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_039}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding ProxyPassMasked}" FontFamily="Consolas" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyPassCommand}" ToolTip="Скопировать пароль"/>
+                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyPassCommand}" ToolTip="{DynamicResource S_SettingsView_040}"/>
                                 </StackPanel>
                             </Grid>
                             <Button Command="{Binding ResetProxyCredsCommand}" Cursor="Hand" HorizontalContentAlignment="Left" Margin="6,0,0,10">
@@ -239,7 +239,7 @@
                                         <Border x:Name="b" Background="Transparent" Padding="6,4">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                <TextBlock Text="Сбросить логин/пароль" Foreground="{StaticResource AccentText}" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_041}" Foreground="{StaticResource AccentText}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
                                     </ControlTemplate>
@@ -249,16 +249,16 @@
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,12,0">
-                                <TextBlock Text="Блокировать UDP" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Сломает DNS-over-UDP, QUIC, голосовые звонки, игры. Включайте только если знаете зачем" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_042}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_043}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding BlockUdp}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,12,0">
-                                <TextBlock Text="HTTP-прокси авторизация" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Защитить HTTP-прокси теми же логином/паролем" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_044}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_045}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding HttpProxyAuth}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -266,23 +266,23 @@
                 </Border>
 
                 <!-- Приоритет трафика — бета, по умолчанию выключен -->
-                <TextBlock Text="ПРИОРИТЕТ ТРАФИКА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_046}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Приоритет трафика" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_047}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <Border CornerRadius="6" Background="#33F5C042" Padding="7,2" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="БЕТА" Foreground="#F5C042" FontSize="9.5" FontWeight="Bold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_048}" Foreground="#F5C042" FontSize="9.5" FontWeight="Bold"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"
-                                   Text="Не даёт закачке забить очередь, из-за которой в играх и звонках подскакивает пинг. Укорачивает буфер и отключает мультиплексирование. Скорость закачки может немного снизиться."/>
+                                   Text="{DynamicResource S_SettingsView_049}"/>
                         <WrapPanel Margin="0,10,0,0">
-                            <RadioButton Style="{StaticResource Chip}" GroupName="prio" Content="Выключен" Margin="0,0,8,8"
+                            <RadioButton Style="{StaticResource Chip}" GroupName="prio" Content="{DynamicResource S_SettingsView_050}" Margin="0,0,8,8"
                                          Command="{Binding SetTrafficPriorityCommand}" CommandParameter="off" IsChecked="{Binding IsPriorityOff, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="prio" Content="Баланс" Margin="0,0,8,8"
+                            <RadioButton Style="{StaticResource Chip}" GroupName="prio" Content="{DynamicResource S_SettingsView_051}" Margin="0,0,8,8"
                                          Command="{Binding SetTrafficPriorityCommand}" CommandParameter="balance" IsChecked="{Binding IsPriorityBalance, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="prio" Content="Игры и звонки" Margin="0,0,0,8"
+                            <RadioButton Style="{StaticResource Chip}" GroupName="prio" Content="{DynamicResource S_SettingsView_052}" Margin="0,0,0,8"
                                          Command="{Binding SetTrafficPriorityCommand}" CommandParameter="games" IsChecked="{Binding IsPriorityGames, Mode=OneWay}"/>
                         </WrapPanel>
                         <!-- The two readouts get a row to themselves; sharing it with the button
@@ -290,15 +290,15 @@
                         <Grid Margin="0,6,0,0">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Замерена скорость" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_053}" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding LearnedCapacity}" FontSize="13" FontWeight="SemiBold" Margin="0,2,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
-                                <TextBlock Text="Пинг без нагрузки" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_054}" Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding LearnedBaseline}" FontSize="13" FontWeight="SemiBold" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Grid>
-                        <Button Style="{StaticResource SecondaryButton}" Content="Сбросить замеры" HorizontalAlignment="Left"
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_SettingsView_055}" HorizontalAlignment="Left"
                                 Command="{Binding ResetLearnedCapacityCommand}" Padding="14,7" Margin="0,12,0,0"/>
                     </StackPanel>
                 </Border>
@@ -314,8 +314,8 @@
                     <StackPanel>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Профили маршрутизации" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Раздельное туннелирование с профилями" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_056}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_057}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding UseRouting}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -326,7 +326,7 @@
                                     <Border x:Name="b" Background="Transparent" Padding="12">
                                         <Grid>
                                             <StackPanel>
-                                                <TextBlock Text="Настройки маршрутизации" FontSize="14" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_058}" FontSize="14" FontWeight="SemiBold"/>
                                                 <TextBlock Text="{Binding RoutingName, StringFormat='Профиль, правила · {0}'}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                                             </StackPanel>
                                             <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
@@ -339,22 +339,22 @@
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Фрагментация" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Разделение TLS hello для обхода блокировок" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_059}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_060}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding TlsFragment}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Grid Margin="12,0,12,12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Мультиплексирование" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Мультиплексирование соединений" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_061}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_062}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Mux}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Grid Margin="12,0,12,12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Снифинг" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Определение протокола для маршрутизации" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_063}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_064}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Sniffing}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -368,8 +368,8 @@
                                     <Border x:Name="b" Background="Transparent" Padding="12">
                                         <Grid>
                                             <StackPanel>
-                                                <TextBlock Text="Прокси по приложениям" FontSize="14" FontWeight="SemiBold"/>
-                                                <TextBlock Text="Раздельное туннелирование по приложениям" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_065}" FontSize="14" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_066}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                                             </StackPanel>
                                             <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                         </Grid>
@@ -381,7 +381,7 @@
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <StackPanel Margin="12">
                             <Grid>
-                                <TextBlock Text="Предпочтительный IP" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_067}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding PreferredIpLabel}" Foreground="{StaticResource AccentText}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                             </Grid>
                             <Border CornerRadius="10" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="3" Margin="0,8,0,0">
@@ -403,11 +403,11 @@
                                 <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Google DNS" Margin="0,0,8,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="google" IsChecked="{Binding IsDnsGoogle, Mode=OneWay}"/>
                                 <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Cloudflare" Margin="0,0,8,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="cloudflare" IsChecked="{Binding IsDnsCloudflare, Mode=OneWay}"/>
                                 <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Quad9" Margin="0,0,8,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="quad9" IsChecked="{Binding IsDnsQuad9, Mode=OneWay}"/>
-                                <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="Свой" Margin="0,0,0,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="custom" IsChecked="{Binding IsDnsCustom, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="vpndns" Content="{DynamicResource S_SettingsView_068}" Margin="0,0,0,8" Command="{Binding SetVpnDnsCommand}" CommandParameter="custom" IsChecked="{Binding IsDnsCustom, Mode=OneWay}"/>
                             </WrapPanel>
                             <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding VpnDnsCustom, UpdateSourceTrigger=LostFocus}"
                                      Visibility="{Binding IsDnsCustom, Converter={StaticResource BoolVis}}" Margin="0,2,0,0"/>
-                            <TextBlock Text="IP через запятую, напр. 8.8.8.8, 1.1.1.1" Foreground="{StaticResource TextSecondary}" FontSize="11" Margin="2,4,0,0"
+                            <TextBlock Text="{DynamicResource S_SettingsView_069}" Foreground="{StaticResource TextSecondary}" FontSize="11" Margin="2,4,0,0"
                                        Visibility="{Binding IsDnsCustom, Converter={StaticResource BoolVis}}"/>
                         </StackPanel>
                     </StackPanel>
@@ -421,14 +421,14 @@
             <StackPanel Margin="24,20,24,24">
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16">
                     <StackPanel>
-                        <TextBlock Text="Раздельный туннель (только в TUN)" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="Какие приложения пускать мимо VPN — или только их через VPN." Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_070}" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_071}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="Выкл" Command="{Binding SetAppRouteModeCommand}" CommandParameter="off" IsChecked="{Binding IsAppRouteOff, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="Мимо VPN" Command="{Binding SetAppRouteModeCommand}" CommandParameter="bypass" IsChecked="{Binding IsAppRouteBypass, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="Только VPN" Command="{Binding SetAppRouteModeCommand}" CommandParameter="only" IsChecked="{Binding IsAppRouteOnly, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="{DynamicResource S_SettingsView_072}" Command="{Binding SetAppRouteModeCommand}" CommandParameter="off" IsChecked="{Binding IsAppRouteOff, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="{DynamicResource S_SettingsView_073}" Command="{Binding SetAppRouteModeCommand}" CommandParameter="bypass" IsChecked="{Binding IsAppRouteBypass, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="approute" Content="{DynamicResource S_SettingsView_074}" Command="{Binding SetAppRouteModeCommand}" CommandParameter="only" IsChecked="{Binding IsAppRouteOnly, Mode=OneWay}"/>
                         </StackPanel>
-                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding AddAppRouteCommand}" Content="+ Добавить приложение" Padding="12,7" Margin="0,12,0,0" HorizontalAlignment="Left"/>
+                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding AddAppRouteCommand}" Content="{DynamicResource S_SettingsView_075}" Padding="12,7" Margin="0,12,0,0" HorizontalAlignment="Left"/>
                         <ItemsControl ItemsSource="{Binding AppRouteApps}" Margin="0,10,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -440,7 +440,7 @@
                                                 <Image Source="{Binding Icon}" Stretch="Uniform"/>
                                             </Grid>
                                             <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}"/>
-                                            <Button Grid.Column="2" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource GlyphButton}" ToolTip="Убрать"
+                                            <Button Grid.Column="2" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource GlyphButton}" ToolTip="{DynamicResource S_SettingsView_076}"
                                                     Command="{Binding DataContext.RemoveAppRouteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                         </Grid>
                                     </Border>
@@ -461,41 +461,41 @@
                     <StackPanel>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Автозапуск с Windows" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Запускать Moon Internet при входе в систему" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_077}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_078}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Autostart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Авто-скрытие в трее" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Запускать сразу свёрнутым в системном трее" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_079}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_080}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding LaunchMinimized}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Авто-подключение при запуске" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Подключаться автоматически при старте приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_081}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_082}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoConnectOnStart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <StackPanel Margin="12,0,12,12" Visibility="{Binding AutoConnectOnStart, Converter={StaticResource BoolVis}}">
-                            <TextBlock Text="Какой сервер подключать" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_083}" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
                             <WrapPanel Margin="0,8,0,0">
-                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="Первый" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="first" IsChecked="{Binding IsAutoFirst, Mode=OneWay}"/>
-                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="Последний" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="last" IsChecked="{Binding IsAutoLast, Mode=OneWay}"/>
-                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="Мин. пинг" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="lowest" IsChecked="{Binding IsAutoLowest, Mode=OneWay}"/>
-                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="★ Избранное" Margin="0,0,0,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-first" IsChecked="{Binding IsAutoFav, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="{DynamicResource S_SettingsView_084}" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="first" IsChecked="{Binding IsAutoFirst, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="{DynamicResource S_SettingsView_085}" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="last" IsChecked="{Binding IsAutoLast, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="{DynamicResource S_SettingsView_086}" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="lowest" IsChecked="{Binding IsAutoLowest, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="autotgt" Content="{DynamicResource S_SettingsView_087}" Margin="0,0,0,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-first" IsChecked="{Binding IsAutoFav, Mode=OneWay}"/>
                             </WrapPanel>
                             <StackPanel Visibility="{Binding IsAutoFav, Converter={StaticResource BoolVis}}">
-                                <TextBlock Text="Какое избранное" FontSize="12" Foreground="{StaticResource TextSecondary}"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_088}" FontSize="12" Foreground="{StaticResource TextSecondary}"/>
                                 <WrapPanel Margin="0,8,0,0">
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="Первое" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-first" IsChecked="{Binding IsAutoFavFirst, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="Последнее" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-last" IsChecked="{Binding IsAutoFavLast, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="Мин. пинг" Margin="0,0,0,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-lowest" IsChecked="{Binding IsAutoFavLowest, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="{DynamicResource S_SettingsView_089}" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-first" IsChecked="{Binding IsAutoFavFirst, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="{DynamicResource S_SettingsView_090}" Margin="0,0,8,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-last" IsChecked="{Binding IsAutoFavLast, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autofav" Content="{DynamicResource S_SettingsView_091}" Margin="0,0,0,8" Command="{Binding SetAutoTargetCommand}" CommandParameter="favorite-lowest" IsChecked="{Binding IsAutoFavLowest, Mode=OneWay}"/>
                                 </WrapPanel>
                             </StackPanel>
                         </StackPanel>
@@ -513,68 +513,68 @@
                     <StackPanel>
                         <Grid Margin="12,12,12,8">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Автообновление" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Обновлять подписки автоматически" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_092}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_093}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoUpdateSubs}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <StackPanel Margin="12,0,12,10" Visibility="{Binding AutoUpdateSubs, Converter={StaticResource BoolVis}}">
                         <WrapPanel>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="По подписке" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="0" IsChecked="{Binding IsSubIntAuto, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="30 мин" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="30" IsChecked="{Binding IsSubInt30, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="1 час" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="60" IsChecked="{Binding IsSubInt60, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="2 часа" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="120" IsChecked="{Binding IsSubInt120, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="6 часов" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="360" IsChecked="{Binding IsSubInt360, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="12 часов" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="720" IsChecked="{Binding IsSubInt720, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="24 часа" Margin="0,0,0,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="1440" IsChecked="{Binding IsSubInt1440, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="{DynamicResource S_SettingsView_094}" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="0" IsChecked="{Binding IsSubIntAuto, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="{DynamicResource S_SettingsView_095}" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="30" IsChecked="{Binding IsSubInt30, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="{DynamicResource S_SettingsView_096}" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="60" IsChecked="{Binding IsSubInt60, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="{DynamicResource S_SettingsView_097}" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="120" IsChecked="{Binding IsSubInt120, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="{DynamicResource S_SettingsView_098}" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="360" IsChecked="{Binding IsSubInt360, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="{DynamicResource S_SettingsView_099}" Margin="0,0,8,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="720" IsChecked="{Binding IsSubInt720, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="subint" Content="{DynamicResource S_SettingsView_100}" Margin="0,0,0,8" Command="{Binding SetSubIntervalCommand}" CommandParameter="1440" IsChecked="{Binding IsSubInt1440, Mode=OneWay}"/>
                         </WrapPanel>
                         <TextBlock Text="{Binding SubUpdateHint}" Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="1,0,0,0"/>
                         </StackPanel>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Уведомлять об обновлении" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Показывать уведомление после обновления" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_101}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_102}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyOnUpdate}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Обновлять при запуске" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Обновлять подписки при старте приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_103}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_104}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding UpdateSubsOnStart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Пинг при запуске" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                <TextBlock Text="Тестировать задержку при запуске приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_105}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_106}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PingOnStart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Отправлять HWID" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Отправлять ID устройства в запросах подписки" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_107}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_108}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding SendHwid}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Показывать шапку подписки" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Приветствие / объявление от подписки на списке серверов" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_109}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_110}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowSubHeader}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Показывать количество серверов" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                <TextBlock Text="Кружок с числом рядом с названием подписки" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_111}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_112}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowServerCount}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -585,8 +585,8 @@
                     <StackPanel>
                         <Grid Margin="12,12,12,8">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Уведомление об истечении" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Предупреждать об истечении подписки" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_113}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_114}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyExpiry}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -595,7 +595,7 @@
                             <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="3" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="3" IsChecked="{Binding IsExp3, Mode=OneWay}"/>
                             <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="5" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="5" IsChecked="{Binding IsExp5, Mode=OneWay}"/>
                             <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="7" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="7" IsChecked="{Binding IsExp7, Mode=OneWay}"/>
-                            <TextBlock Text="Уведомлять за (дней)" Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_115}" Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -605,85 +605,85 @@
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=ping}">
             <StackPanel Margin="24,20,24,24">
 
-                <TextBlock Text="ПРОТОКОЛ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_116}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <WrapPanel>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="Moon Ping" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="moon" IsChecked="{Binding IsPingMoon, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="TCP" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="tcp" IsChecked="{Binding IsPingTcp, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP GET" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httpget" IsChecked="{Binding IsPingHttpGet, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="Стабильность" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="stability" IsChecked="{Binding IsPingStability, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="{DynamicResource S_SettingsView_117}" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="stability" IsChecked="{Binding IsPingStability, Mode=OneWay}"/>
                 </WrapPanel>
                 <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,6" TextWrapping="Wrap"
-                           Text="Moon Ping, TCP и HTTP отвечают на вопрос «порт кто-то слушает». Это не то же самое, что «протокол работает»: CDN, промежуточный сервер провайдера или протухший ключ рукопожатие тоже завершат, и мёртвый сервер покажет бодрые 30 мс."/>
+                           Text="{DynamicResource S_SettingsView_118}"/>
                 <TextBlock Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="4,0,0,16" TextWrapping="Wrap"
-                           Text="Стабильность — единственный метод, который поднимает настоящее соединение и делает через него запрос. Медленнее остальных, зато не врёт: не прошло — значит через этот сервер не пройдёт и трафик."/>
+                           Text="{DynamicResource S_SettingsView_119}"/>
 
-                <TextBlock Text="ПОРЯДОК ПРОВЕРКИ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_120}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14" Margin="0,0,0,16">
                     <StackPanel>
                         <Grid>
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Проверять по очереди" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Разносить проверки во времени, а не бить все разом. Некоторые провайдеры принимают залп из тридцати соединений за скан портов и режут его." Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_121}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_122}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PingStagger}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <StackPanel Visibility="{Binding PingStagger, Converter={StaticResource BoolVis}}" Margin="0,12,0,0">
-                            <TextBlock Text="Задержка между проверками" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,0,0,8"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_123}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,0,0,8"/>
                             <WrapPanel>
-                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="50 мс" Margin="0,0,8,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="50" IsChecked="{Binding IsStagger50, Mode=OneWay}"/>
-                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="150 мс" Margin="0,0,8,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="150" IsChecked="{Binding IsStagger150, Mode=OneWay}"/>
-                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="300 мс" Margin="0,0,0,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="300" IsChecked="{Binding IsStagger300, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="{DynamicResource S_SettingsView_124}" Margin="0,0,8,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="50" IsChecked="{Binding IsStagger50, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="{DynamicResource S_SettingsView_125}" Margin="0,0,8,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="150" IsChecked="{Binding IsStagger150, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="{DynamicResource S_SettingsView_126}" Margin="0,0,0,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="300" IsChecked="{Binding IsStagger300, Mode=OneWay}"/>
                             </WrapPanel>
                         </StackPanel>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="АВТОПРОВЕРКА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_127}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="Перемеряет пинги в фоне, чтобы к открытию списка числа были свежими." Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_128}" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap"/>
                         <WrapPanel Margin="0,10,0,0">
-                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="Выключено" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="0" IsChecked="{Binding IsAutoPingOff, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="1 мин" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="1" IsChecked="{Binding IsAutoPing1, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="5 мин" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="5" IsChecked="{Binding IsAutoPing5, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="10 мин" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="10" IsChecked="{Binding IsAutoPing10, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="15 мин" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="15" IsChecked="{Binding IsAutoPing15, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="20 мин" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="20" IsChecked="{Binding IsAutoPing20, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="30 мин" Margin="0,0,0,8" Command="{Binding SetAutoPingCommand}" CommandParameter="30" IsChecked="{Binding IsAutoPing30, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="{DynamicResource S_SettingsView_129}" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="0" IsChecked="{Binding IsAutoPingOff, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="{DynamicResource S_SettingsView_130}" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="1" IsChecked="{Binding IsAutoPing1, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="{DynamicResource S_SettingsView_131}" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="5" IsChecked="{Binding IsAutoPing5, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="{DynamicResource S_SettingsView_132}" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="10" IsChecked="{Binding IsAutoPing10, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="{DynamicResource S_SettingsView_133}" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="15" IsChecked="{Binding IsAutoPing15, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="{DynamicResource S_SettingsView_134}" Margin="0,0,8,8" Command="{Binding SetAutoPingCommand}" CommandParameter="20" IsChecked="{Binding IsAutoPing20, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="autoping" Content="{DynamicResource S_SettingsView_135}" Margin="0,0,0,8" Command="{Binding SetAutoPingCommand}" CommandParameter="30" IsChecked="{Binding IsAutoPing30, Mode=OneWay}"/>
                         </WrapPanel>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="ОТОБРАЖЕНИЕ ПИНГА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_136}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <WrapPanel>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Цифры" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="num" IsChecked="{Binding IsPingDispNum, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Шкала" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="bar" IsChecked="{Binding IsPingDispBar, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Оба" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="both" IsChecked="{Binding IsPingDispBoth, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="Точки" Margin="0,0,0,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="dots" IsChecked="{Binding IsPingDispDots, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="{DynamicResource S_SettingsView_137}" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="num" IsChecked="{Binding IsPingDispNum, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="{DynamicResource S_SettingsView_138}" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="bar" IsChecked="{Binding IsPingDispBar, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="{DynamicResource S_SettingsView_139}" Margin="0,0,8,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="both" IsChecked="{Binding IsPingDispBoth, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingdisp" Content="{DynamicResource S_SettingsView_140}" Margin="0,0,0,8" Command="{Binding SetPingDisplayCommand}" CommandParameter="dots" IsChecked="{Binding IsPingDispDots, Mode=OneWay}"/>
                 </WrapPanel>
 
-                <TextBlock Text="ТЕСТОВЫЙ URL" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,14,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_141}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,14,0,8"/>
                 <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding PingTestUrl, UpdateSourceTrigger=LostFocus}"/>
-                <TextBlock Text="Пресеты" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="2,10,0,6"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_142}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="2,10,0,6"/>
                 <WrapPanel>
                     <Button Style="{StaticResource SecondaryButton}" Content="Google 204" Padding="12,7" Margin="0,0,8,8" Command="{Binding SetPingUrlCommand}" CommandParameter="https://www.gstatic.com/generate_204"/>
                     <Button Style="{StaticResource SecondaryButton}" Content="Cloudflare" Padding="12,7" Margin="0,0,8,8" Command="{Binding SetPingUrlCommand}" CommandParameter="https://cp.cloudflare.com/generate_204"/>
                     <Button Style="{StaticResource SecondaryButton}" Content="Apple" Padding="12,7" Margin="0,0,0,8" Command="{Binding SetPingUrlCommand}" CommandParameter="https://captive.apple.com"/>
                 </WrapPanel>
-                <TextBlock Text="Используется для HTTP GET / HEAD. Moon Ping и TCP проверяют сам сервер." Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,14" TextWrapping="Wrap"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_143}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,14" TextWrapping="Wrap"/>
 
-                <TextBlock Text="ТАЙМ-АУТ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_144}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,12">
                     <Grid>
                         <!-- The stepper sits on the right, so the label has to stop before it —
                              without this margin the description ran underneath the value pill. -->
                         <StackPanel VerticalAlignment="Center" Margin="0,0,152,0">
-                            <TextBlock Text="Тайм-аут пинга" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                            <TextBlock Text="Максимальное время ожидания ответа" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_145}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_146}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE738;" Command="{Binding PingTimeoutDecCommand}" ToolTip="Меньше"/>
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE738;" Command="{Binding PingTimeoutDecCommand}" ToolTip="{DynamicResource S_SettingsView_147}"/>
                             <!-- Fixed width, not MinWidth: the pill grew with the number, so the
                                  minus and plus buttons shifted sideways as the value changed and
                                  nothing stayed put. -->
@@ -691,7 +691,7 @@
                                 <TextBlock Text="{Binding PingTimeoutText}" Foreground="{StaticResource AccentText}" FontWeight="SemiBold"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
                             </Border>
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE710;" Command="{Binding PingTimeoutIncCommand}" ToolTip="Больше"/>
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE710;" Command="{Binding PingTimeoutIncCommand}" ToolTip="{DynamicResource S_SettingsView_148}"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -705,47 +705,47 @@
                     <StackPanel>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Вести логи" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Записывать журналы ядра для диагностики" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_149}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_150}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding LogsEnabled}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <StackPanel Visibility="{Binding LogsEnabled, Converter={StaticResource BoolVis}}">
                             <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                             <StackPanel Margin="12">
-                                <TextBlock Text="Уровень" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_151}" FontSize="14" FontWeight="SemiBold"/>
                                 <WrapPanel Margin="0,8,0,0">
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Ошибки" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="error" IsChecked="{Binding IsLogErr, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Предупреждения" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="warn" IsChecked="{Binding IsLogWarn, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Инфо" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="info" IsChecked="{Binding IsLogInfo, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="Отладка" Margin="0,0,0,8" Command="{Binding SetLogLevelCommand}" CommandParameter="debug" IsChecked="{Binding IsLogDebug, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="{DynamicResource S_SettingsView_152}" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="error" IsChecked="{Binding IsLogErr, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="{DynamicResource S_SettingsView_153}" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="warn" IsChecked="{Binding IsLogWarn, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="{DynamicResource S_SettingsView_154}" Margin="0,0,8,8" Command="{Binding SetLogLevelCommand}" CommandParameter="info" IsChecked="{Binding IsLogInfo, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="loglvl" Content="{DynamicResource S_SettingsView_155}" Margin="0,0,0,8" Command="{Binding SetLogLevelCommand}" CommandParameter="debug" IsChecked="{Binding IsLogDebug, Mode=OneWay}"/>
                                 </WrapPanel>
                             </StackPanel>
                             <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                             <StackPanel Margin="12">
-                                <TextBlock Text="Сколько хранить логи" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Старые записи удаляются автоматически при запуске" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_156}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_157}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 <WrapPanel Margin="0,8,0,0">
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="1 день" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="1" IsChecked="{Binding IsKeep1, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="3 дня" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="3" IsChecked="{Binding IsKeep3, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="7 дней" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="7" IsChecked="{Binding IsKeep7, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="30 дней" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="30" IsChecked="{Binding IsKeep30, Mode=OneWay}"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="Всегда" Margin="0,0,0,8" Command="{Binding SetLogKeepCommand}" CommandParameter="0" IsChecked="{Binding IsKeepForever, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="{DynamicResource S_SettingsView_158}" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="1" IsChecked="{Binding IsKeep1, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="{DynamicResource S_SettingsView_159}" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="3" IsChecked="{Binding IsKeep3, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="{DynamicResource S_SettingsView_160}" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="7" IsChecked="{Binding IsKeep7, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="{DynamicResource S_SettingsView_161}" Margin="0,0,8,8" Command="{Binding SetLogKeepCommand}" CommandParameter="30" IsChecked="{Binding IsKeep30, Mode=OneWay}"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="logkeep" Content="{DynamicResource S_SettingsView_162}" Margin="0,0,0,8" Command="{Binding SetLogKeepCommand}" CommandParameter="0" IsChecked="{Binding IsKeepForever, Mode=OneWay}"/>
                                 </WrapPanel>
                             </StackPanel>
                         </StackPanel>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
-                            <TextBlock Text="Размер логов" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_163}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding LogsSizeInfo}" Foreground="{StaticResource AccentText}" FontSize="13" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                     </StackPanel>
                 </Border>
 
                 <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding OpenLogViewerCommand}" Content="Смотреть лог" Padding="14,8"/>
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogsFolderCommand}" Content="Открыть папку" Padding="14,8" Margin="8,0,0,0"/>
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" Content="Очистить" Padding="14,8" Margin="8,0,0,0"/>
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding OpenLogViewerCommand}" Content="{DynamicResource S_SettingsView_164}" Padding="14,8"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogsFolderCommand}" Content="{DynamicResource S_SettingsView_165}" Padding="14,8" Margin="8,0,0,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" Content="{DynamicResource S_SettingsView_166}" Padding="14,8" Margin="8,0,0,0"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
@@ -758,35 +758,35 @@
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,16">
                     <StackPanel>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Moon Internet — локальный VPN-клиент. Ниже — как приложение обращается с вашими данными."/>
+                                   Text="{DynamicResource S_SettingsView_167}"/>
 
-                        <TextBlock Text="Мы не собираем данные" FontWeight="SemiBold" FontSize="14" Margin="0,16,0,4"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_168}" FontWeight="SemiBold" FontSize="14" Margin="0,16,0,4"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Приложение работает на вашем устройстве. Разработчик не получает ваши данные: нет аккаунтов, телеметрии, аналитики и обращений «домой»."/>
+                                   Text="{DynamicResource S_SettingsView_169}"/>
 
-                        <TextBlock Text="Данные на устройстве" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_170}" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Подписки, список серверов, ключи и пароли доступа хранятся локально в папке приложения (папка «save») и не покидают ваш компьютер. Удаление приложения удаляет их."/>
+                                   Text="{DynamicResource S_SettingsView_171}"/>
 
-                        <TextBlock Text="Ваш трафик" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_172}" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Трафик идёт через серверы, которые вы добавили сами (по ссылке-подписке). Их операторы обрабатывают трафик по своим правилам — ознакомьтесь с их политикой. Само приложение ваш трафик не логирует и никуда не пересылает."/>
+                                   Text="{DynamicResource S_SettingsView_173}"/>
 
-                        <TextBlock Text="Сетевые обращения" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_174}" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Приложение обращается только к: (1) вашим URL-подпискам — чтобы получить список серверов; (2) источникам гео-правил (например, GitHub) — чтобы скачать файлы маршрутизации, если включён роутинг. Больше никуда."/>
+                                   Text="{DynamicResource S_SettingsView_175}"/>
 
-                        <TextBlock Text="Логи" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_176}" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Технические логи для диагностики соединения хранятся локально и не отправляются. Их можно открыть в разделе «Логи»."/>
+                                   Text="{DynamicResource S_SettingsView_177}"/>
 
-                        <TextBlock Text="Права" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_178}" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Режим TUN требует прав администратора (системная служба туннеля). Она нужна только для маршрутизации трафика и не собирает данные."/>
+                                   Text="{DynamicResource S_SettingsView_179}"/>
 
-                        <TextBlock Text="Изменения" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_180}" FontWeight="SemiBold" FontSize="14" Margin="0,14,0,4"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Политика может обновляться вместе с приложением."/>
+                                   Text="{DynamicResource S_SettingsView_181}"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -797,49 +797,49 @@
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=about}">
             <StackPanel Margin="24,20,24,24">
 
-                <TextBlock Text="ИНФОРМАЦИЯ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_182}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
                     <StackPanel>
                         <Grid Margin="14,11">
-                            <TextBlock Text="Версия Xray" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_183}" FontSize="13.5" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding XrayVersion}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
                         <Grid Margin="14,11">
-                            <TextBlock Text="Версия sing-box" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_184}" FontSize="13.5" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding SingBoxVersion}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
                         <Grid Margin="14,11">
-                            <TextBlock Text="Версия приложения" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_185}" FontSize="13.5" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding AppVersion}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="ССЫЛКИ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_186}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
                     <StackPanel>
-                        <Button Style="{StaticResource NavRow}" Content="Условия использования" Command="{Binding OpenSettingsPageCommand}" CommandParameter="terms"/>
+                        <Button Style="{StaticResource NavRow}" Content="{DynamicResource S_SettingsView_187}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="terms"/>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
-                        <Button Style="{StaticResource NavRow}" Content="Политика конфиденциальности" Command="{Binding OpenSettingsPageCommand}" CommandParameter="privacy"/>
+                        <Button Style="{StaticResource NavRow}" Content="{DynamicResource S_SettingsView_188}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="privacy"/>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
-                        <Button Style="{StaticResource NavRow}" Content="Сторонние библиотеки" Command="{Binding OpenSettingsPageCommand}" CommandParameter="libs"/>
+                        <Button Style="{StaticResource NavRow}" Content="{DynamicResource S_SettingsView_189}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="libs"/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="Это приложение — только прокси-инструмент. Мы не собираем персональные данные и не предоставляем прокси-услуги."
+                <TextBlock Text="{DynamicResource S_SettingsView_190}"
                            Foreground="{StaticResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap" TextAlignment="Center" Margin="10,12,10,0"/>
 
-                <TextBlock Text="СИСТЕМА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <TextBlock Text="{DynamicResource S_SettingsView_191}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
                     <StackPanel>
                         <Grid Margin="14,11">
-                            <TextBlock Text="Платформа" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_192}" FontSize="13.5" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding OsPlatform}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
                         <Grid Margin="14,11">
-                            <TextBlock Text="Архитектура" FontSize="13.5" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_SettingsView_193}" FontSize="13.5" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding OsArch}" Foreground="{StaticResource AccentText}" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,0"/>
@@ -852,7 +852,7 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="HWID" FontSize="13.5" VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1" Text="{Binding HwidDisplay}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="10,0,6,0" TextTrimming="CharacterEllipsis"/>
-                            <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyHwidCommand}" ToolTip="Скопировать HWID"/>
+                            <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyHwidCommand}" ToolTip="{DynamicResource S_SettingsView_194}"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -866,11 +866,11 @@
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,16">
                     <StackPanel>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
-                                   Text="Moon Internet предоставляется «как есть», без каких-либо гарантий. Приложение — только инструмент для подключения к прокси/VPN-серверам, которые вы добавляете сами."/>
+                                   Text="{DynamicResource S_SettingsView_195}"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20" Margin="0,12,0,0"
-                                   Text="Вы сами отвечаете за серверы и подписки, которые используете, и за соблюдение законов вашей страны. Разработчик не предоставляет прокси-услуги и не несёт ответственности за содержимое трафика."/>
+                                   Text="{DynamicResource S_SettingsView_196}"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20" Margin="0,12,0,0"
-                                   Text="Используя приложение, вы соглашаетесь с этими условиями."/>
+                                   Text="{DynamicResource S_SettingsView_197}"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -882,14 +882,14 @@
             <StackPanel Margin="24,20,24,24">
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,14">
                     <StackPanel>
-                        <TextBlock Text="Ядра" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,6"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_198}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,6"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12.5" LineHeight="20" TextWrapping="Wrap"
                                    Text="• xray-core — MPL-2.0&#x0a;• sing-box — GPL-3.0&#x0a;• tun2socks (hev-socks5-tunnel)&#x0a;• amneziawg-go"/>
-                        <TextBlock Text="Библиотеки .NET" FontWeight="SemiBold" FontSize="13" Margin="0,14,0,6"/>
+                        <TextBlock Text="{DynamicResource S_SettingsView_199}" FontWeight="SemiBold" FontSize="13" Margin="0,14,0,6"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12.5" LineHeight="20" TextWrapping="Wrap"
                                    Text="• CommunityToolkit.Mvvm — MIT&#x0a;• H.NotifyIcon.Wpf — MIT&#x0a;• QRCoder — MIT"/>
                         <TextBlock Foreground="{StaticResource TextMuted}" FontSize="11.5" Margin="0,14,0,0" TextWrapping="Wrap"
-                                   Text="Полные тексты лицензий поставляются вместе с соответствующими компонентами."/>
+                                   Text="{DynamicResource S_SettingsView_200}"/>
                     </StackPanel>
                 </Border>
             </StackPanel>

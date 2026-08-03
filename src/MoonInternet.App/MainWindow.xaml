@@ -35,46 +35,46 @@
                 <MenuItem.Icon><Ellipse Width="9" Height="9" Fill="{Binding RingBrush}"/></MenuItem.Icon>
             </MenuItem>
 
-            <MenuItem Header="Сменить сервер" Style="{StaticResource TrayMenuItem}"
+            <MenuItem Header="{DynamicResource S_MainWindow_001}" Style="{StaticResource TrayMenuItem}"
                       ItemsSource="{Binding TrayServers}" ItemContainerStyle="{StaticResource TrayServerItem}">
                 <MenuItem.Icon><TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
             </MenuItem>
 
-            <MenuItem Header="Пинг всех серверов" Style="{StaticResource TrayMenuItem}" Command="{Binding PingAllCommand}">
+            <MenuItem Header="{DynamicResource S_MainWindow_002}" Style="{StaticResource TrayMenuItem}" Command="{Binding PingAllCommand}">
                 <MenuItem.Icon><TextBlock Text="&#xEC4A;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="{Binding CheckPingTrayText}" Style="{StaticResource TrayMenuItem}" Command="{Binding CheckConnectionCommand}">
                 <MenuItem.Icon><TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
             </MenuItem>
 
-            <MenuItem Header="Сортировка" Style="{StaticResource TrayMenuItem}">
+            <MenuItem Header="{DynamicResource S_MainWindow_003}" Style="{StaticResource TrayMenuItem}">
                 <MenuItem.Icon><TextBlock Text="&#xE8CB;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
-                <MenuItem Header="Обычная" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortDefault, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="default"/>
-                <MenuItem Header="По пингу" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortPing, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="ping"/>
-                <MenuItem Header="А–Я" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortName, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="name"/>
-                <MenuItem Header="Избранное" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortFavorite, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="favorite"/>
+                <MenuItem Header="{DynamicResource S_MainWindow_004}" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortDefault, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="default"/>
+                <MenuItem Header="{DynamicResource S_MainWindow_005}" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortPing, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="ping"/>
+                <MenuItem Header="{DynamicResource S_MainWindow_006}" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortName, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="name"/>
+                <MenuItem Header="{DynamicResource S_MainWindow_007}" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding IsSortFavorite, Mode=OneWay}" Command="{Binding SetSortCommand}" CommandParameter="favorite"/>
             </MenuItem>
 
-            <MenuItem Header="Режим транспорта" Style="{StaticResource TrayMenuItem}">
+            <MenuItem Header="{DynamicResource S_MainWindow_008}" Style="{StaticResource TrayMenuItem}">
                 <MenuItem.Icon><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
                 <MenuItem Header="TUN" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding TunMode, Mode=OneWay}" Click="TrayTun_Click"/>
-                <MenuItem Header="Системный прокси" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=OneWay}" Click="TrayProxy_Click"/>
+                <MenuItem Header="{DynamicResource S_MainWindow_009}" Style="{StaticResource TrayMenuItem}" IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=OneWay}" Click="TrayProxy_Click"/>
             </MenuItem>
 
-            <MenuItem Header="Импорт из буфера" Style="{StaticResource TrayMenuItem}" Command="{Binding PasteImportCommand}">
+            <MenuItem Header="{DynamicResource S_MainWindow_010}" Style="{StaticResource TrayMenuItem}" Command="{Binding PasteImportCommand}">
                 <MenuItem.Icon><TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
             </MenuItem>
 
-            <MenuItem Header="Маршрутизация" Style="{StaticResource TrayMenuItem}" Click="TrayRouting_Click">
+            <MenuItem Header="{DynamicResource S_MainWindow_011}" Style="{StaticResource TrayMenuItem}" Click="TrayRouting_Click">
                 <MenuItem.Icon><TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
             </MenuItem>
 
             <Separator Style="{StaticResource TraySep}"/>
 
-            <MenuItem Header="Показать окно" Style="{StaticResource TrayMenuItem}" Click="TrayShow_Click">
+            <MenuItem Header="{DynamicResource S_MainWindow_012}" Style="{StaticResource TrayMenuItem}" Click="TrayShow_Click">
                 <MenuItem.Icon><TextBlock Text="&#xE740;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Выйти" Style="{StaticResource TrayMenuItem}" Click="TrayExit_Click">
+            <MenuItem Header="{DynamicResource S_MainWindow_013}" Style="{StaticResource TrayMenuItem}" Click="TrayExit_Click">
                 <MenuItem.Icon><TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Danger}"/></MenuItem.Icon>
             </MenuItem>
         </ContextMenu>
@@ -124,7 +124,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <RadioButton Grid.Column="0" GroupName="nav" Style="{StaticResource NavTab}" Tag="&#xE774;" Content="Сервера"
+                <RadioButton Grid.Column="0" GroupName="nav" Style="{StaticResource NavTab}" Tag="&#xE774;" Content="{DynamicResource S_MainWindow_014}"
                              Command="{Binding NavigateCommand}" CommandParameter="Servers"
                              IsChecked="{Binding CurrentPage, Converter={StaticResource EnumBool}, ConverterParameter=Servers, Mode=OneWay}"/>
 
@@ -145,7 +145,7 @@
                     </Button.Template>
                 </Button>
 
-                <RadioButton Grid.Column="2" GroupName="nav" Style="{StaticResource NavTab}" Tag="&#xE713;" Content="Настройки"
+                <RadioButton Grid.Column="2" GroupName="nav" Style="{StaticResource NavTab}" Tag="&#xE713;" Content="{DynamicResource S_MainWindow_015}"
                              Command="{Binding NavigateCommand}" CommandParameter="Settings"
                              IsChecked="{Binding IsSettingsSection, Mode=OneWay}"/>
             </Grid>
@@ -162,24 +162,24 @@
                         <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseAddDialogCommand}"/>
                     </Grid>
 
-                    <TextBlock Text="Название (необязательно)" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,14,0,6"/>
+                    <TextBlock Text="{DynamicResource S_MainWindow_016}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,14,0,6"/>
                     <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding NewSubName, UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <TextBlock Text="Ссылка (vless://, trojan://, hy2://, https://…)" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,12,0,6"/>
+                    <TextBlock Text="{DynamicResource S_MainWindow_017}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,12,0,6"/>
                     <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding SubscriptionUrl, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                         <Button Style="{StaticResource SecondaryButton}" Command="{Binding PasteImportCommand}" Padding="12,8" HorizontalAlignment="Left">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                                <TextBlock Text="Из буфера" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource S_MainWindow_018}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
-                        <Button Style="{StaticResource SecondaryButton}" Content="Отмена" Command="{Binding CloseAddDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource PrimaryButton}" Content="Добавить" Command="{Binding ConfirmAddCommand}" Padding="22,9"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_019}" Command="{Binding CloseAddDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_MainWindow_020}" Command="{Binding ConfirmAddCommand}" Padding="22,9"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -199,7 +199,7 @@
                         <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseConfigDialogCommand}"/>
                     </Grid>
 
-                    <TextBlock Text="Конфигурация подключения" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,14,0,6"/>
+                    <TextBlock Text="{DynamicResource S_MainWindow_021}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,14,0,6"/>
                     <Border CornerRadius="12" Background="#0B0916" BorderBrush="#2A2150" BorderThickness="1" Padding="14,12" MaxHeight="372">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                             <TextBlock app:JsonColorizer.Json="{Binding ConfigDialogJson}" Foreground="#CFC7EC"
@@ -208,11 +208,11 @@
                     </Border>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                        <Button Style="{StaticResource SecondaryButton}" Content="Закрыть" Command="{Binding CloseConfigDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_022}" Command="{Binding CloseConfigDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
                         <Button Style="{StaticResource PrimaryButton}" Command="{Binding CopyConfigJsonCommand}" Padding="18,9">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                                <TextBlock Text="Копировать" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource S_MainWindow_023}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -230,10 +230,10 @@
                     <Border Width="38" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding SheetServer.Label}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE00B;" Content="{Binding SheetServer.FavoriteText}" Command="{Binding SheetToggleFavoriteCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xEC4A;" Content="Пинг" Command="{Binding SheetPingCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE7C3;" Content="Конфигурация" Command="{Binding SheetServerConfigCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="Копировать URL" Command="{Binding SheetCopyServerUrlCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="Показать QR-код" Command="{Binding SheetServerQrCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xEC4A;" Content="{DynamicResource S_MainWindow_024}" Command="{Binding SheetPingCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE7C3;" Content="{DynamicResource S_MainWindow_025}" Command="{Binding SheetServerConfigCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="{DynamicResource S_MainWindow_026}" Command="{Binding SheetCopyServerUrlCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="{DynamicResource S_MainWindow_027}" Command="{Binding SheetServerQrCommand}"/>
                 </StackPanel>
             </Border>
         </Border>
@@ -247,11 +247,11 @@
                 <StackPanel>
                     <Border Width="38" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding SheetSub.Name}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE713;" Content="Настройки" Command="{Binding SheetSubSettingsCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="Копировать URL" Command="{Binding SheetCopySubUrlCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="Показать QR-код" Command="{Binding SheetSubQrCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE713;" Content="{DynamicResource S_MainWindow_028}" Command="{Binding SheetSubSettingsCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="{DynamicResource S_MainWindow_029}" Command="{Binding SheetCopySubUrlCommand}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="{DynamicResource S_MainWindow_030}" Command="{Binding SheetSubQrCommand}"/>
                     <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,6"/>
-                    <Button Style="{StaticResource SheetRowDanger}" Tag="&#xE74D;" Content="Удалить" Command="{Binding SheetDeleteSubCommand}"/>
+                    <Button Style="{StaticResource SheetRowDanger}" Tag="&#xE74D;" Content="{DynamicResource S_MainWindow_031}" Command="{Binding SheetDeleteSubCommand}"/>
                 </StackPanel>
             </Border>
         </Border>
@@ -281,9 +281,9 @@
                     </Border>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                        <Button Style="{StaticResource SecondaryButton}" Content="Обновить" Command="{Binding ReloadLogViewerCommand}" Padding="16,9" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource SecondaryButton}" Content="Копировать" Command="{Binding CopyLogViewerCommand}" Padding="16,9" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource PrimaryButton}" Content="Закрыть" Command="{Binding CloseLogViewerCommand}" Padding="20,9"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_032}" Command="{Binding ReloadLogViewerCommand}" Padding="16,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_033}" Command="{Binding CopyLogViewerCommand}" Padding="16,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_MainWindow_034}" Command="{Binding CloseLogViewerCommand}" Padding="20,9"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -298,7 +298,7 @@
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="Обновление" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_MainWindow_035}" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
                         </StackPanel>
                         <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseUpdateDialogCommand}"/>
                     </Grid>
@@ -306,11 +306,11 @@
                     <Grid Margin="0,16,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Установлена" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                            <TextBlock Text="{DynamicResource S_MainWindow_036}" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
                             <TextBlock Text="{Binding AppVersion}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,0"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="На GitHub" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                            <TextBlock Text="{DynamicResource S_MainWindow_037}" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
                             <TextBlock Text="{Binding LatestVersion}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,0"/>
                         </StackPanel>
                     </Grid>
@@ -326,8 +326,8 @@
                     </Border>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
-                        <Button Style="{StaticResource SecondaryButton}" Content="Проверить" Command="{Binding CheckUpdateCommand}" Padding="16,9" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource PrimaryButton}" Content="Скачать" Command="{Binding DownloadUpdateCommand}" Padding="22,9"
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_038}" Command="{Binding CheckUpdateCommand}" Padding="16,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_MainWindow_039}" Command="{Binding DownloadUpdateCommand}" Padding="22,9"
                                 Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}"/>
                     </StackPanel>
                 </StackPanel>
@@ -349,7 +349,7 @@
                     </Border>
                     <TextBlock Text="{Binding QrSubtitle}" Foreground="{StaticResource TextSecondary}" FontSize="10.5" TextWrapping="Wrap"
                                Margin="2,12,2,0" MaxHeight="50" TextTrimming="CharacterEllipsis"/>
-                    <Button Style="{StaticResource SecondaryButton}" Content="Закрыть" Command="{Binding CloseQrDialogCommand}" Padding="18,9" Margin="0,16,0,0" HorizontalAlignment="Right"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_040}" Command="{Binding CloseQrDialogCommand}" Padding="18,9" Margin="0,16,0,0" HorizontalAlignment="Right"/>
                 </StackPanel>
             </Border>
         </Border>

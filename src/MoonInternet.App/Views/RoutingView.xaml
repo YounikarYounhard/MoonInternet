@@ -27,8 +27,8 @@
 
             <StackPanel Grid.Row="0">
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding BackToRoutingSettingsCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Маршрутизация" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding BackToRoutingSettingsCommand}" ToolTip="{DynamicResource S_RoutingView_001}"/>
+                    <TextBlock Text="{DynamicResource S_RoutingView_002}" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <!-- geo files -->
@@ -37,9 +37,9 @@
                         <Grid>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
-                                <TextBlock Text="Гео-файлы" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource S_RoutingView_003}" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right" ToolTip="Обновить гео-файлы"
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right" ToolTip="{DynamicResource S_RoutingView_004}"
                                     Command="{Binding RefreshGeoCommand}" IsEnabled="{Binding GeoRefreshing, Converter={StaticResource InvBool}}"/>
                         </Grid>
                         <Grid Margin="0,10,0,0">
@@ -58,12 +58,12 @@
 
                 <!-- source: INCY | HAPP | Свой -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBlock Text="Профиль:" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="{DynamicResource S_RoutingView_005}" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <Border CornerRadius="10" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="3">
                         <StackPanel Orientation="Horizontal">
                             <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="INCY" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="incy" IsChecked="{Binding IsRoutingIncy, Mode=OneWay}"/>
                             <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="HAPP" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="happ" IsChecked="{Binding IsRoutingHapp, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="Свой" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="custom" IsChecked="{Binding IsRoutingCustom, Mode=OneWay}"/>
+                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="{DynamicResource S_RoutingView_006}" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="custom" IsChecked="{Binding IsRoutingCustom, Mode=OneWay}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -77,7 +77,7 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                             <Grid Grid.Column="1">
-                                <TextBlock Text="Поиск по правилам…" Foreground="{StaticResource TextMuted}" FontSize="13" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
+                                <TextBlock Text="{DynamicResource S_RoutingView_007}" Foreground="{StaticResource TextMuted}" FontSize="13" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -102,11 +102,11 @@
                                         <TextBlock Text="{Binding DirectCount}" Foreground="{StaticResource Green}" FontSize="11" FontWeight="SemiBold"/>
                                     </Border>
                                 </StackPanel>
-                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="+ Добавить" FontSize="12"
+                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_008}" FontSize="12"
                                         Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
                                         Command="{Binding OpenAddRuleCommand}" CommandParameter="direct"/>
                             </Grid>
-                            <TextBlock Text="Идёт напрямую, мимо VPN" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+                            <TextBlock Text="{DynamicResource S_RoutingView_009}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
                             <ItemsControl ItemsSource="{Binding DirectRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
                                           Visibility="{Binding DirectOpen, Converter={StaticResource BoolVis}}"/>
                         </StackPanel>
@@ -123,11 +123,11 @@
                                         <TextBlock Text="{Binding ProxyCount}" Foreground="{StaticResource AccentText}" FontSize="11" FontWeight="SemiBold"/>
                                     </Border>
                                 </StackPanel>
-                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="+ Добавить" FontSize="12"
+                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_010}" FontSize="12"
                                         Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
                                         Command="{Binding OpenAddRuleCommand}" CommandParameter="proxy"/>
                             </Grid>
-                            <TextBlock Text="Пусто — всё остальное идёт через VPN" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+                            <TextBlock Text="{DynamicResource S_RoutingView_011}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
                             <ItemsControl ItemsSource="{Binding ProxyRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
                                           Visibility="{Binding ProxyOpen, Converter={StaticResource BoolVis}}"/>
                         </StackPanel>
@@ -144,11 +144,11 @@
                                         <TextBlock Text="{Binding BlockCount}" Foreground="{StaticResource Danger}" FontSize="11" FontWeight="SemiBold"/>
                                     </Border>
                                 </StackPanel>
-                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="+ Добавить" FontSize="12"
+                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_012}" FontSize="12"
                                         Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
                                         Command="{Binding OpenAddRuleCommand}" CommandParameter="block"/>
                             </Grid>
-                            <TextBlock Text="Полностью блокируется" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+                            <TextBlock Text="{DynamicResource S_RoutingView_013}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
                             <ItemsControl ItemsSource="{Binding BlockRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
                                           Visibility="{Binding BlockOpen, Converter={StaticResource BoolVis}}"/>
                         </StackPanel>
@@ -166,17 +166,17 @@
                         <TextBlock Text="{Binding RuleBucketTitle}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
                         <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseRuleDialogCommand}"/>
                     </Grid>
-                    <TextBlock Text="Домен, IP/CIDR или тег geosite: / geoip:" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,12,0,6"/>
+                    <TextBlock Text="{DynamicResource S_RoutingView_014}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="2,12,0,6"/>
                     <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding RuleInput, UpdateSourceTrigger=PropertyChanged}"/>
                     <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenGeoBrowserCommand}" Padding="12,8" Margin="0,10,0,0" HorizontalAlignment="Left">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Из гео-файла" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S_RoutingView_015}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                        <Button Style="{StaticResource SecondaryButton}" Content="Отмена" Command="{Binding CloseRuleDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource PrimaryButton}" Content="Добавить" Command="{Binding ConfirmAddRuleCommand}" Padding="22,9"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_RoutingView_016}" Command="{Binding CloseRuleDialogCommand}" Padding="18,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_RoutingView_017}" Command="{Binding ConfirmAddRuleCommand}" Padding="22,9"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -188,11 +188,11 @@
                     Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top">
-                        <TextBlock Text="Гео-файл" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource S_RoutingView_018}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
                         <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseGeoBrowserCommand}"/>
                     </Grid>
                     <TextBox DockPanel.Dock="Top" Style="{StaticResource DarkTextBox}" Margin="0,12,0,10"
-                             Text="{Binding GeoQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск тегов"/>
+                             Text="{Binding GeoQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="{DynamicResource S_RoutingView_019}"/>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding GeoTags}">
                             <ItemsControl.ItemTemplate>
