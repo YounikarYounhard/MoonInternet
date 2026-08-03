@@ -35,7 +35,8 @@ public partial class MainWindow : Window
         ShowInTaskbar = true;
     }
 
-    private System.Drawing.Icon? _iconOn, _iconOff;   // full moon = connected, crescent = disconnected
+    // full moon = connected, crescent = disconnected, red crescent = nothing reachable
+    private System.Drawing.Icon? _iconOn, _iconOff, _iconDead;
 
     private TaskbarIcon BuildTray()
     {
@@ -44,20 +45,29 @@ public partial class MainWindow : Window
 
         _iconOn = LoadTrayIcon("pack://application:,,,/Assets/btn_on.png");
         _iconOff = LoadTrayIcon("pack://application:,,,/Assets/btn_off.png");
+        _iconDead = LoadTrayIcon("pack://application:,,,/Assets/btn_off.png", tint: System.Drawing.Color.FromArgb(0xFF, 0x6B, 0x8A));
         var vm = (MainViewModel)DataContext;
 
         var tray = new TaskbarIcon
         {
             ToolTipText = "Moon Internet",
-            Icon = vm.IsConnected ? _iconOn : _iconOff,
+            Icon = TrayIconFor(vm),
             ContextMenu = menu,
             DataContext = DataContext,     // H.NotifyIcon pushes THIS onto the menu when it opens → bindings resolve
         };
-        // swap the tray icon (moon on/off) with the connection state so it's obvious at a glance
+        // The icon carries the state: connected, idle, or "every server was measured and none
+        // answered" — the last one looks like idle otherwise, and the user waits for a tunnel
+        // that is never going to come up.
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(MainViewModel.IsConnected))
-                Dispatcher.Invoke(() => { tray.Icon = vm.IsConnected ? _iconOn : _iconOff; tray.ToolTipText = vm.IsConnected ? "Moon Internet — подключено" : "Moon Internet — отключено"; });
+            if (e.PropertyName is nameof(MainViewModel.IsConnected) or nameof(MainViewModel.AllServersDown))
+                Dispatcher.Invoke(() =>
+                {
+                    tray.Icon = TrayIconFor(vm);
+                    tray.ToolTipText = vm.IsConnected ? "Moon Internet — подключено"
+                        : vm.AllServersDown ? "Moon Internet — ни один сервер не отвечает"
+                        : "Moon Internet — отключено";
+                });
         };
         // re-assert every open (the host resets the menu's DataContext to the icon's on show)
         menu.Opened += (_, _) => menu.DataContext = DataContext;
@@ -66,9 +76,14 @@ public partial class MainWindow : Window
         return tray;
     }
 
+    /// <summary>Which of the three tray icons the current state calls for.</summary>
+    private System.Drawing.Icon? TrayIconFor(MainViewModel vm) =>
+        vm.IsConnected ? _iconOn : vm.AllServersDown ? _iconDead : _iconOff;
+
     /// <summary>Loads a bundled PNG and renders it to a crisp 32-px tray icon (high-quality downscale — no pixelation).
-    /// The HICON is kept alive for the whole session (these two icons live as long as the tray does).</summary>
-    private static System.Drawing.Icon LoadTrayIcon(string packUri)
+    /// The HICON is kept alive for the whole session (these icons live as long as the tray does).</summary>
+    /// <param name="tint">Recolours the artwork, keeping its shape and alpha — used for the red "nothing reachable" moon.</param>
+    private static System.Drawing.Icon LoadTrayIcon(string packUri, System.Drawing.Color? tint = null)
     {
         const int size = 32;
         var res = System.Windows.Application.GetResourceStream(new Uri(packUri))!;
@@ -80,7 +95,28 @@ public partial class MainWindow : Window
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
             g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-            g.DrawImage(src, new System.Drawing.Rectangle(0, 0, size, size));
+
+            if (tint is { } c)
+            {
+                // Zero the colour channels and add the tint back, so only the alpha of the
+                // original survives: same moon, painted red.
+                var m = new System.Drawing.Imaging.ColorMatrix(new[]
+                {
+                    new[] { 0f, 0f, 0f, 0f, 0f },
+                    new[] { 0f, 0f, 0f, 0f, 0f },
+                    new[] { 0f, 0f, 0f, 0f, 0f },
+                    new[] { 0f, 0f, 0f, 1f, 0f },
+                    new[] { c.R / 255f, c.G / 255f, c.B / 255f, 0f, 1f },
+                });
+                using var attrs = new System.Drawing.Imaging.ImageAttributes();
+                attrs.SetColorMatrix(m);
+                g.DrawImage(src, new System.Drawing.Rectangle(0, 0, size, size),
+                            0, 0, src.Width, src.Height, System.Drawing.GraphicsUnit.Pixel, attrs);
+            }
+            else
+            {
+                g.DrawImage(src, new System.Drawing.Rectangle(0, 0, size, size));
+            }
         }
         // FromHandle wraps a standalone HICON (GetHicon copies the bitmap bits), so disposing `canvas` is safe.
         // Don't Clone()+DestroyIcon: Clone shares the same handle, so destroying it invalidates the returned icon.

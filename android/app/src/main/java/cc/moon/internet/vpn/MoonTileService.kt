@@ -69,6 +69,8 @@ class MoonTileService : TileService() {
             val store = Store(applicationContext)
             store.load()
             val st = store.state.value
+            // null means every server was measured and none answered — connecting to one we
+            // already know is dead only spins and fails.
             val server = store.autoTarget()
             if (server == null || !XrayConfig.supports(server.protocol)) return@launch
 

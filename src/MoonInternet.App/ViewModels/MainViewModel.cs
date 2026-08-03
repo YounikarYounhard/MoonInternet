@@ -488,7 +488,25 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void SetAutoTarget(string mode) { AutoConnectTarget = mode; _settings.AutoConnectTarget = mode; _settings.Save(); }
 
-    private ServerItem? PickAutoServer()
+    /// <summary>True once at least one server has actually been measured this session.</summary>
+    private bool AnyMeasured => AllServers.Any(s => s.Ping != -2);
+
+    /// <summary>
+    /// Everything was measured and nothing answered. Drives the red tray icon: an idle icon in
+    /// that situation looks like "not connected yet" and the user waits for a tunnel that is
+    /// never coming.
+    /// </summary>
+    public bool AllServersDown =>
+        !IsConnected && AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable);
+
+    /// <summary>Re-evaluated after every ping pass; the tray listens for this.</summary>
+    private void RefreshReachability() => OnPropertyChanged(nameof(AllServersDown));
+
+    /// <summary>Reachable = it answered. Unknown (-2) does not count as reachable, nor as dead.</summary>
+    private static bool Reachable(ServerItem s) => s.Ping >= 0;
+
+    /// <summary>Whatever the user's setting points at, dead or alive.</summary>
+    private ServerItem? PreferredAutoServer()
     {
         // Favourites first when the user asked for them; fall back to all servers if nothing is starred.
         if (AutoConnectTarget.StartsWith("favorite"))
@@ -498,16 +516,46 @@ public partial class MainViewModel : ObservableObject
                 return AutoConnectTarget switch
                 {
                     "favorite-last" => favs.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? favs[0],
-                    "favorite-lowest" => favs.Where(s => s.Ping >= 0).OrderBy(s => s.Ping).FirstOrDefault() ?? favs[0],
+                    "favorite-lowest" => favs.Where(Reachable).OrderBy(s => s.Ping).FirstOrDefault() ?? favs[0],
                     _ => favs[0],
                 };
         }
         return AutoConnectTarget switch
         {
             "last" => AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? AllServers.FirstOrDefault(),
-            "lowest" => AllServers.Where(s => s.Ping >= 0).OrderBy(s => s.Ping).FirstOrDefault() ?? AllServers.FirstOrDefault(),
+            "lowest" => AllServers.Where(Reachable).OrderBy(s => s.Ping).FirstOrDefault() ?? AllServers.FirstOrDefault(),
             _ => AllServers.FirstOrDefault(),
         };
+    }
+
+    /// <summary>
+    /// What auto-connect should actually dial.
+    ///
+    /// The preference wins whenever it answers. When it does not, we fall over to the fastest
+    /// server that did — without touching the stored preference, so the next launch tries the
+    /// preferred one again and only falls over if it is still down. That is the behaviour asked
+    /// for: the fallback is for this session, not a new default.
+    ///
+    /// Null means "connect to nothing": every server was measured and none answered. Dialling a
+    /// server we already know is dead only produces a spinner and a failure.
+    /// </summary>
+    private ServerItem? PickAutoServer()
+    {
+        var preferred = PreferredAutoServer();
+        if (preferred is null) return null;
+
+        // Nothing measured yet — we have no grounds to overrule the preference.
+        if (!AnyMeasured) return preferred;
+        if (Reachable(preferred)) return preferred;
+
+        var pool = AutoConnectTarget.StartsWith("favorite")
+            ? AllServers.Where(s => s.IsFavorite).ToList()
+            : AllServers.ToList();
+        if (pool.Count == 0) pool = AllServers.ToList();
+
+        var alive = pool.Where(Reachable).OrderBy(s => s.Ping).FirstOrDefault()
+                    ?? AllServers.Where(Reachable).OrderBy(s => s.Ping).FirstOrDefault();
+        return alive;   // null when nothing answered at all
     }
 
     // ===== per-app routing (split tunnel, TUN mode) =====
@@ -1675,6 +1723,7 @@ public partial class MainViewModel : ObservableObject
             _autoConnectTried = true;
             await PingSub(sub);
             if (PickAutoServer() is { } target) { SelectedServer = target; await Connect(); }
+            else Status = "Ни один сервер не отвечает — подключение не начато";
         }
         else if (PingOnStart) _ = PingSub(sub);
     }
@@ -1931,7 +1980,7 @@ public partial class MainViewModel : ObservableObject
             finally { gate.Release(); s.Pinging = false; }
         });
         await Task.WhenAll(tasks);
-        Application.Current?.Dispatcher.Invoke(() => sub.Refresh());
+        Application.Current?.Dispatcher.Invoke(() => { sub.Refresh(); RefreshReachability(); });
     }
 
     /// <summary>
@@ -1970,7 +2019,7 @@ public partial class MainViewModel : ObservableObject
         finally
         {
             foreach (var s in servers) s.Pinging = false;
-            Application.Current?.Dispatcher.Invoke(() => sub.Refresh());
+            Application.Current?.Dispatcher.Invoke(() => { sub.Refresh(); RefreshReachability(); });
         }
     }
 

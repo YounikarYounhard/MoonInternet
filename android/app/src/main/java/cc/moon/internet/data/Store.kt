@@ -150,6 +150,16 @@ class Store(private val ctx: Context) {
      * The server auto-connect (and the quick-settings tile) should start. Honours the
      * "какой сервер подключать" setting; with auto-connect off it is simply the first one.
      */
+    /**
+     * What auto-connect should dial.
+     *
+     * The user's preference wins whenever it answers. When it does not, we fall over to the
+     * fastest server that did — without changing the stored preference, so the next launch tries
+     * the preferred one again and only falls over if it is still down.
+     *
+     * Null means connect to nothing: everything was measured and none of it answered. Dialling a
+     * server already known to be dead only produces a spinner and a failure.
+     */
     fun autoTarget(pings: Map<String, Int> = emptyMap()): ServerProfile? {
         val st = _state.value
         val all = allServers
@@ -157,10 +167,11 @@ class Store(private val ctx: Context) {
         if (!st.autoConnect) return all.first()
 
         val favs = all.filter { isFavorite(it) }
+        fun reachable(s: ServerProfile) = (pings[s.raw] ?: -2) >= 0
         fun lowest(list: List<ServerProfile>) =
-            list.minByOrNull { pings[it.raw]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }
+            list.filter(::reachable).minByOrNull { pings[it.raw] ?: Int.MAX_VALUE }
 
-        return when (st.autoConnectTarget) {
+        val preferred = when (st.autoConnectTarget) {
             "last" -> selectedServer() ?: all.last()
             "lowest" -> lowest(all) ?: all.first()
             "favorite-first" -> favs.firstOrNull() ?: all.first()
@@ -168,6 +179,13 @@ class Store(private val ctx: Context) {
             "favorite-lowest" -> lowest(favs) ?: all.first()
             else -> all.first()
         }
+
+        // Nothing measured yet — we have no grounds to overrule the preference.
+        val measuredAny = all.any { pings.containsKey(it.raw) }
+        if (!measuredAny || reachable(preferred)) return preferred
+
+        val pool = if (st.autoConnectTarget.startsWith("favorite") && favs.isNotEmpty()) favs else all
+        return lowest(pool) ?: lowest(all)   // null when nothing answered at all
     }
 
     private fun order(list: List<ServerProfile>, pings: Map<String, Int>): List<ServerProfile> {
