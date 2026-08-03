@@ -82,14 +82,36 @@ public partial class ServerItem : ObservableObject
     public int PingSignal => Ping switch { < 0 => 0, < 60 => 4, < 120 => 3, < 220 => 2, _ => 1 };  // 0..4 for dots/bar
     public string FavoriteText => IsFavorite ? "Убрать из избранного" : "Добавить в избранное";
     partial void OnIsFavoriteChanged(bool value) => OnPropertyChanged(nameof(FavoriteText));
-    public Brush PingBrush => new SolidColorBrush(Ping switch
+    /// <summary>
+    /// Five shared, frozen brushes instead of a new one per read.
+    ///
+    /// This property is read about fourteen times per row — the four ping display styles all
+    /// live in the template at once and only differ by visibility — so a fresh unfrozen
+    /// SolidColorBrush each time meant roughly four hundred allocations per ping pass across
+    /// thirty servers, none of them cacheable by the renderer. That was the stutter while pinging.
+    /// Frozen brushes are shareable and thread-safe, so one each is enough for the whole app.
+    /// </summary>
+    private static readonly Brush PingUnknownBrush = Frozen(0x56, 0x5B, 0x70);
+    private static readonly Brush PingDeadBrush = Frozen(0xFF, 0x6B, 0x8A);
+    private static readonly Brush PingGoodBrush = Frozen(0x34, 0xD3, 0x99);
+    private static readonly Brush PingOkBrush = Frozen(0xF5, 0xC0, 0x42);
+    private static readonly Brush PingSlowBrush = Frozen(0xFF, 0x8A, 0x5B);
+
+    internal static Brush Frozen(byte r, byte g, byte b)
     {
-        -2 => Color.FromRgb(0x56, 0x5B, 0x70),
-        -1 => Color.FromRgb(0xFF, 0x6B, 0x8A),
-        < 100 => Color.FromRgb(0x34, 0xD3, 0x99),
-        < 250 => Color.FromRgb(0xF5, 0xC0, 0x42),
-        _ => Color.FromRgb(0xFF, 0x8A, 0x5B),
-    });
+        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
+    }
+
+    public Brush PingBrush => Ping switch
+    {
+        -2 => PingUnknownBrush,
+        -1 => PingDeadBrush,
+        < 100 => PingGoodBrush,
+        < 250 => PingOkBrush,
+        _ => PingSlowBrush,
+    };
     partial void OnPingChanged(int value) { OnPropertyChanged(nameof(PingText)); OnPropertyChanged(nameof(PingBrush)); OnPropertyChanged(nameof(PingSignal)); }
 
     // Returns the leading flag emoji, the name without it, and the ISO-3166 alpha-2 code (for the flag picture).
@@ -796,12 +818,17 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(MoonAwake));
         OnPropertyChanged(nameof(TrayToggleText));
     }
-    public Brush RingBrush => new SolidColorBrush(ConnectionState switch
+    // Frozen and shared, same reason as the ping brushes.
+    private static readonly Brush RingConnected = ServerItem.Frozen(0x34, 0xD3, 0x99);
+    private static readonly Brush RingConnecting = ServerItem.Frozen(0x9D, 0x7B, 0xFF);
+    private static readonly Brush RingIdle = ServerItem.Frozen(0x3A, 0x30, 0x52);
+
+    public Brush RingBrush => ConnectionState switch
     {
-        ConnectionState.Connected => Color.FromRgb(0x34, 0xD3, 0x99),
-        ConnectionState.Connecting => Color.FromRgb(0x9D, 0x7B, 0xFF),
-        _ => Color.FromRgb(0x3A, 0x30, 0x52),
-    });
+        ConnectionState.Connected => RingConnected,
+        ConnectionState.Connecting => RingConnecting,
+        _ => RingIdle,
+    };
 
     public bool HasSelectedServer => SelectedServer is not null;
     public string SelectedServerLabel => SelectedServer?.Label ?? "Сервер не выбран";
@@ -2010,28 +2037,33 @@ public partial class MainViewModel : ObservableObject
 
     private async Task PingSub(SubscriptionVM sub)
     {
-        if (PingMethod == "stability") { await StabilitySub(sub); return; }
-
-        // Always out the physical card, not only while OUR tunnel is up. A TUN stack answers the
-        // handshake itself and every server then reads a fake 0-1 ms — and the tunnel doing that
-        // is just as likely to be INCY's or HAPP's, which sit there running while we are idle.
-        int? outIf = Pinger.PhysicalIfIndex();
-
-        using var gate = new SemaphoreSlim(PingParallel);
-        var servers = sub.Servers.ToList();
-        foreach (var s in servers) s.Pinging = true;
-
-        var tasks = servers.Select(async (s, i) =>
+        sub.Pinging = true;
+        try
         {
-            // Optional stagger: thirty handshakes in the same instant look like a port scan to
-            // some providers, and the panel throttles or drops them.
-            if (PingStagger && PingStaggerMs > 0) await Task.Delay(i * PingStaggerMs);
-            await gate.WaitAsync();
-            try { s.Ping = await ProbeAsync(s, outIf); }
-            finally { gate.Release(); s.Pinging = false; }
-        });
-        await Task.WhenAll(tasks);
-        Application.Current?.Dispatcher.Invoke(() => { sub.Refresh(); RefreshReachability(); });
+            if (PingMethod == "stability") { await StabilitySub(sub); return; }
+
+            // Always out the physical card, not only while OUR tunnel is up. A TUN stack answers
+            // the handshake itself and every server then reads a fake 0-1 ms — and the tunnel
+            // doing that is just as likely to be INCY's or HAPP's, running while we sit idle.
+            int? outIf = Pinger.PhysicalIfIndex();
+
+            using var gate = new SemaphoreSlim(PingParallel);
+            var servers = sub.Servers.ToList();
+            foreach (var s in servers) s.Pinging = true;
+
+            var tasks = servers.Select(async (s, i) =>
+            {
+                // Optional stagger: thirty handshakes in the same instant look like a port scan
+                // to some providers, and the panel throttles or drops them.
+                if (PingStagger && PingStaggerMs > 0) await Task.Delay(i * PingStaggerMs);
+                await gate.WaitAsync();
+                try { s.Ping = await ProbeAsync(s, outIf); }
+                finally { gate.Release(); s.Pinging = false; }
+            });
+            await Task.WhenAll(tasks);
+            Application.Current?.Dispatcher.Invoke(() => { sub.Refresh(); RefreshReachability(); });
+        }
+        finally { sub.Pinging = false; }
     }
 
     /// <summary>

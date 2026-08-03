@@ -19,6 +19,18 @@ public partial class SubscriptionVM : ObservableObject
     [ObservableProperty] private string name;
     [ObservableProperty] private string trafficText = "—";
     [ObservableProperty] private string expiryText = "∞";
+
+    /// <summary>True while this subscription is being pinged — the button shows a spinner.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NotPinging))]
+    private bool pinging;
+    public bool NotPinging => !Pinging;
+
+    /// <summary>True while this subscription is being re-fetched.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NotRefreshing))]
+    private bool refreshing;
+    public bool NotRefreshing => !Refreshing;
     // Panels ship a welcome/announcement as fake nodes (dummy address, name = the text). We pull them out of the
     // connectable list and show them as a banner (like INCY). Empty = no announcement.
     [ObservableProperty]
