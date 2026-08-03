@@ -46,16 +46,20 @@ public static class XrayConfigBuilder
             Inbound("socks-in", socksPort, "socks", SocksInboundSettings()),
             Inbound("http-in", httpPort, "http", HttpInboundSettings()),
         };
-        var policy = new Dictionary<string, object?>
+        var levels = new Dictionary<string, object?>
         {
-            ["levels"] = new Dictionary<string, object?>
+            ["8"] = new Dictionary<string, object?>
             {
-                ["8"] = new Dictionary<string, object?>
-                {
-                    ["handshake"] = 3, ["connIdle"] = 300, ["uplinkOnly"] = 2, ["downlinkOnly"] = 4, ["bufferSize"] = 3
-                }
+                ["handshake"] = 3, ["connIdle"] = 300, ["uplinkOnly"] = 2, ["downlinkOnly"] = 4, ["bufferSize"] = 3
             }
         };
+        // Level 0 is what ordinary traffic runs at, so this is where the priority mode bites:
+        // a smaller buffer means the core stops a bulk transfer running ahead, and the queue
+        // everything else waits behind stays short.
+        if (XrayTuning.BufferSizeKb is { } buf)
+            levels["0"] = new Dictionary<string, object?> { ["bufferSize"] = buf };
+
+        var policy = new Dictionary<string, object?> { ["levels"] = levels };
         var routingCfg = BuildRouting(routing);
 
         // The selected server's OWN address must go out DIRECT — never back through the tunnel. Otherwise, in TUN
@@ -205,7 +209,7 @@ public static class XrayConfigBuilder
         if (tag == "proxy" && XrayTuning.Fragment)   // route the real dial through the "fragment" freedom outbound
             stream["sockopt"] = new Dictionary<string, object?> { ["dialerProxy"] = "fragment" };
         if (stream.Count > 0) o["streamSettings"] = stream;
-        if (tag == "proxy" && XrayTuning.Mux)
+        if (tag == "proxy" && XrayTuning.EffectiveMux)
             o["mux"] = new Dictionary<string, object?> { ["enabled"] = true, ["concurrency"] = 8 };
         return o;
     }

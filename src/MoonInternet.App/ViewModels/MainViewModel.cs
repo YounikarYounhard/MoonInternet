@@ -394,8 +394,16 @@ public partial class MainViewModel : ObservableObject
         _lastRecv = recv; _lastSent = sent;
         if (secs is >= 0.25 and <= 20)   // ignore the first/garbage interval
         {
-            DownloadSpeed = FmtSpeed((long)(dr / secs));
+            long down = (long)(dr / secs);
+            DownloadSpeed = FmtSpeed(down);
             UploadSpeed = FmtSpeed((long)(ds / secs));
+
+            // Feed the learner: it decides what this link really carries by pairing each speed
+            // sample with the latency at that moment. CheckPing is whatever the last connection
+            // check measured; below zero means "no reading", which it handles.
+            _netQuality.Observe(down, _lastCheckPingMs);
+            OnPropertyChanged(nameof(LearnedCapacity));
+            OnPropertyChanged(nameof(LearnedBaseline));
         }
         SessionTraffic = FmtSize(Math.Max(0, recv - _baseRecv) + Math.Max(0, sent - _baseSent));
     }
@@ -553,6 +561,40 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool sniffing = true;
     partial void OnSniffingChanged(bool value) { _settings.Sniffing = value; _settings.Save(); ApplyTuning(); ReconnectIfConnected(); }
 
+    // ---- Приоритет трафика (бета) ----------------------------------------
+    private readonly NetworkQuality _netQuality = new();
+
+    /// <summary>Last measured round-trip, or -1 when there is none. Paired with the speed samples.</summary>
+    private int _lastCheckPingMs = -1;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPriorityOff), nameof(IsPriorityBalance), nameof(IsPriorityGames))]
+    private string trafficPriority = "off";
+
+    public bool IsPriorityOff => TrafficPriority == "off";
+    public bool IsPriorityBalance => TrafficPriority == "balance";
+    public bool IsPriorityGames => TrafficPriority == "games";
+
+    partial void OnTrafficPriorityChanged(string value)
+    {
+        _settings.TrafficPriority = value; _settings.Save(); ApplyTuning(); ReconnectIfConnected();
+    }
+
+    [RelayCommand] private void SetTrafficPriority(string mode) => TrafficPriority = mode;
+
+    /// <summary>What the learner has worked out so far, for the settings page.</summary>
+    public string LearnedCapacity => NetworkQuality.FormatMbit(_netQuality.CapacityBytesPerSecond);
+    public string LearnedBaseline => _netQuality.BaselineRttMs < 0 ? "—" : $"{_netQuality.BaselineRttMs} ms";
+
+    [RelayCommand]
+    private void ResetLearnedCapacity()
+    {
+        _netQuality.Reset();
+        OnPropertyChanged(nameof(LearnedCapacity));
+        OnPropertyChanged(nameof(LearnedBaseline));
+        Status = "Замеры канала сброшены";
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsIpAuto), nameof(IsIpV4), nameof(IsIpV6), nameof(PreferredIpLabel))]
     private string preferredIp = "auto";
@@ -579,6 +621,7 @@ public partial class MainViewModel : ObservableObject
     {
         MoonInternet.Core.Generation.XrayTuning.Fragment = TlsFragment;
         MoonInternet.Core.Generation.XrayTuning.Mux = Mux;
+        MoonInternet.Core.Generation.XrayTuning.TrafficPriority = TrafficPriority;
         MoonInternet.Core.Generation.XrayTuning.Sniffing = Sniffing;
         MoonInternet.Core.Generation.XrayTuning.PreferredIp = PreferredIp;
         MoonInternet.Core.Generation.XrayTuning.Dns = DnsIps(VpnDns, VpnDnsCustom);
@@ -757,6 +800,7 @@ public partial class MainViewModel : ObservableObject
         ShowSubHeader = _settings.ShowSubHeader; NotifyExpiry = _settings.NotifyExpiry; ExpiryNotifyDays = _settings.ExpiryNotifyDays;
         ApplyHwid();
         TlsFragment = _settings.TlsFragment; Mux = _settings.Mux; Sniffing = _settings.Sniffing;
+        TrafficPriority = _settings.TrafficPriority;
         PreferredIp = _settings.PreferredIp; VpnDns = _settings.VpnDns; VpnDnsCustom = _settings.VpnDnsCustom;
         AllowLan = _settings.AllowLan; LanThroughProxy = _settings.LanThroughProxy;
         ShowProxyOnlyButton = _settings.ShowProxyOnlyButton; ProxyBypassHosts = _settings.ProxyBypassHosts;
@@ -1755,6 +1799,7 @@ public partial class MainViewModel : ObservableObject
         int? outIf = _conn.State == ConnectionState.Connected && _conn.ActiveMode == TunnelMode.Tun ? Pinger.PhysicalIfIndex() : null;
         int ms = await ProbeAsync(SelectedServer, outIf);
         SelectedServer.Ping = ms;
+        _lastCheckPingMs = ms;              // the learner pairs this with the next speed sample
         CheckPingText = ms >= 0 ? $"{ms} ms" : "✕";
     }
 

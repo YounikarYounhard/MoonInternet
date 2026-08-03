@@ -54,6 +54,7 @@ public sealed class AppSettings
     // Tunnel tuning
     public bool TlsFragment { get; set; }                      // split the TLS ClientHello
     public bool Mux { get; set; }                              // connection multiplexing
+    public string TrafficPriority { get; set; } = "off";       // off | balance | games — BETA, off by default
     public bool Sniffing { get; set; } = true;                 // protocol/domain sniffing
     public string PreferredIp { get; set; } = "auto";          // auto | ipv4 | ipv6
     public string VpnDns { get; set; } = "google";             // cf_google | google | cloudflare | quad9 | custom
