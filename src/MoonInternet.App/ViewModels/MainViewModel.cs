@@ -886,6 +886,7 @@ public partial class MainViewModel : ObservableObject
         PingTestUrl = _settings.PingTestUrl; PingTimeoutMs = _settings.PingTimeoutMs;
         PingStagger = _settings.PingStagger; PingStaggerMs = _settings.PingStaggerMs;
         ShowServerCount = _settings.ShowServerCount;
+        Language = Localization.Loc.Language;   // already applied at startup; mirror it here
         PingEveryMinutes = _settings.PingEveryMinutes;
         AutoUpdateSubs = _settings.AutoUpdateSubs; AutoUpdateSubsMinutes = _settings.AutoUpdateSubsMinutes;
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
@@ -1211,6 +1212,27 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>How many servers we probe at once. More than this looks like a port scan.</summary>
     public int PingParallel => 6;
+
+    // ---- язык -------------------------------------------------------------
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRussian), nameof(IsEnglish))]
+    private string language = "ru";
+
+    public bool IsRussian => Language == "ru";
+    public bool IsEnglish => Language == "en";
+
+    /// <summary>Short label for the switch in the settings header.</summary>
+    public string LanguageLabel => Language == "en" ? "EN" : "RU";
+
+    [RelayCommand]
+    private void ToggleLanguage()
+    {
+        Language = Language == "ru" ? "en" : "ru";
+        _settings.Language = Language;
+        _settings.Save();
+        Localization.Loc.Apply(Language);
+        OnPropertyChanged(nameof(LanguageLabel));
+    }
 
     [ObservableProperty] private bool showServerCount = true;
     partial void OnShowServerCountChanged(bool value) { _settings.ShowServerCount = value; _settings.Save(); }

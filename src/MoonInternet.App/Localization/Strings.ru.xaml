@@ -79,7 +79,7 @@
     <s:String x:Key="S_SettingsView_026">Исключить локальную сеть из VPN туннеля</s:String>
     <s:String x:Key="S_SettingsView_027">LAN через прокси</s:String>
     <s:String x:Key="S_SettingsView_028">Направить локальный трафик через VPN прокси</s:String>
-    <s:String x:Key="S_SettingsView_029">Кнопка &amp;quot;Только прокси&amp;quot;</s:String>
+    <s:String x:Key="S_SettingsView_029">Кнопка &quot;Только прокси&quot;</s:String>
     <s:String x:Key="S_SettingsView_030">Показывать кнопку на главном экране</s:String>
     <s:String x:Key="S_SettingsView_031">Дополнительные адреса в обход прокси</s:String>
     <s:String x:Key="S_SettingsView_032">Хосты в обход системного прокси (напр. *.local)</s:String>
