@@ -257,8 +257,7 @@ class MainActivity : ComponentActivity() {
                             Page.Routing -> RoutingScreen(
                                 profile = vm.activeRouting(),
                                 source = state.routingSource,
-                                geoipInfo = vm.geoipInfo(),
-                                geositeInfo = vm.geositeInfo(),
+                                geoSources = vm.geoSources(),
                                 geoBusy = geoBusy,
                                 geoStatus = geoStatus,
                                 onBack = { page = Page.Settings; settingsPage = SettingsPage.Routing },

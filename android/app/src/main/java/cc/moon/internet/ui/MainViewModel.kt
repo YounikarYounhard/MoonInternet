@@ -495,6 +495,36 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun geoipInfo() = GeoService.info(GeoService.geoip(getApplication()))
     fun geositeInfo() = GeoService.info(GeoService.geosite(getApplication()))
 
+    /** One block of the geo-files card: who it belongs to and where its two lists come from. */
+    data class GeoSource(val owner: String, val geoip: String, val geosite: String, val showOwner: Boolean)
+
+    /**
+     * INCY and HAPP usually point at the same geoip/geosite release, and then there is nothing to
+     * choose between — one block, as before. When their URLs differ that is worth seeing, so each
+     * set gets its own block with the owners named.
+     */
+    fun geoSources(): List<GeoSource> {
+        val imported = store.state.value.routings.filter { it.source == "incy" || it.source == "happ" }
+        if (imported.isEmpty()) return listOf(GeoSource("", geoipInfo(), geositeInfo(), false))
+        val groups = imported.groupBy { it.geoipUrl to it.geositeUrl }
+        val split = groups.size > 1
+        val active = store.state.value.routingSource
+        return groups.map { (urls, profiles) ->
+            // Only the selected profile's lists are the ones actually on disk; for the other set we
+            // show where it would come from rather than a size we never fetched.
+            val onDisk = !split || profiles.any { it.source == active }
+            GeoSource(
+                profiles.map { it.source.uppercase() }.distinct().joinToString(" · "),
+                if (onDisk) geoipInfo() else host(urls.first),
+                if (onDisk) geositeInfo() else host(urls.second),
+                split,
+            )
+        }
+    }
+
+    private fun host(url: String) =
+        runCatching { java.net.URI(url).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: s(R.string.geo_no_url)
+
     fun setRoutingSource(src: String) = viewModelScope.launch {
         store.update { it.copy(routingSource = src) }
         reconnectIfConnected()

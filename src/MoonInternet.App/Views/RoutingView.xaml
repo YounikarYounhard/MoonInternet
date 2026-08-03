@@ -42,15 +42,28 @@
                             <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right" ToolTip="{DynamicResource S_RoutingView_004}"
                                     Command="{Binding RefreshGeoCommand}" IsEnabled="{Binding GeoRefreshing, Converter={StaticResource InvBool}}"/>
                         </Grid>
-                        <Grid Margin="0,10,0,0">
-                            <TextBlock Text="geoip.dat" FontSize="12.5" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding GeoipInfo}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        </Grid>
-                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,8"/>
-                        <Grid>
-                            <TextBlock Text="geosite.dat" FontSize="12.5" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding GeositeInfo}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        </Grid>
+                        <!-- one block per distinct geoip/geosite pair: INCY and HAPP share a plate
+                             while they point at the same release, and split when they do not -->
+                        <ItemsControl ItemsSource="{Binding GeoSources}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Owner}" FontSize="10.5" FontWeight="SemiBold" Margin="0,10,0,0"
+                                                   Foreground="{StaticResource AccentText}"
+                                                   Visibility="{Binding ShowOwner, Converter={StaticResource BoolVis}}"/>
+                                        <Grid Margin="0,10,0,0">
+                                            <TextBlock Text="geoip.dat" FontSize="12.5" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding GeoipText}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,8"/>
+                                        <Grid>
+                                            <TextBlock Text="geosite.dat" FontSize="12.5" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding GeositeText}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <TextBlock Text="{Binding GeoStatus}" Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="0,8,0,0"
                                    Visibility="{Binding GeoRefreshing, Converter={StaticResource BoolVis}}"/>
                     </StackPanel>

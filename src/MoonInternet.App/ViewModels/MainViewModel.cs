@@ -210,7 +210,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RoutingName), nameof(DirectSites), nameof(ProxySites), nameof(BlockSites),
         nameof(DirectIps), nameof(ProxyIps), nameof(BlockIps), nameof(HasMultipleRoutings),
-        nameof(IsRoutingIncy), nameof(IsRoutingHapp), nameof(IsRoutingCustom))]
+        nameof(IsRoutingIncy), nameof(IsRoutingHapp), nameof(IsRoutingCustom), nameof(GeoSources))]
     private RoutingProfile? selectedRouting;
     partial void OnSelectedRoutingChanged(RoutingProfile? value) => RebuildRuleChips();
 
@@ -965,6 +965,53 @@ public partial class MainViewModel : ObservableObject
 
     public string GeoipInfo => FileInfoText(MoonInternet.Services.GeoService.GeoipFile);
     public string GeositeInfo => FileInfoText(MoonInternet.Services.GeoService.GeositeFile);
+
+    /// <summary>One row of the geo-files card: who it belongs to and where its two lists come from.</summary>
+    public sealed record GeoSourceRow(string Owner, string GeoipText, string GeositeText, bool ShowOwner);
+
+    /// <summary>
+    /// INCY and HAPP usually point at the same geoip/geosite release, and then there is nothing to
+    /// choose between — one plate, exactly as before. When their URLs differ that is worth seeing,
+    /// so each set gets its own plate with the owners named.
+    /// </summary>
+    public IReadOnlyList<GeoSourceRow> GeoSources
+    {
+        get
+        {
+            var imported = AvailableRoutings
+                .Where(r => r.Source is RoutingSource.Incy or RoutingSource.Happ)
+                .ToList();
+            if (imported.Count == 0)
+                return new[] { new GeoSourceRow("", GeoipInfo, GeositeInfo, false) };
+
+            var groups = imported
+                .GroupBy(r => (r.Geoipurl, r.Geositeurl))
+                .ToList();
+            bool split = groups.Count > 1;
+            return groups.Select(g =>
+            {
+                // Only the selected profile's lists are the ones actually on disk; for the other
+                // set we can honestly show where it would come from, not a size we never fetched.
+                bool onDisk = !split || g.Any(r => ReferenceEquals(r, SelectedRouting));
+                return new GeoSourceRow(
+                    string.Join(" · ", g.Select(r => SourceLabel(r.Source)).Distinct()),
+                    onDisk ? GeoipInfo : UrlHost(g.Key.Geoipurl),
+                    onDisk ? GeositeInfo : UrlHost(g.Key.Geositeurl),
+                    split);
+            }).ToList();
+        }
+    }
+
+    private static string SourceLabel(RoutingSource s) => s switch
+    {
+        RoutingSource.Incy => "INCY",
+        RoutingSource.Happ => "HAPP",
+        _ => "Свой",
+    };
+
+    private static string UrlHost(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : "не задан";
+
     private static string FileInfoText(string path)
     {
         try { var fi = new FileInfo(path); return fi.Exists ? $"{fi.Length / 1048576.0:0.0} МБ · {fi.LastWriteTime:dd.MM.yyyy HH:mm}" : "не загружен"; }
@@ -979,6 +1026,7 @@ public partial class MainViewModel : ObservableObject
         {
             await MoonInternet.Services.GeoService.RefreshAsync(SelectedRouting);
             OnPropertyChanged(nameof(GeoipInfo)); OnPropertyChanged(nameof(GeositeInfo));
+            OnPropertyChanged(nameof(GeoSources));
             ReconnectIfConnected();
         }
         finally { GeoRefreshing = false; }

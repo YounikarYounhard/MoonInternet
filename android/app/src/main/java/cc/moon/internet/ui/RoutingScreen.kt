@@ -28,8 +28,7 @@ import cc.moon.internet.R
 fun RoutingScreen(
     profile: RoutingProfile?,
     source: String,
-    geoipInfo: String,
-    geositeInfo: String,
+    geoSources: List<MainViewModel.GeoSource>,
     geoBusy: Boolean,
     geoStatus: String,
     onBack: () -> Unit,
@@ -77,9 +76,18 @@ fun RoutingScreen(
                         Icon(Icons.Filled.Refresh, stringResource(R.string.settingsscreen_086), tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }
                 }
-                KeyValue("geoip.dat", geoipInfo)
-                Divider()
-                KeyValue("geosite.dat", geositeInfo)
+                // one block per distinct geoip/geosite pair: INCY and HAPP share a block while
+                // they point at the same release, and split when they do not
+                geoSources.forEachIndexed { i, g ->
+                    if (g.showOwner) {
+                        if (i > 0) Divider()
+                        Text(g.owner, Modifier.padding(14.dp, 10.dp, 14.dp, 0.dp),
+                             color = Moon.AccentText, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    KeyValue("geoip.dat", g.geoip)
+                    Divider()
+                    KeyValue("geosite.dat", g.geosite)
+                }
                 if (geoStatus.isNotBlank()) {
                     Text(geoStatus, Modifier.padding(14.dp, 0.dp, 14.dp, 12.dp),
                          color = Moon.AccentText, fontSize = 11.5.sp)

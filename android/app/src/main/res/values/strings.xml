@@ -316,4 +316,5 @@
     <string name="vm_creds_reset">"Логин/пароль сброшены"</string>
     <string name="vm_logs_cleared">"Логи очищены"</string>
     <string name="vm_no_permission">"Разрешение на VPN не выдано"</string>
+    <string name="geo_no_url">"не задан"</string>
 </resources>
