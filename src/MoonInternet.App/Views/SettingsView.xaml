@@ -74,14 +74,15 @@
                 <TextBlock Text="Настройки" FontSize="26" FontWeight="Bold" Margin="2,4,0,2"/>
                 <TextBlock Text="Moon Internet · 0.9.0 beta" Foreground="{StaticResource TextSecondary}" FontSize="12.5" Margin="2,0,0,18"/>
 
-                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="Оформление" ToolTip="Тема, шрифт, цвета, иконки" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="Соединение" ToolTip="TUN, авто-переподключение, kill-switch" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="Оформление" ToolTip="Шрифт" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="Подключение" ToolTip="TUN, авто-переподключение, kill-switch" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="Маршрутизация" ToolTip="Профили, правила, приложения, DNS" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="Настройки подписок" ToolTip="Обновление, срок, авто-обновление" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="Настройки пинга" ToolTip="Как и когда измерять задержку" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="Авто" ToolTip="Автозапуск, автоподключение, трей" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="Логи" ToolTip="Диагностика и журналы" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE72E;" Content="Политика конфиденциальности" ToolTip="Как приложение обращается с данными" Command="{Binding OpenSettingsPageCommand}" CommandParameter="privacy"/>
+                <!-- Политики конфиденциальности здесь нет: она открывается из «О приложении»,
+                     где ей и место, и в хабе не занимает строку. -->
                 <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="О приложении" ToolTip="Версии, ссылки, система" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
             </StackPanel>
         </ScrollViewer>
@@ -95,84 +96,10 @@
                     <TextBlock Text="Оформление" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Тема -->
-                <TextBlock Text="ТЕМА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
-                    <ItemsControl ItemsSource="{Binding Presets}">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Style="{StaticResource SecondaryButton}" Padding="12,7" Margin="0,0,8,8"
-                                        Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse Width="12" Height="12" VerticalAlignment="Center" Fill="{Binding Accent, Converter={StaticResource HexBrush}}"/>
-                                        <TextBlock Text="{Binding Name}" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Border>
-
-                <!-- Цвета -->
-                <TextBlock Text="ЦВЕТА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
-                    <StackPanel>
-                        <TextBlock Text="Цвет кнопок (акцент)" FontWeight="SemiBold" FontSize="13"/>
-                        <ItemsControl ItemsSource="{Binding AccentSwatches}" Margin="0,8,0,0">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Width="28" Height="28" Margin="0,0,8,0" Cursor="Hand"
-                                            Command="{Binding DataContext.SetAccentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                        <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="{Binding Converter={StaticResource HexBrush}}" Stroke="#50FFFFFF" StrokeThickness="1"/></ControlTemplate></Button.Template>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <TextBox Style="{StaticResource DarkTextBox}" Width="130" Text="{Binding AccentHex, UpdateSourceTrigger=LostFocus}"/>
-                            <Border Width="28" Height="28" CornerRadius="7" Margin="10,0,0,0" Background="{Binding AccentHex, Converter={StaticResource HexBrush}}"/>
-                        </StackPanel>
-
-                        <TextBlock Text="Цвет интерфейса (фон)" FontWeight="SemiBold" FontSize="13" Margin="0,16,0,0"/>
-                        <ItemsControl ItemsSource="{Binding BgSwatches}" Margin="0,8,0,0">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Width="28" Height="28" Margin="0,0,8,0" Cursor="Hand"
-                                            Command="{Binding DataContext.SetBgColorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                        <Button.Template><ControlTemplate TargetType="Button"><Border CornerRadius="7" Background="{Binding Converter={StaticResource HexBrush}}" BorderBrush="#50FFFFFF" BorderThickness="1"/></ControlTemplate></Button.Template>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <TextBox Style="{StaticResource DarkTextBox}" Width="130" Text="{Binding BgHex, UpdateSourceTrigger=LostFocus}"/>
-                            <Border Width="28" Height="28" CornerRadius="7" Margin="10,0,0,0" Background="{Binding BgHex, Converter={StaticResource HexBrush}}"/>
-                        </StackPanel>
-
-                        <TextBlock Text="Цвет текста" FontWeight="SemiBold" FontSize="13" Margin="0,16,0,0"/>
-                        <ItemsControl ItemsSource="{Binding TextSwatches}" Margin="0,8,0,0">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Width="28" Height="28" Margin="0,0,8,0" Cursor="Hand"
-                                            Command="{Binding DataContext.SetTextColorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                        <Button.Template><ControlTemplate TargetType="Button"><Border CornerRadius="7" Background="{Binding Converter={StaticResource HexBrush}}" BorderBrush="#50FFFFFF" BorderThickness="1"/></ControlTemplate></Button.Template>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <TextBox Style="{StaticResource DarkTextBox}" Width="130" Text="{Binding TextHex, UpdateSourceTrigger=LostFocus}"/>
-                            <Border Width="28" Height="28" CornerRadius="7" Margin="10,0,0,0" Background="{Binding TextHex, Converter={StaticResource HexBrush}}"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Шрифт -->
-                <TextBlock Text="ШРИФТ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <!-- Шрифт — единственное, что осталось настраиваемым. Темы, цвета, прозрачность,
+                     картинки луны и фон убраны: слишком много ручек ради того, что почти никто
+                     не трогает, а поддерживать их надо было в обеих версиях. -->
+                <TextBlock Text="ШРИФТ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
                     <ItemsControl ItemsSource="{Binding Fonts}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -186,80 +113,17 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Border>
-
-                <!-- Прозрачность интерфейса -->
-                <TextBlock Text="ПРОЗРАЧНОСТЬ ИНТЕРФЕЙСА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,12">
-                    <StackPanel>
-                        <TextBlock Text="Прозрачность окна" FontSize="14" FontWeight="SemiBold"/>
-                        <Slider Minimum="0.7" Maximum="1" Value="{Binding UiOpacity}" Margin="0,8,0,0"/>
-                        <TextBlock Text="Просвечивает рабочий стол сквозь окно." Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,4,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Иконка / картинки кнопки -->
-                <TextBlock Text="ИКОНКА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
-                    <StackPanel>
-                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap"
-                                   Text="PNG с прозрачным фоном. Кнопка — квадрат ≥ 400×400. Луна в меню снизу ≥ 128×128. Пусто = встроенная."/>
-                        <Grid Margin="0,10,0,0">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Подключено (полная)" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                            <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PickMoonOnCommand}" Content="Выбрать…" Padding="12,6" Margin="0,0,0,6"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Отключено (полумесяц)" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                            <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PickMoonOffCommand}" Content="Выбрать…" Padding="12,6" Margin="0,0,0,6"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Луна в меню снизу" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                            <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding PickNavMoonCommand}" Content="Выбрать…" Padding="12,6"/>
-                        </Grid>
-                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding ResetMoonImagesCommand}" Content="Сбросить картинки" Padding="12,7" HorizontalAlignment="Left" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Фон -->
-                <TextBlock Text="ФОН" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding PickBackgroundCommand}" Content="Выбрать…" Padding="14,8"/>
-                            <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearBackgroundCommand}" Content="Убрать" Padding="14,8" Margin="8,0,0,0"/>
-                            <TextBlock Text="{Binding BackgroundInfo}" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="150"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <TextBlock Text="Прозрачность фона" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Width="140"/>
-                            <Slider Minimum="0.1" Maximum="1" Value="{Binding BgOpacity}" Width="180" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Язык -->
-                <TextBlock Text="ЯЗЫК" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14">
-                    <Grid>
-                        <StackPanel>
-                            <TextBlock Text="Русский" FontSize="14" FontWeight="SemiBold"/>
-                            <TextBlock Text="Другие языки — позже" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                    </Grid>
-                </Border>
-
-                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ExportThemeCommand}" Content="Экспорт" Padding="14,8"/>
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ImportThemeCommand}" Content="Импорт" Padding="14,8" Margin="8,0,0,0"/>
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ResetThemeCommand}" Content="Сбросить тему" Padding="14,8" Margin="8,0,0,0"/>
-                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
-        <!-- ================= СОЕДИНЕНИЕ ================= -->
+
+        <!-- ================= ПОДКЛЮЧЕНИЕ ================= -->
         <ScrollViewer VerticalScrollBarVisibility="Auto"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=connection}">
             <StackPanel Margin="24,20,24,24">
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Соединение" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Подключение" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">

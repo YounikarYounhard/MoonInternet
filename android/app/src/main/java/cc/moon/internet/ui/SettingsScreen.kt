@@ -30,25 +30,25 @@ import cc.moon.internet.data.AppState
  * background image) are the only omissions, each noted where it used to sit.
  */
 enum class SettingsPage(val title: String, val subtitle: String, val icon: ImageVector) {
-    Appearance("Оформление", "Тема, шрифт, цвета, иконки", Icons.Filled.Palette),
-    Connection("Соединение", "Локальный прокси, LAN, UDP", Icons.Filled.Cable),
+    Appearance("Оформление", "Шрифт", Icons.Filled.Palette),
+    Connection("Подключение", "Локальный прокси, LAN, UDP", Icons.Filled.Cable),
     Routing("Маршрутизация", "Профили, правила, приложения, DNS", Icons.Filled.AltRoute),
     Subscriptions("Настройки подписок", "Обновление, срок, авто-обновление", Icons.Filled.LibraryBooks),
     Ping("Настройки пинга", "Как и когда измерять задержку", Icons.Filled.Speed),
     Auto("Авто", "Автоподключение, выбор сервера", Icons.Filled.PlayCircle),
     Logs("Логи", "Диагностика и журналы", Icons.Filled.Description),
-    Privacy("Политика конфиденциальности", "Как приложение обращается с данными", Icons.Filled.PrivacyTip),
     About("О приложении", "Версии, ссылки, система", Icons.Filled.Info),
 
     // reached from inside another page, never from the hub
+    Privacy("Политика конфиденциальности", "Как приложение обращается с данными", Icons.Filled.PrivacyTip),
     AppRouting("Прокси по приложениям", "", Icons.Filled.Apps),
     Terms("Условия использования", "", Icons.Filled.Gavel),
     Libs("Сторонние библиотеки", "", Icons.Filled.Code),
     ;
 
     companion object {
-        /** Exactly the nine cards the desktop hub shows, in the same order. */
-        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Auto, Logs, Privacy, About)
+        /** Exactly the cards the desktop hub shows, in the same order. */
+        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Auto, Logs, About)
     }
 }
 
@@ -131,80 +131,18 @@ data class AppEntry(val pkg: String, val label: String, val icon: android.graphi
 @Composable
 private fun AppearancePage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit) {
     Column {
-        SectionLabel("ТЕМА", top = 0)
-        MoonCard(padding = 14) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(
-                    Triple("Луна", "FF9D7BFF", "FF0D0A18"),
-                    Triple("Ночь", "FF4C82FF", "FF0A0B10"),
-                    Triple("Мята", "FF34D399", "FF091412"),
-                    Triple("Закат", "FFFF6B8A", "FF150A10"),
-                ).forEach { (name, accent, bg) ->
-                    Surface(
-                        onClick = { onSet { copy(accentHex = accent, bgHex = bg) } },
-                        shape = RoundedCornerShape(11.dp), color = Moon.ChipBg,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
-                    ) {
-                        Row(Modifier.padding(12.dp, 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(12.dp).background(Color(accent.toLong(16)), CircleShape))
-                            Spacer(Modifier.width(8.dp))
-                            Text(name, color = Moon.TextPrimary, fontSize = 12.5.sp)
-                        }
-                    }
-                }
-            }
-        }
-
-        SectionLabel("ЦВЕТА")
-        MoonCard(padding = 14) {
-            Text("Цвет кнопок (акцент)", color = Moon.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            Swatches(listOf("FF9D7BFF", "FF4C82FF", "FF34D399", "FFFF6B8A", "FFF5C042", "FF00C2CB"),
-                     state.accentHex, round = true) { onSet { copy(accentHex = it) } }
-
-            Text("Цвет интерфейса (фон)", color = Moon.TextPrimary, fontSize = 13.sp,
-                 fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 16.dp))
-            Spacer(Modifier.height(8.dp))
-            Swatches(listOf("FF0D0A18", "FF0A0B10", "FF10121C", "FF14101F", "FF000000"),
-                     state.bgHex, round = false) { onSet { copy(bgHex = it) } }
-
-            Text("Цвет текста", color = Moon.TextPrimary, fontSize = 13.sp,
-                 fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 16.dp))
-            Spacer(Modifier.height(8.dp))
-            Swatches(listOf("FFECE9F5", "FFFFFFFF", "FFD8D4E8", "FFB9A7FF"),
-                     state.textHex, round = false) { onSet { copy(textHex = it) } }
-        }
-
-        SectionLabel("ШРИФТ")
+        // Only the font is settable now. Themes, colour swatches and the language block are
+        // gone — same cut as on the desktop build, so the two pages still match.
+        SectionLabel("ШРИФТ", top = 0)
         MoonCard(padding = 14) {
             ChipFlow(listOf("comic" to "Comic (как на ПК)", "system" to "Системный"), state.fontName) {
                 onSet { copy(fontName = it) }
             }
         }
-
-        SectionLabel("ЯЗЫК")
-        MoonCard(padding = 14) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Русский", color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Другие языки — позже", color = Moon.TextSecondary, fontSize = 12.sp,
-                         modifier = Modifier.padding(top = 2.dp))
-                }
-                Icon(Icons.Filled.Check, null, tint = Moon.Accent, modifier = Modifier.size(18.dp))
-            }
-        }
-
-        Row(Modifier.padding(top = 16.dp)) {
-            SecondaryButton("Сбросить тему") {
-                onSet { copy(accentHex = "FF9D7BFF", bgHex = "FF0D0A18", textHex = "FFECE9F5", fontName = "comic") }
-            }
-        }
-        // «Прозрачность окна», «Фон» и подмена картинок луны — только для ПК.
     }
 }
 
-// ---------------------------------------------------------------- СОЕДИНЕНИЕ
+// ---------------------------------------------------------------- ПОДКЛЮЧЕНИЕ
 @Composable
 private fun ConnectionPage(
     state: AppState,
