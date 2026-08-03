@@ -47,6 +47,13 @@ import cc.moon.internet.vpn.MoonVpnService
 /** The four pages the desktop window has. */
 private enum class Page { Home, Servers, Routing, Settings }
 
+/**
+ * How wide the content is allowed to get. The desktop window it was ported from is 420dp;
+ * a little more than that reads fine on a big phone, and anything past it is a tablet
+ * stretching a layout that was never meant to fill one.
+ */
+private val CONTENT_MAX_WIDTH = 460.dp
+
 class MainActivity : ComponentActivity() {
 
     companion object {
@@ -171,8 +178,13 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                 ) { pad ->
-                    Box(Modifier.fillMaxSize()) {
-                    Box(Modifier.padding(pad)) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    // The layout is a phone layout — it was ported from a 420dp-wide desktop
+                    // window. Left to fill a tablet it stretches into nonsense: the Добавить /
+                    // Вставить column grew until the speed and traffic readouts had no room.
+                    // Capping the content and centring it fixes every row at once, and is what
+                    // the other clients do on a tablet too.
+                    Box(Modifier.padding(pad).widthIn(max = CONTENT_MAX_WIDTH).fillMaxHeight()) {
                         when (page) {
                             Page.Home -> HomeScreen(
                                 state = vpn,
@@ -409,8 +421,11 @@ private fun BottomNav(
 ) {
     Box(
         modifier
+            // the cap goes before fillMaxWidth, not after: constraints flow outwards in, so
+            // filling first and clamping second leaves the bar full width on a tablet
+            .widthIn(max = CONTENT_MAX_WIDTH)
             .fillMaxWidth()
-            // the inset first, so the card clears the system buttons instead of sitting on them
+            // the inset next, so the card clears the system buttons instead of sitting on them
             .navigationBarsPadding()
             .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
