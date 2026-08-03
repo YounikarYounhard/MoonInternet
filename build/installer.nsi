@@ -9,7 +9,7 @@ SetCompressor /SOLID lzma
 !include "MUI2.nsh"
 
 !define APPNAME "Moon Internet"
-!define APPVER "0.9.0-beta"
+!define APPVER "0.9.1.1"
 !define TASKNAME "MoonInternetTun"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MoonInternet"
 

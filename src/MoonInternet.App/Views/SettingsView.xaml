@@ -1,4 +1,4 @@
-<UserControl x:Class="MoonInternet.App.Views.SettingsView"
+﻿<UserControl x:Class="MoonInternet.App.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
@@ -112,7 +112,7 @@
                         </Button.Template>
                     </Button>
                 </Grid>
-                <TextBlock Text="Moon Internet · 0.9.0 beta" Foreground="{StaticResource TextSecondary}" FontSize="12.5" Margin="2,0,0,18"/>
+                <TextBlock Text="{Binding AppVersion, StringFormat=Moon Internet · {0}}" Foreground="{StaticResource TextSecondary}" FontSize="12.5" Margin="2,0,0,18"/>
 
                 <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="{DynamicResource S_SettingsView_003}" ToolTip="{DynamicResource S_SettingsView_004}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="{DynamicResource S_SettingsView_005}" ToolTip="{DynamicResource S_SettingsView_006}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>

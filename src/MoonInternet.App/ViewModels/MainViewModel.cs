@@ -1039,7 +1039,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     // ===== About =====
-    public string AppVersion => GetType().Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "—";
+    // The fourth part is the build counter we bump while working (0.9.1.N); it is dropped for a
+    // release, which ships as plain 0.9.1. Keeping it here means the title bar, the About page
+    // and the update check all read the same number.
+    public string AppVersion => GetType().Assembly.GetName().Version is { } v
+        ? (v.Revision > 0 ? $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"{v.Major}.{v.Minor}.{v.Build}")
+        : "—";
     public string DotNetVersion => System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
     public string OsPlatform => Environment.OSVersion.Version.Build >= 22000 ? "Windows 11" : "Windows 10";
     public string OsArch => System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
