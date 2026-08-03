@@ -528,8 +528,29 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,7,0"
                                Visibility="{Binding IsFavorite, Converter={StaticResource BoolVis}}" ToolTip="В избранном"/>
+
+                    <!-- While this row is being measured a spinner stands in for the reading: the
+                         previous number is stale, and leaving it up looks like a fresh result. -->
+                    <Ellipse Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,7,0"
+                             StrokeThickness="2" Stroke="{StaticResource AccentText}" StrokeDashArray="3 2"
+                             RenderTransformOrigin="0.5,0.5"
+                             Visibility="{Binding Pinging, Converter={StaticResource BoolVis}}">
+                        <Ellipse.RenderTransform><RotateTransform/></Ellipse.RenderTransform>
+                        <Ellipse.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                         From="0" To="360" Duration="0:0:0.9" RepeatBehavior="Forever"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Ellipse.Triggers>
+                    </Ellipse>
+
                     <!-- ping display by setting: Цифры / Точки / Шкала / Оба -->
-                    <Grid VerticalAlignment="Center" Margin="0,0,4,0">
+                    <Grid VerticalAlignment="Center" Margin="0,0,4,0"
+                          Visibility="{Binding ShowsPing, Converter={StaticResource BoolVis}}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                     Visibility="{Binding DataContext.IsPingDispNum, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
                             <Ellipse Width="8" Height="8" Fill="{Binding PingBrush}" VerticalAlignment="Center"/>

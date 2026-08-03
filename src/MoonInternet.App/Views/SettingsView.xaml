@@ -611,9 +611,34 @@
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="Moon Ping" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="moon" IsChecked="{Binding IsPingMoon, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="TCP" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="tcp" IsChecked="{Binding IsPingTcp, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP GET" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httpget" IsChecked="{Binding IsPingHttpGet, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="Стабильность" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="stability" IsChecked="{Binding IsPingStability, Mode=OneWay}"/>
                 </WrapPanel>
-                <TextBlock Text="Moon Ping — наш метод: быстрый TCP-хендшейк напрямую до сервера, мимо туннеля. Самая точная задержка канала до VPN." Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,16" TextWrapping="Wrap"/>
+                <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,6" TextWrapping="Wrap"
+                           Text="Moon Ping, TCP и HTTP отвечают на вопрос «порт кто-то слушает». Это не то же самое, что «протокол работает»: CDN, промежуточный сервер провайдера или протухший ключ рукопожатие тоже завершат, и мёртвый сервер покажет бодрые 30 мс."/>
+                <TextBlock Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="4,0,0,16" TextWrapping="Wrap"
+                           Text="Стабильность — единственный метод, который поднимает настоящее соединение и делает через него запрос. Медленнее остальных, зато не врёт: не прошло — значит через этот сервер не пройдёт и трафик."/>
+
+                <TextBlock Text="ПОРЯДОК ПРОВЕРКИ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14" Margin="0,0,0,16">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="Проверять по очереди" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Разносить проверки во времени, а не бить все разом. Некоторые провайдеры принимают залп из тридцати соединений за скан портов и режут его." Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PingStagger}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Visibility="{Binding PingStagger, Converter={StaticResource BoolVis}}" Margin="0,12,0,0">
+                            <TextBlock Text="Задержка между проверками" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,0,0,8"/>
+                            <WrapPanel>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="50 мс" Margin="0,0,8,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="50" IsChecked="{Binding IsStagger50, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="150 мс" Margin="0,0,8,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="150" IsChecked="{Binding IsStagger150, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="stagger" Content="300 мс" Margin="0,0,0,0" Command="{Binding SetPingStaggerCommand}" CommandParameter="300" IsChecked="{Binding IsStagger300, Mode=OneWay}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
 
                 <TextBlock Text="ОТОБРАЖЕНИЕ ПИНГА" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <WrapPanel>

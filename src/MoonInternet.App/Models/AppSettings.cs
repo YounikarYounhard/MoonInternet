@@ -40,6 +40,8 @@ public sealed class AppSettings
     public string PingDisplay { get; set; } = "num";           // num | bar | both | dots
     public string PingTestUrl { get; set; } = "https://www.gstatic.com/generate_204";
     public int PingTimeoutMs { get; set; } = 4000;             // per-probe timeout
+    public bool PingStagger { get; set; }                      // space the probes out instead of all at once
+    public int PingStaggerMs { get; set; } = 150;              // gap between them when staggering
     // Subscription settings
     public bool AutoUpdateSubs { get; set; } = true;           // periodic auto-refresh (subscriptions ship an interval)
     public int AutoUpdateSubsMinutes { get; set; }             // 0 = use the subscription's own interval; else 30|60|120|360|720|1440

@@ -64,10 +64,20 @@ public partial class ServerItem : ObservableObject
     public string ConfigJson => MoonInternet.Core.Generation.XrayConfigBuilder.OutboundJson(Profile);
 
     [ObservableProperty] private int ping = -2; // -2 unknown, -1 timeout, >=0 ms
+
+    /// <summary>True while this row is being measured — the spinner in place of the number.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsPing))]
+    private bool pinging;
+
     [ObservableProperty] private bool isSelected;  // highlights the row on Home's picker list
     [ObservableProperty] private bool isFavorite;  // starred by the user (persisted, keyed by ShareUrl)
     public string? ShareUrl => Profile.Raw;        // original share link (Copy URL / QR)
     public int Order { get; set; }                 // position in the subscription (for "Обычная" order)
+
+    /// <summary>The reading is only worth showing when it is not mid-measurement.</summary>
+    public bool ShowsPing => !Pinging;
+
     public string PingText => Ping switch { -2 => "—", -1 => "✕", _ => $"{Ping} ms" };
     public int PingSignal => Ping switch { < 0 => 0, < 60 => 4, < 120 => 3, < 220 => 2, _ => 1 };  // 0..4 for dots/bar
     public string FavoriteText => IsFavorite ? "Убрать из избранного" : "Добавить в избранное";
@@ -794,6 +804,7 @@ public partial class MainViewModel : ObservableObject
         UseRouting = _settings.UseRouting;
         PingMethod = _settings.PingMethod; PingDisplay = _settings.PingDisplay;
         PingTestUrl = _settings.PingTestUrl; PingTimeoutMs = _settings.PingTimeoutMs;
+        PingStagger = _settings.PingStagger; PingStaggerMs = _settings.PingStaggerMs;
         AutoUpdateSubs = _settings.AutoUpdateSubs; AutoUpdateSubsMinutes = _settings.AutoUpdateSubsMinutes;
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
         PingOnStart = _settings.PingOnStart; SendHwid = _settings.SendHwid;
@@ -1049,6 +1060,23 @@ public partial class MainViewModel : ObservableObject
     public bool IsPingTcp => PingMethod == "tcp";
     public bool IsPingHttpGet => PingMethod == "httpget";
     public bool IsPingHttpHead => PingMethod == "httphead";
+    public bool IsPingStability => PingMethod == "stability";
+
+    /// <summary>How many servers we probe at once. More than this looks like a port scan.</summary>
+    public int PingParallel => 6;
+
+    [ObservableProperty] private bool pingStagger;
+    partial void OnPingStaggerChanged(bool value) { _settings.PingStagger = value; _settings.Save(); }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStagger50), nameof(IsStagger150), nameof(IsStagger300))]
+    private int pingStaggerMs = 150;
+    partial void OnPingStaggerMsChanged(int value) { _settings.PingStaggerMs = value; _settings.Save(); }
+
+    public bool IsStagger50 => PingStaggerMs == 50;
+    public bool IsStagger150 => PingStaggerMs == 150;
+    public bool IsStagger300 => PingStaggerMs == 300;
+    [RelayCommand] private void SetPingStagger(string ms) { if (int.TryParse(ms, out var v)) PingStaggerMs = v; }
     [RelayCommand] private void SetPingMethod(string m) { PingMethod = m; _settings.PingMethod = m; _settings.Save(); }
 
     [ObservableProperty]
@@ -1796,7 +1824,8 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedServer is null) return;
         CheckPingText = "…";
-        int? outIf = _conn.State == ConnectionState.Connected && _conn.ActiveMode == TunnelMode.Tun ? Pinger.PhysicalIfIndex() : null;
+        // Same reason as in PingSub: bind to the real card regardless of whose tunnel is up.
+        int? outIf = Pinger.PhysicalIfIndex();
         int ms = await ProbeAsync(SelectedServer, outIf);
         SelectedServer.Ping = ms;
         _lastCheckPingMs = ms;              // the learner pairs this with the next speed sample
@@ -1805,19 +1834,68 @@ public partial class MainViewModel : ObservableObject
 
     private async Task PingSub(SubscriptionVM sub)
     {
-        // While a TUN tunnel is up, probe out the physical NIC — otherwise sing-box's gvisor stack answers the
-        // handshake locally and every server reads a fake "1". Off-tunnel this stays null (normal direct probe).
-        int? outIf = _conn.State == ConnectionState.Connected && _conn.ActiveMode == TunnelMode.Tun
-            ? Pinger.PhysicalIfIndex() : null;
-        using var gate = new SemaphoreSlim(6); // cap concurrency so we don't hit the server with many sockets at once
-        var tasks = sub.Servers.ToList().Select(async s =>
+        if (PingMethod == "stability") { await StabilitySub(sub); return; }
+
+        // Always out the physical card, not only while OUR tunnel is up. A TUN stack answers the
+        // handshake itself and every server then reads a fake 0-1 ms — and the tunnel doing that
+        // is just as likely to be INCY's or HAPP's, which sit there running while we are idle.
+        int? outIf = Pinger.PhysicalIfIndex();
+
+        using var gate = new SemaphoreSlim(PingParallel);
+        var servers = sub.Servers.ToList();
+        foreach (var s in servers) s.Pinging = true;
+
+        var tasks = servers.Select(async (s, i) =>
         {
+            // Optional stagger: thirty handshakes in the same instant look like a port scan to
+            // some providers, and the panel throttles or drops them.
+            if (PingStagger && PingStaggerMs > 0) await Task.Delay(i * PingStaggerMs);
             await gate.WaitAsync();
             try { s.Ping = await ProbeAsync(s, outIf); }
-            finally { gate.Release(); }
+            finally { gate.Release(); s.Pinging = false; }
         });
         await Task.WhenAll(tasks);
         Application.Current?.Dispatcher.Invoke(() => sub.Refresh());
+    }
+
+    /// <summary>
+    /// The "стабильность" method: one core, a real outbound per server, a real request through
+    /// each. Slower than a handshake and the only one that can tell a working protocol from a
+    /// port that merely accepts connections.
+    /// </summary>
+    private async Task StabilitySub(SubscriptionVM sub)
+    {
+        var servers = sub.Servers.ToList();
+        if (servers.Count == 0) return;
+
+        foreach (var s in servers) s.Pinging = true;
+        try
+        {
+            var pinger = new StabilityPinger(CoreLocator.CoresDir());
+            if (!pinger.CoreAvailable) { Status = "Ядро xray не найдено"; return; }
+
+            var results = await pinger.MeasureAsync(
+                servers.Select(s => (s.Profile.Name ?? "", s.Profile)).ToList(),
+                probeUrl: PingTestUrl,
+                attempts: 3,
+                timeoutMs: PingTimeoutMs,
+                progress: new Progress<string>(m => Status = m));
+
+            var byKey = results.ToDictionary(r => r.Key, r => r);
+            foreach (var s in servers)
+            {
+                if (!byKey.TryGetValue(s.Profile.Name ?? "", out var r)) continue;
+                // -2 keeps its "unknown" meaning: a protocol this core cannot carry was never
+                // measured, and marking it down would be a claim we did not make.
+                s.Ping = r.NotMeasured ? -2 : r.Ms;
+            }
+            Status = "";
+        }
+        finally
+        {
+            foreach (var s in servers) s.Pinging = false;
+            Application.Current?.Dispatcher.Invoke(() => sub.Refresh());
+        }
     }
 
     public void Shutdown() { try { _settings.Save(); } catch { } _conn.Disconnect(); }
