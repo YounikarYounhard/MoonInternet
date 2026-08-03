@@ -25,6 +25,12 @@ public static class XrayTuning
     /// </summary>
     public static string TrafficPriority = "off";
 
+    /// <summary>Core log level: none | error | warning | info | debug. "none" writes nothing.</summary>
+    public static string LogLevel = "none";
+
+    /// <summary>Where the core writes its log, or null to leave it on stdout only.</summary>
+    public static string? LogFile;
+
     /// <summary>Per-connection buffer in kB, or null to leave xray on its own default.</summary>
     public static int? BufferSizeKb => TrafficPriority switch
     {

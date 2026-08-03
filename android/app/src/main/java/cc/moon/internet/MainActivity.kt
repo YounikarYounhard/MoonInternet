@@ -119,6 +119,7 @@ class MainActivity : ComponentActivity() {
                 var jsonOf by remember { mutableStateOf<ServerProfile?>(null) }
                 var qrOf by remember { mutableStateOf<Pair<String, String>?>(null) }
                 var showUpdate by remember { mutableStateOf(false) }
+                var logView by remember { mutableStateOf<String?>(null) }
                 var addRuleTo by remember { mutableStateOf<String?>(null) }
                 val snackbar = remember { SnackbarHostState() }
 
@@ -273,6 +274,7 @@ class MainActivity : ComponentActivity() {
                                     onCopy = ::copy,
                                     onResetProxyCreds = { vm.resetProxyCreds() },
                                     onClearLogs = { vm.clearLogs() },
+                                    onViewLog = { logView = vm.logsTail() },
                                 )
                             } ?: SettingsScreen(state = state, onOpen = { settingsPage = it })
                         }
@@ -321,6 +323,56 @@ class MainActivity : ComponentActivity() {
                             JsonDialog(s, onCopy = { copy(it, "Конфигурация скопирована") }) { jsonOf = null }
                         }
                         qrOf?.let { (title, url) -> QrDialog(title, url) { qrOf = null } }
+
+                        
+
+                        logView?.let { txt ->
+
+
+                        
+
+                            LogViewerDialog(
+
+
+                        
+
+                                title = "xray.log",
+
+
+                        
+
+                                text = txt,
+
+
+                        
+
+                                onReload = { logView = vm.logsTail() },
+
+
+                        
+
+                                onCopy = { copy(txt, "Лог скопирован") },
+
+
+                        
+
+                                onDismiss = { logView = null },
+
+
+                        
+
+                            )
+
+
+                        
+
+                        }
+
+
+                        
+
+                        
+
 
                         
 

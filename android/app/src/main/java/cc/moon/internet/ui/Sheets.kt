@@ -7,6 +7,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -233,6 +234,60 @@ fun UpdateDialog(
         dismissButton = {
             if (available) TextButton(onClick = onCheck) { Text("Проверить", color = Moon.TextSecondary) }
             else TextButton(onClick = onDismiss) { Text("Закрыть", color = Moon.TextSecondary) }
+        },
+    )
+}
+
+
+/**
+ * Log viewer. Same idea as the desktop overlay: the tail of the core's log, with a reload and a
+ * copy. Read-only and selectable, because the usual next step is pasting it somewhere.
+ */
+@Composable
+fun LogViewerDialog(
+    title: String,
+    text: String,
+    onReload: () -> Unit,
+    onCopy: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Moon.Card,
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Description, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(title, color = Moon.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                     maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        },
+        text = {
+            Surface(
+                shape = RoundedCornerShape(12.dp), color = Color(0xFF0B0916),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2150)),
+                modifier = Modifier.heightIn(max = 420.dp),
+            ) {
+                SelectionContainer {
+                    Text(
+                        text.ifBlank { "Логов пока нет." },
+                        color = Color(0xFFCFC7EC), fontSize = 11.sp, lineHeight = 15.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .horizontalScroll(rememberScrollState())
+                            .padding(12.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onCopy) { Text("Копировать", color = Moon.Accent) } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onReload) { Text("Обновить", color = Moon.TextSecondary) }
+                TextButton(onClick = onDismiss) { Text("Закрыть", color = Moon.TextSecondary) }
+            }
         },
     )
 }

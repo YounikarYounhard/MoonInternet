@@ -90,6 +90,7 @@ fun SettingsDetail(
     onCopy: (String, String) -> Unit,
     onResetProxyCreds: () -> Unit,
     onClearLogs: () -> Unit,
+    onViewLog: () -> Unit,
 ) {
     // The header is outside the scrolling area on purpose: the desktop page keeps its title and
     // back button fixed while only the body moves.
@@ -111,7 +112,7 @@ fun SettingsDetail(
                 SettingsPage.Subscriptions -> SubsPage(state, onSet, onRefresh, onRemoveSub, onAdd)
                 SettingsPage.Ping -> PingPage(state, onSet)
                 SettingsPage.Auto -> AutoPage(state, onSet)
-                SettingsPage.Logs -> LogsPage(state, logsSize, onSet, onClearLogs)
+                SettingsPage.Logs -> LogsPage(state, logsSize, onSet, onClearLogs, onViewLog)
                 SettingsPage.Privacy -> PrivacyPage()
                 SettingsPage.About -> AboutPage(state, xrayVersion, onOpen, onCopy)
                 SettingsPage.Terms -> TermsPage()
@@ -603,6 +604,7 @@ private fun LogsPage(
     logsSize: String,
     onSet: ((AppState.() -> AppState)) -> Unit,
     onClear: () -> Unit,
+    onViewLog: () -> Unit,
 ) {
     Column {
         MoonCard {
@@ -636,8 +638,9 @@ private fun LogsPage(
             RowDivider()
             ValueRow("Размер логов", logsSize, inset = 12)
         }
-        Row(Modifier.padding(top = 14.dp)) {
-            SecondaryButton("Очистить логи", onClick = onClear)
+        Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SecondaryButton("Смотреть лог", onClick = onViewLog)
+            SecondaryButton("Очистить", onClick = onClear)
         }
     }
 }

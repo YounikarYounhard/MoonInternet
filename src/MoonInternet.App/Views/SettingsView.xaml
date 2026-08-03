@@ -735,8 +735,9 @@
                 </Border>
 
                 <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogsFolderCommand}" Content="Открыть папку" Padding="14,8"/>
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" Content="Очистить логи" Padding="14,8" Margin="8,0,0,0"/>
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding OpenLogViewerCommand}" Content="Смотреть лог" Padding="14,8"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogsFolderCommand}" Content="Открыть папку" Padding="14,8" Margin="8,0,0,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" Content="Очистить" Padding="14,8" Margin="8,0,0,0"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

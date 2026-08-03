@@ -96,7 +96,10 @@ public static class XrayConfigBuilder
 
         var config = new Dictionary<string, object?>
         {
-            ["log"] = new Dictionary<string, object?> { ["loglevel"] = "none" }, // no log I/O (matches INCY)
+            // Logging was pinned to "none", which made the whole Логи page decorative: the level,
+            // the retention and the size row had nothing behind them because the core was told to
+            // write nothing. It follows the setting now, and writes to a file when one is given.
+            ["log"] = BuildLog(),
             ["inbounds"] = inbounds,
             ["outbounds"] = outbounds,
             ["routing"] = routingCfg,
@@ -351,6 +354,19 @@ public static class XrayConfigBuilder
         if (!string.IsNullOrEmpty(p.Username))
             srv["users"] = new List<object?> { new Dictionary<string, object?> { ["user"] = p.Username, ["pass"] = p.Password ?? "" } };
         return srv;
+    }
+
+    /// <summary>
+    /// The log block. A file path only goes in when logging is actually on — handing xray a path
+    /// at level "none" would create an empty file and make the size row lie the other way.
+    /// </summary>
+    private static Dictionary<string, object?> BuildLog()
+    {
+        var level = string.IsNullOrWhiteSpace(XrayTuning.LogLevel) ? "none" : XrayTuning.LogLevel;
+        var log = new Dictionary<string, object?> { ["loglevel"] = level };
+        if (level != "none" && !string.IsNullOrWhiteSpace(XrayTuning.LogFile))
+            log["error"] = XrayTuning.LogFile;
+        return log;
     }
 
     /// <summary>

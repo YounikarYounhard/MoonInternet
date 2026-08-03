@@ -680,6 +680,11 @@ public partial class MainViewModel : ObservableObject
         MoonInternet.Core.Generation.XrayTuning.Fragment = TlsFragment;
         MoonInternet.Core.Generation.XrayTuning.Mux = Mux;
         MoonInternet.Core.Generation.XrayTuning.TrafficPriority = TrafficPriority;
+        // xray spells it "warning"; our chip says "warn".
+        MoonInternet.Core.Generation.XrayTuning.LogLevel =
+            !LogsEnabled ? "none" : LogLevel == "warn" ? "warning" : LogLevel;
+        MoonInternet.Core.Generation.XrayTuning.LogFile =
+            LogsEnabled ? MoonInternet.Core.AppPaths.In("xray.log") : null;
         MoonInternet.Core.Generation.XrayTuning.Sniffing = Sniffing;
         MoonInternet.Core.Generation.XrayTuning.PreferredIp = PreferredIp;
         MoonInternet.Core.Generation.XrayTuning.Dns = DnsIps(VpnDns, VpnDnsCustom);
@@ -1045,7 +1050,7 @@ public partial class MainViewModel : ObservableObject
 
     // ===== Logs =====
     [ObservableProperty] private bool logsEnabled = true;
-    partial void OnLogsEnabledChanged(bool value) { _settings.LogsEnabled = value; _settings.Save(); }
+    partial void OnLogsEnabledChanged(bool value) { _settings.LogsEnabled = value; _settings.Save(); ApplyTuning(); }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLogErr), nameof(IsLogWarn), nameof(IsLogInfo), nameof(IsLogDebug))]
     private string logLevel = "warn";
@@ -1053,7 +1058,7 @@ public partial class MainViewModel : ObservableObject
     public bool IsLogWarn => LogLevel == "warn";
     public bool IsLogInfo => LogLevel == "info";
     public bool IsLogDebug => LogLevel == "debug";
-    [RelayCommand] private void SetLogLevel(string v) { LogLevel = v; _settings.LogLevel = v; _settings.Save(); }
+    [RelayCommand] private void SetLogLevel(string v) { LogLevel = v; _settings.LogLevel = v; _settings.Save(); ApplyTuning(); }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsKeep1), nameof(IsKeep3), nameof(IsKeep7), nameof(IsKeep30), nameof(IsKeepForever))]
@@ -1066,6 +1071,48 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void SetLogKeep(string d) { LogKeepDays = int.Parse(d); _settings.LogKeepDays = LogKeepDays; _settings.Save(); PruneLogs(); }
 
     [ObservableProperty] private string logsSizeInfo = "—";
+
+    // ---- просмотр логов --------------------------------------------------
+    [ObservableProperty] private bool showLogViewer;
+    [ObservableProperty] private string logViewerText = "";
+    [ObservableProperty] private string logViewerTitle = "Логи";
+
+    /// <summary>How many lines the viewer keeps. A debug log runs to megabytes and the window
+    /// would take seconds to lay out; the tail is the part anyone actually reads.</summary>
+    private const int LogTailLines = 800;
+
+    [RelayCommand]
+    private void OpenLogViewer()
+    {
+        LoadLogTail();
+        ShowLogViewer = true;
+    }
+
+    [RelayCommand] private void CloseLogViewer() => ShowLogViewer = false;
+    [RelayCommand] private void ReloadLogViewer() => LoadLogTail();
+    [RelayCommand] private void CopyLogViewer()
+    {
+        try { System.Windows.Clipboard.SetText(LogViewerText); Status = "Лог скопирован"; } catch { }
+    }
+
+    private void LoadLogTail()
+    {
+        var files = LogFiles().ToList();
+        if (files.Count == 0) { LogViewerTitle = "Логи"; LogViewerText = "Логов пока нет."; return; }
+
+        // Newest file: with several cores writing their own, that is the one being appended to.
+        var newest = files.OrderByDescending(f => { try { return new System.IO.FileInfo(f).LastWriteTimeUtc; } catch { return DateTime.MinValue; } }).First();
+        LogViewerTitle = System.IO.Path.GetFileName(newest);
+        try
+        {
+            var lines = System.IO.File.ReadLines(newest).ToList();
+            var tail = lines.Count > LogTailLines ? lines.Skip(lines.Count - LogTailLines) : lines;
+            LogViewerText = string.Join(Environment.NewLine, tail);
+            if (LogViewerText.Length == 0) LogViewerText = "Файл пуст.";
+        }
+        catch (Exception ex) { LogViewerText = "Не удалось прочитать: " + ex.Message; }
+    }
+
     [RelayCommand] private void ClearLogs()
     {
         foreach (var f in LogFiles()) { try { System.IO.File.WriteAllText(f, ""); } catch { } }
