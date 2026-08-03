@@ -317,4 +317,15 @@
     <string name="vm_logs_cleared">"Логи очищены"</string>
     <string name="vm_no_permission">"Разрешение на VPN не выдано"</string>
     <string name="geo_no_url">"не задан"</string>
+    <string name="page_notify">"Уведомления"</string>
+    <string name="page_notify_sub">"Шторка, всплывающие"</string>
+    <string name="notify_master">"Показывать уведомления"</string>
+    <string name="notify_master_sub">"Главный выключатель — при выключении не всплывает ничего, кроме обязательного уведомления VPN"</string>
+    <string name="notify_headsup">"Всплывать поверх экрана"</string>
+    <string name="notify_headsup_sub">"Показывать баннер сверху, а не только в шторке"</string>
+    <string name="notify_section">"ЧТО ПОКАЗЫВАТЬ"</string>
+    <string name="notify_conn">"Подключение и отключение"</string>
+    <string name="notify_conn_sub">"Сообщать каждый раз, когда туннель поднялся или упал"</string>
+    <string name="notify_upd">"Новая версия приложения"</string>
+    <string name="notify_upd_sub">"Проверка GitHub при запуске — сообщить, если вышла свежая сборка"</string>
 </resources>

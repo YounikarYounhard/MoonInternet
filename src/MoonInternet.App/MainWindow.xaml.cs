@@ -73,6 +73,9 @@ public partial class MainWindow : Window
         menu.Opened += (_, _) => menu.DataContext = DataContext;
         tray.TrayLeftMouseUp += (_, _) => ShowFromTray();
         tray.ForceCreate();
+        // The view model has no window to talk to; this is the one place that does.
+        Notifier.Balloon = (title, text) =>
+            Dispatcher.Invoke(() => tray.ShowNotification(title, text));
         return tray;
     }
 

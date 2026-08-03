@@ -47,6 +47,7 @@ class MoonVpnService : VpnService() {
         val livePing = MutableStateFlow<String?>(null)
 
         private const val CHANNEL_ID = "moon_vpn"
+        private const val CHANNEL_ID_HEADSUP = "moon_vpn_headsup"
         private const val NOTIFICATION_ID = 1
 
         /**
@@ -328,12 +329,24 @@ class MoonVpnService : VpnService() {
     override fun onDestroy() { stopCore(); scope.cancel(); super.onDestroy() }
 
     // ---- notification ----------------------------------------------------
+    /**
+     * Two channels, not one: a channel's importance is fixed at creation and Android ignores any
+     * later change, so "pop up over the screen" has to be a different channel rather than a flag.
+     */
+    private fun channelId() =
+        if (cc.moon.internet.data.Lang.headsUp(this)) CHANNEL_ID_HEADSUP else CHANNEL_ID
+
     private fun createChannel() {
-        val ch = NotificationChannel(CHANNEL_ID, "VPN", NotificationManager.IMPORTANCE_LOW).apply {
-            setShowBadge(false)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        val nm = getSystemService(NotificationManager::class.java)
+        listOf(
+            CHANNEL_ID to NotificationManager.IMPORTANCE_LOW,
+            CHANNEL_ID_HEADSUP to NotificationManager.IMPORTANCE_DEFAULT,
+        ).forEach { (id, importance) ->
+            nm.createNotificationChannel(NotificationChannel(id, "VPN", importance).apply {
+                setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            })
         }
-        getSystemService(NotificationManager::class.java).createNotificationChannel(ch)
     }
 
     private fun notification(profile: String, connecting: Boolean, detail: String? = null): Notification {
@@ -352,12 +365,12 @@ class MoonVpnService : VpnService() {
         )
 
         val paused = _state.value == State.Paused
-        val b = NotificationCompat.Builder(this, CHANNEL_ID)
+        val b = NotificationCompat.Builder(this, channelId())
             .setSmallIcon(R.drawable.ic_tile_moon)
             .setContentTitle(when {
-                paused -> "Луна на паузе"
-                connecting -> "Луна просыпается…"
-                else -> "Луна укрыла"
+                paused -> getString(R.string.homescreen_005)
+                connecting -> getString(R.string.homescreen_004)
+                else -> getString(R.string.homescreen_003)
             })
             .setContentIntent(open)
             .setOngoing(true)

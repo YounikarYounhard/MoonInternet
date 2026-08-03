@@ -44,6 +44,7 @@ enum class SettingsPage(
     Subscriptions(R.string.page_subs, R.string.page_subs_sub, Icons.Filled.LibraryBooks),
     Ping(R.string.page_ping, R.string.page_ping_sub, Icons.Filled.Speed),
     Auto(R.string.page_auto, R.string.page_auto_sub, Icons.Filled.PlayCircle),
+    Notifications(R.string.page_notify, R.string.page_notify_sub, Icons.Filled.Notifications),
     Logs(R.string.page_logs, R.string.page_logs_sub, Icons.Filled.Description),
     About(R.string.page_about, R.string.page_about_sub, Icons.Filled.Info),
 
@@ -56,7 +57,7 @@ enum class SettingsPage(
 
     companion object {
         /** Exactly the cards the desktop hub shows, in the same order. */
-        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Auto, Logs, About)
+        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Auto, Notifications, Logs, About)
     }
 }
 
@@ -125,6 +126,7 @@ fun SettingsDetail(
                 SettingsPage.Subscriptions -> SubsPage(state, onSet, onRefresh, onRemoveSub, onAdd)
                 SettingsPage.Ping -> PingPage(state, onSet)
                 SettingsPage.Auto -> AutoPage(state, onSet)
+                SettingsPage.Notifications -> NotificationsPage(state, onSet)
                 SettingsPage.Logs -> LogsPage(state, logsSize, onSet, onClearLogs, onViewLog)
                 SettingsPage.Privacy -> PrivacyPage()
                 SettingsPage.About -> AboutPage(state, xrayVersion, onOpen, onCopy)
@@ -615,6 +617,38 @@ private fun AutoPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
             }
         }
         // «Автозапуск с Windows» и «Авто-скрытие в трее» — только для ПК.
+    }
+}
+
+// ---------------------------------------------------------------- УВЕДОМЛЕНИЯ
+@Composable
+private fun NotificationsPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit) {
+    Column {
+        MoonCard {
+            SwitchRow(stringResource(R.string.notify_master), stringResource(R.string.notify_master_sub),
+                state.notificationsEnabled) { v -> onSet { copy(notificationsEnabled = v) } }
+            // everything below is dead while the master switch is off, so it hides
+            if (state.notificationsEnabled) {
+                RowDivider()
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                SwitchRow(stringResource(R.string.notify_headsup), stringResource(R.string.notify_headsup_sub),
+                    state.notifyHeadsUp) { v ->
+                    // mirrored into prefs: the service picks its channel before the state file loads
+                    cc.moon.internet.data.Lang.setHeadsUp(ctx, v)
+                    onSet { copy(notifyHeadsUp = v) }
+                }
+            }
+        }
+        if (state.notificationsEnabled) {
+            SectionLabel(stringResource(R.string.notify_section))
+            MoonCard {
+                SwitchRow(stringResource(R.string.notify_conn), stringResource(R.string.notify_conn_sub),
+                    state.notifyConnection) { v -> onSet { copy(notifyConnection = v) } }
+                RowDivider()
+                SwitchRow(stringResource(R.string.notify_upd), stringResource(R.string.notify_upd_sub),
+                    state.notifyAppUpdate) { v -> onSet { copy(notifyAppUpdate = v) } }
+            }
+        }
     }
 }
 

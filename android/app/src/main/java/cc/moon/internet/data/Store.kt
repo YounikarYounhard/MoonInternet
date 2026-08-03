@@ -53,6 +53,11 @@ data class AppState(
     val autoUpdateSubs: Boolean = true,
     val autoUpdateSubsMinutes: Int = 0,
     val notifyOnUpdate: Boolean = false,
+    // Уведомления: главный выключатель, всплывать (heads-up) или тихо, и что именно показывать
+    val notificationsEnabled: Boolean = true,
+    val notifyHeadsUp: Boolean = false,
+    val notifyConnection: Boolean = false,
+    val notifyAppUpdate: Boolean = true,
     val notifyExpiry: Boolean = true,
     val expiryNotifyDays: Int = 3,
     val sendHwid: Boolean = true,

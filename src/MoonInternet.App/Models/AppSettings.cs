@@ -56,6 +56,11 @@ public sealed class AppSettings
     public int ExpiryNotifyDays { get; set; } = 3;             // 1 | 3 | 5 | 7
     public string? Hwid { get; set; }                          // stable per-install device id (generated once)
     public string? Language { get; set; }                      // "ru" | "en"; null = follow the system
+    // Notifications
+    public bool NotificationsEnabled { get; set; } = true;     // master switch for everything below
+    public bool TrayBalloons { get; set; } = true;             // pop up over the tray, or stay silent
+    public bool NotifyConnection { get; set; }                 // connected/disconnected — off, it fires on every toggle
+    public bool NotifyAppUpdate { get; set; } = true;          // a newer release is on GitHub
     // Tunnel tuning
     public bool TlsFragment { get; set; }                      // split the TLS ClientHello
     public bool Mux { get; set; }                              // connection multiplexing

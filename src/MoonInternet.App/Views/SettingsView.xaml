@@ -120,6 +120,7 @@
                 <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="{DynamicResource S_SettingsView_009}" ToolTip="{DynamicResource S_SettingsView_010}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="{DynamicResource S_SettingsView_011}" ToolTip="{DynamicResource S_SettingsView_012}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="{DynamicResource S_SettingsView_013}" ToolTip="{DynamicResource S_SettingsView_014}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEA8F;" Content="{DynamicResource S_Page_Notify}" ToolTip="{DynamicResource S_Notify_Hub_Sub}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="notify"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="{DynamicResource S_SettingsView_015}" ToolTip="{DynamicResource S_SettingsView_016}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
                 <!-- Политики конфиденциальности здесь нет: она открывается из «О приложении»,
                      где ей и место, и в хабе не занимает строку. -->
@@ -718,6 +719,58 @@
                 </Border>
             </StackPanel>
         </ScrollViewer>
+        <!-- ================= УВЕДОМЛЕНИЯ ================= -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=notify}">
+            <StackPanel Margin="24,20,24,24">
+
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <StackPanel>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_Notify_Master}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Notify_Master_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotificationsEnabled}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <!-- everything below is dead while the master switch is off, so it hides -->
+                        <StackPanel Visibility="{Binding NotificationsEnabled, Converter={StaticResource BoolVis}}">
+                            <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                            <Grid Margin="12">
+                                <StackPanel Margin="0,0,58,0">
+                                    <TextBlock Text="{DynamicResource S_Notify_Balloon}" FontSize="14" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource S_Notify_Balloon_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding TrayBalloons}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{DynamicResource S_Notify_Section}" Foreground="{StaticResource TextMuted}" FontSize="11" FontWeight="SemiBold" Margin="2,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6"
+                        IsEnabled="{Binding NotificationsEnabled}">
+                    <StackPanel>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_Notify_Conn}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Notify_Conn_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyConnection}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_Notify_Upd}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Notify_Upd_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyAppUpdate}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=logs}">
             <StackPanel Margin="24,20,24,24">

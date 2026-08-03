@@ -84,6 +84,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val appVersion: String = cc.moon.internet.BuildConfig.VERSION_NAME
 
+    /**
+     * A one-shot "connected"/"disconnected" note, separate from the ongoing VPN notification the
+     * system requires. Uses the same channel pair, so it follows the heads-up switch.
+     */
+    private fun notifyConnection(text: String) {
+        val st = store.state.value
+        if (!st.notificationsEnabled || !st.notifyConnection) return
+        val ctx = getApplication<Application>()
+        val id = if (cc.moon.internet.data.Lang.headsUp(ctx)) "moon_vpn_headsup" else "moon_vpn"
+        val n = androidx.core.app.NotificationCompat.Builder(ctx, id)
+            .setSmallIcon(R.drawable.ic_tile_moon)
+            .setContentTitle("Moon Internet")
+            .setContentText(text)
+            .setAutoCancel(true)
+            .build()
+        runCatching { androidx.core.app.NotificationManagerCompat.from(ctx).notify(42, n) }
+    }
+
     /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
     fun checkUpdate() = viewModelScope.launch {
         _updateStatus.value = s(R.string.vm_checking)
@@ -100,12 +118,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             store.load()                                  // offline first: servers show instantly
             if (store.state.value.updateOnStart) refreshAll(silent = true) else if (store.state.value.pingOnStart) pingAll()
         }
-        checkUpdate()
+        // The launch check is gated: the badge and the popup are both something the user can
+        // switch off on the Уведомления page, and a check nobody sees is just a request.
+        viewModelScope.launch {
+            store.load()
+            if (store.state.value.notificationsEnabled && store.state.value.notifyAppUpdate) checkUpdate()
+        }
         viewModelScope.launch { watchTraffic() }
         viewModelScope.launch {
             vpnState.collect { s ->
                 if (s == MoonVpnService.Companion.State.Connected) {
                     connectedAt = System.currentTimeMillis()
+                    notifyConnection(s(R.string.homescreen_003))
                     // the desktop measures the tunnel as soon as it is up; do the same here
                     checkConnection()
                 }
@@ -114,6 +138,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     _speed.value = "—" to "—"; _sessionTraffic.value = "—"; _elapsed.value = "—"
                     _checkPing.value = ""
                     lastUp = 0; lastDown = 0
+                    if (s == MoonVpnService.Companion.State.Disconnected)
+                        notifyConnection(this@MainViewModel.s(R.string.homescreen_006))
                 }
             }
         }

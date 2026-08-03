@@ -315,4 +315,15 @@
     <string name="vm_logs_cleared">"Logs cleared"</string>
     <string name="vm_no_permission">"VPN permission was not granted"</string>
     <string name="geo_no_url">"not set"</string>
+    <string name="page_notify">"Notifications"</string>
+    <string name="page_notify_sub">"Shade, pop-ups"</string>
+    <string name="notify_master">"Show notifications"</string>
+    <string name="notify_master_sub">"Master switch — with this off nothing pops up except the VPN notification Android requires"</string>
+    <string name="notify_headsup">"Pop up over the screen"</string>
+    <string name="notify_headsup_sub">"Show a banner at the top, not only in the shade"</string>
+    <string name="notify_section">"WHAT TO SHOW"</string>
+    <string name="notify_conn">"Connect and disconnect"</string>
+    <string name="notify_conn_sub">"Say something every time the tunnel comes up or goes down"</string>
+    <string name="notify_upd">"New app version"</string>
+    <string name="notify_upd_sub">"Checks GitHub at launch — tell me when a newer build is out"</string>
 </resources>

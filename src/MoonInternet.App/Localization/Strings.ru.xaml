@@ -291,4 +291,15 @@
     <s:String x:Key="S_MainWindow_038">Проверить</s:String>
     <s:String x:Key="S_MainWindow_039">Скачать</s:String>
     <s:String x:Key="S_MainWindow_040">Закрыть</s:String>
+    <s:String x:Key="S_Page_Notify">Уведомления</s:String>
+    <s:String x:Key="S_Notify_Hub_Sub">Трей, всплывающие подсказки</s:String>
+    <s:String x:Key="S_Notify_Master">Показывать уведомления</s:String>
+    <s:String x:Key="S_Notify_Master_Sub">Главный выключатель — при выключении не всплывает ничего</s:String>
+    <s:String x:Key="S_Notify_Balloon">Всплывать над треем</s:String>
+    <s:String x:Key="S_Notify_Balloon_Sub">Windows покажет подсказку у часов. Выключите, чтобы уведомления были только внутри приложения</s:String>
+    <s:String x:Key="S_Notify_Conn">Подключение и отключение</s:String>
+    <s:String x:Key="S_Notify_Conn_Sub">Сообщать каждый раз, когда туннель поднялся или упал</s:String>
+    <s:String x:Key="S_Notify_Upd">Новая версия приложения</s:String>
+    <s:String x:Key="S_Notify_Upd_Sub">Проверка GitHub при запуске — сообщить, если вышла свежая сборка</s:String>
+    <s:String x:Key="S_Notify_Section">ЧТО ПОКАЗЫВАТЬ</s:String>
 </ResourceDictionary>

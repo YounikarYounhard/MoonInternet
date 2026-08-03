@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -817,6 +817,11 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ElapsedDisplay));
         OnPropertyChanged(nameof(MoonAwake));
         OnPropertyChanged(nameof(TrayToggleText));
+        // Only the two settled states are worth a popup; Connecting is on the way to both.
+        if (value == ConnectionState.Connected)
+            Notifier.Connection("Moon Internet", $"Подключено · {SelectedServer?.Label}");
+        else if (value == ConnectionState.Disconnected)
+            Notifier.Connection("Moon Internet", "Отключено");
     }
     // Frozen and shared, same reason as the ping brushes.
     private static readonly Brush RingConnected = ServerItem.Frozen(0x34, 0xD3, 0x99);
@@ -892,6 +897,8 @@ public partial class MainViewModel : ObservableObject
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
         PingOnStart = _settings.PingOnStart; SendHwid = _settings.SendHwid;
         ShowSubHeader = _settings.ShowSubHeader; NotifyExpiry = _settings.NotifyExpiry; ExpiryNotifyDays = _settings.ExpiryNotifyDays;
+        NotificationsEnabled = _settings.NotificationsEnabled; TrayBalloons = _settings.TrayBalloons;
+        NotifyConnection = _settings.NotifyConnection; NotifyAppUpdate = _settings.NotifyAppUpdate;
         ApplyHwid();
         TlsFragment = _settings.TlsFragment; Mux = _settings.Mux; Sniffing = _settings.Sniffing;
         TrafficPriority = _settings.TrafficPriority;
@@ -1068,6 +1075,8 @@ public partial class MainViewModel : ObservableObject
             UpdateStatus = UpdateAvailable
                 ? $"Доступна версия {rel.Version}"
                 : "У вас последняя версия";
+            // The badge on Home is easy to miss when the window starts minimised to the tray.
+            if (UpdateAvailable) Notifier.AppUpdate("Moon Internet", $"Доступна версия {rel.Version}");
         }
         finally { UpdateChecking = false; }
     }
@@ -1243,22 +1252,25 @@ public partial class MainViewModel : ObservableObject
     public bool IsPingStability => PingMethod == "stability";
 
     /// <summary>Title for the pinned settings header — one header for every sub-page.</summary>
-    public string SettingsPageTitle => SettingsPage switch
+    // Через Loc.T, а не литералами: заголовок висит в закреплённой шапке и обязан
+    // переключаться вместе с остальным текстом.
+    public string SettingsPageTitle => Localization.Loc.T(SettingsPage switch
     {
-        "appearance" => "Оформление",
-        "connection" => "Подключение",
-        "routing" => "Маршрутизация",
-        "approuting" => "Прокси по приложениям",
-        "subs" => "Настройки подписок",
-        "ping" => "Настройки пинга",
-        "auto" => "Авто",
-        "logs" => "Логи",
-        "privacy" => "Политика конфиденциальности",
-        "about" => "О приложении",
-        "terms" => "Условия использования",
-        "libs" => "Сторонние библиотеки",
-        _ => "Настройки",
-    };
+        "appearance" => "S_SettingsView_003",
+        "connection" => "S_SettingsView_005",
+        "routing" => "S_SettingsView_007",
+        "approuting" => "S_SettingsView_065",
+        "subs" => "S_SettingsView_009",
+        "ping" => "S_SettingsView_011",
+        "auto" => "S_SettingsView_013",
+        "logs" => "S_SettingsView_015",
+        "privacy" => "S_SettingsView_188",
+        "about" => "S_SettingsView_017",
+        "terms" => "S_SettingsView_187",
+        "libs" => "S_SettingsView_189",
+        "notify" => "S_Page_Notify",
+        _ => "S_SettingsView_002",
+    });
 
     /// <summary>False on the hub, which has its own big title and no back button.</summary>
     public bool IsSettingsSubPage => SettingsPage != "hub";
@@ -1285,6 +1297,7 @@ public partial class MainViewModel : ObservableObject
         _settings.Save();
         Localization.Loc.Apply(Language);
         OnPropertyChanged(nameof(LanguageLabel));
+        OnPropertyChanged(nameof(SettingsPageTitle));
     }
 
     [ObservableProperty] private bool showServerCount = true;
@@ -1400,6 +1413,19 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private bool notifyOnUpdate;
     partial void OnNotifyOnUpdateChanged(bool value) { _settings.NotifyOnUpdate = value; _settings.Save(); }
+
+    // ===== Notifications =====
+    // Every switch pushes into Notifier, which is what the call sites ask — nothing reads settings
+    // at notify time, so a stale flag cannot leak a popup the user turned off.
+    [ObservableProperty] private bool notificationsEnabled = true;
+    partial void OnNotificationsEnabledChanged(bool v) { _settings.NotificationsEnabled = v; _settings.Save(); Notifier.Enabled = v; }
+    [ObservableProperty] private bool trayBalloons = true;
+    partial void OnTrayBalloonsChanged(bool v) { _settings.TrayBalloons = v; _settings.Save(); Notifier.UseBalloons = v; }
+    [ObservableProperty] private bool notifyConnection;
+    partial void OnNotifyConnectionChanged(bool v) { _settings.NotifyConnection = v; _settings.Save(); Notifier.OnConnection = v; }
+    [ObservableProperty] private bool notifyAppUpdate = true;
+    partial void OnNotifyAppUpdateChanged(bool v) { _settings.NotifyAppUpdate = v; _settings.Save(); Notifier.OnAppUpdate = v; }
+
     [ObservableProperty] private bool updateSubsOnStart;
     partial void OnUpdateSubsOnStartChanged(bool value) { _settings.UpdateSubsOnStart = value; _settings.Save(); }
     [ObservableProperty] private bool pingOnStart = true;
