@@ -353,6 +353,14 @@ public static class XrayConfigBuilder
         return srv;
     }
 
+    /// <summary>
+    /// True when xray can carry this protocol. Hysteria2 and WireGuard go through sing-box on the
+    /// desktop, so anything building an xray-only config has to ask first rather than throw.
+    /// </summary>
+    public static bool Supports(ProtocolType t) =>
+        t is ProtocolType.Vless or ProtocolType.Vmess or ProtocolType.Trojan
+          or ProtocolType.Shadowsocks or ProtocolType.Socks;
+
     private static string ProtoName(ProtocolType t) => t switch
     {
         ProtocolType.Vless => "vless",

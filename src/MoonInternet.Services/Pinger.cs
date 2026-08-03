@@ -106,18 +106,39 @@ public static class Pinger
     };
 
     /// <summary>
-    /// IPv4 interface index of the primary physical adapter (Up, has a default gateway, not loopback/TUN/VPN),
-    /// or null if none found. Used to route latency probes around an active VPN tunnel.
+    /// IPv4 interface index of the real network card, or null if none was found. Probes are bound
+    /// to it so they measure the path to the server instead of whatever tunnel happens to be up.
+    ///
+    /// Why this matters more than it looks: a TUN stack answers a TCP handshake itself, locally,
+    /// before anything leaves the machine. A probe that goes through one comes back in 0-1 ms for
+    /// every server, dead ones included — which is exactly the "shows Финляндия as available when
+    /// it is not" report. And it does not have to be our tunnel: INCY, HAPP and AmneziaVPN all
+    /// install one and can be running while our app is idle.
+    ///
+    /// So the pick is positive rather than by blocklist — a real card is Ethernet or Wi-Fi and has
+    /// a default gateway. Naming a few known adapters was not enough: INCY's is called
+    /// "Xray Tunnel", which no list of ours had.
     /// </summary>
     public static int? PhysicalIfIndex()
     {
         foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
         {
             if (ni.OperationalStatus != OperationalStatus.Up) continue;
-            if (ni.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel) continue;
+
+            // Only the two types a real card reports. Everything virtual — TUN, TAP, loopback —
+            // shows up as Tunnel, Ppp or Unknown and is skipped by not being on this list.
+            if (ni.NetworkInterfaceType is not (NetworkInterfaceType.Ethernet
+                or NetworkInterfaceType.GigabitEthernet
+                or NetworkInterfaceType.FastEthernetT
+                or NetworkInterfaceType.FastEthernetFx
+                or NetworkInterfaceType.Wireless80211)) continue;
+
+            // Belt and braces: some TUN drivers do register as Ethernet.
             var tag = (ni.Description + " " + ni.Name).ToLowerInvariant();
-            if (tag.Contains("wintun") || tag.Contains("moontun") || tag.Contains("wireguard")
-                || tag.Contains("sing-box") || tag.Contains("tailscale") || tag.Contains("tap-windows")) continue;
+            if (tag.Contains("tunnel") || tag.Contains("tun") || tag.Contains("tap")
+                || tag.Contains("vpn") || tag.Contains("wireguard") || tag.Contains("xray")
+                || tag.Contains("sing-box") || tag.Contains("tailscale") || tag.Contains("virtual")) continue;
+
             var props = ni.GetIPProperties();
             if (props.GatewayAddresses.Count == 0) continue; // a real egress has a default gateway
             try { return props.GetIPv4Properties()?.Index; } catch { }
