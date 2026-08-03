@@ -12,15 +12,27 @@
                 <RowDefinition Height="*"/>       <!-- subscriptions (scroll) -->
             </Grid.RowDefinitions>
 
-            <!-- mode toggle -->
-            <Border Grid.Row="0" HorizontalAlignment="Center" CornerRadius="13" Background="#160A34" BorderBrush="#2C2150" BorderThickness="1" Padding="3">
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="Прокси" Padding="28,7"
-                                 IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=TwoWay}"/>
-                    <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="TUN" Padding="32,7"
-                                 IsChecked="{Binding TunMode, Mode=TwoWay}"/>
-                </StackPanel>
-            </Border>
+            <!-- mode toggle, with the update tile parked in the free space to its left -->
+            <Grid Grid.Row="0">
+                <Border HorizontalAlignment="Center" CornerRadius="13" Background="#160A34" BorderBrush="#2C2150" BorderThickness="1" Padding="3">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="Прокси" Padding="28,7"
+                                     IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=TwoWay}"/>
+                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="TUN" Padding="32,7"
+                                     IsChecked="{Binding TunMode, Mode=TwoWay}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Update: small tile, red dot in its top-right corner when there is something new -->
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Width="36" Height="36">
+                    <Button Style="{StaticResource GlyphButton}" Width="36" Height="36" FontSize="15"
+                            Content="&#xE896;" Command="{Binding OpenUpdateDialogCommand}"
+                            ToolTip="{Binding UpdateButtonHint}"/>
+                    <Ellipse Width="9" Height="9" Fill="{StaticResource Danger}" Stroke="#150B30" StrokeThickness="1.5"
+                             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0"
+                             Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}"/>
+                </Grid>
+            </Grid>
 
             <!-- connect hero -->
             <StackPanel Grid.Row="1" Margin="0,10,0,2">

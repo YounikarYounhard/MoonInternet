@@ -781,6 +781,7 @@ public partial class MainViewModel : ObservableObject
         LoadCachedSubs();                                                     // offline-first: show last known servers immediately
         foreach (var u in _settings.SubscriptionUrls.ToList()) _ = ImportUrl(u);   // then refresh from the network
         _themeReady = true; // now theme edits (via UI) may apply+save
+        _ = CheckUpdate();  // quiet: only lights the badge, never interrupts the launch
     }
 
     private bool _themeReady;
@@ -841,6 +842,60 @@ public partial class MainViewModel : ObservableObject
             ReconnectIfConnected();
         }
         finally { GeoRefreshing = false; }
+    }
+
+    // ===== Обновления =====
+    // The badge on Home is driven by UpdateAvailable; the dialog reads the rest.
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(UpdateButtonHint))] private bool updateAvailable;
+    [ObservableProperty] private bool showUpdateDialog;
+    [ObservableProperty] private string latestVersion = "—";
+    [ObservableProperty] private string updateNotes = "";
+    [ObservableProperty] private string updateStatus = "";
+    [ObservableProperty] private bool updateChecking;
+
+    private string? _releasePage, _assetUrl;
+
+    public string UpdateButtonHint => UpdateAvailable ? "Доступно обновление" : "Обновления";
+
+    [RelayCommand] private void OpenUpdateDialog() { ShowUpdateDialog = true; if (LatestVersion == "—") _ = CheckUpdate(); }
+    [RelayCommand] private void CloseUpdateDialog() => ShowUpdateDialog = false;
+
+    /// <summary>Asks GitHub. Runs once at startup too, quietly — a failure just leaves the badge off.</summary>
+    [RelayCommand]
+    private async Task CheckUpdate()
+    {
+        if (UpdateChecking) return;
+        UpdateChecking = true;
+        UpdateStatus = "Проверяю…";
+        try
+        {
+            var rel = await UpdateService.LatestAsync();
+            if (rel is null) { UpdateStatus = "Не удалось проверить — нет связи с GitHub"; return; }
+
+            LatestVersion = rel.Version;
+            UpdateNotes = rel.Notes;
+            _releasePage = rel.PageUrl;
+            _assetUrl = rel.AssetUrl;
+            UpdateAvailable = UpdateService.IsNewer(rel.Version, AppVersion);
+            UpdateStatus = UpdateAvailable
+                ? $"Доступна версия {rel.Version}"
+                : "У вас последняя версия";
+        }
+        finally { UpdateChecking = false; }
+    }
+
+    /// <summary>
+    /// Opens the download in the browser rather than fetching it ourselves: the installer has to
+    /// replace the running app, and handing that to the browser and the user avoids us babysitting
+    /// a download, verifying it and relaunching.
+    /// </summary>
+    [RelayCommand]
+    private void DownloadUpdate()
+    {
+        var url = _assetUrl ?? _releasePage;
+        if (string.IsNullOrEmpty(url)) return;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch { UpdateStatus = "Не удалось открыть ссылку"; }
     }
 
     // ===== About =====

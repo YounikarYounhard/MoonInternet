@@ -256,6 +256,51 @@
             </Border>
         </Border>
 
+        <!-- ===== Обновление (overlay) ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="65" Background="#B3060410"
+                Visibility="{Binding ShowUpdateDialog, Converter={StaticResource BoolVis}}">
+            <Border Width="340" MaxHeight="520" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="Обновление" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseUpdateDialogCommand}"/>
+                    </Grid>
+
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Установлена" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                            <TextBlock Text="{Binding AppVersion}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="На GitHub" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                            <TextBlock Text="{Binding LatestVersion}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="{Binding UpdateStatus}" Foreground="{StaticResource AccentText}" FontSize="12.5" Margin="0,12,0,0" TextWrapping="Wrap"/>
+
+                    <Border CornerRadius="12" Background="#0B0916" BorderBrush="#2A2150" BorderThickness="1"
+                            Padding="14,12" Margin="0,12,0,0" MaxHeight="230"
+                            Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock Text="{Binding UpdateNotes}" Foreground="#CFC7EC" FontSize="12" TextWrapping="Wrap" LineHeight="18"/>
+                        </ScrollViewer>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Проверить" Command="{Binding CheckUpdateCommand}" Padding="16,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="Скачать" Command="{Binding DownloadUpdateCommand}" Padding="22,9"
+                                Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
         <!-- ===== QR code dialog (overlay) ===== -->
         <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="70" Background="#B3060410"
                 Visibility="{Binding ShowQrDialog, Converter={StaticResource BoolVis}}">
