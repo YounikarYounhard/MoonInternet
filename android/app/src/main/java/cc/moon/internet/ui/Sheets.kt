@@ -29,6 +29,8 @@ import cc.moon.internet.core.QrCode
 import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.core.Subscription
 import cc.moon.internet.core.XrayConfig
+import androidx.compose.ui.res.stringResource
+import cc.moon.internet.R
 
 /** The "⋯" menu for a subscription — same four actions as the desktop sheet. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,14 +45,14 @@ fun SubscriptionSheet(
     onDelete: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Moon.Card) {
-        SheetHeader(sub.name, "${sub.servers.size} серверов · ${sub.trafficText} · ${sub.expiryText}")
-        SheetItem(Icons.Filled.Refresh, "Обновить", onUpdate)
-        SheetItem(Icons.Filled.Speed, "Пинговать", onPing)
-        SheetItem(Icons.Filled.ContentCopy, "Копировать URL", onCopy)
-        SheetItem(Icons.Filled.QrCode2, "Показать QR-код", onQr)
+        SheetHeader(sub.name, stringResource(R.string.fmt_sub_meta, sub.servers.size, sub.trafficText, sub.expiryText))
+        SheetItem(Icons.Filled.Refresh, stringResource(R.string.settingsscreen_086), onUpdate)
+        SheetItem(Icons.Filled.Speed, stringResource(R.string.sheets_001), onPing)
+        SheetItem(Icons.Filled.ContentCopy, stringResource(R.string.sheets_002), onCopy)
+        SheetItem(Icons.Filled.QrCode2, stringResource(R.string.sheets_003), onQr)
         Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
             .height(1.dp).background(Moon.BorderSoft))
-        SheetItem(Icons.Filled.Delete, "Удалить", onDelete, Moon.Danger)
+        SheetItem(Icons.Filled.Delete, stringResource(R.string.settingsscreen_084), onDelete, Moon.Danger)
         Spacer(Modifier.height(20.dp))
     }
 }
@@ -71,16 +73,16 @@ fun ServerSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Moon.Card) {
         SheetHeader(server.label, "${server.protocolLabel} · ${server.address}:${server.port}")
-        SheetItem(Icons.Filled.PlayArrow, "Подключиться", onConnect)
+        SheetItem(Icons.Filled.PlayArrow, stringResource(R.string.sheets_004), onConnect)
         SheetItem(
             if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder,
-            if (favorite) "Убрать из избранного" else "В избранное",
+            if (favorite) stringResource(R.string.sheets_005) else stringResource(R.string.sheets_006),
             onFavorite,
         )
-        SheetItem(Icons.Filled.Speed, "Пинговать", onPing)
-        SheetItem(Icons.Filled.Code, "Конфигурация", onJson)
-        SheetItem(Icons.Filled.ContentCopy, "Копировать URL", onCopy)
-        SheetItem(Icons.Filled.QrCode2, "Показать QR-код", onQr)
+        SheetItem(Icons.Filled.Speed, stringResource(R.string.sheets_001), onPing)
+        SheetItem(Icons.Filled.Code, stringResource(R.string.sheets_007), onJson)
+        SheetItem(Icons.Filled.ContentCopy, stringResource(R.string.sheets_002), onCopy)
+        SheetItem(Icons.Filled.QrCode2, stringResource(R.string.sheets_003), onQr)
         Spacer(Modifier.height(20.dp))
     }
 }
@@ -88,8 +90,9 @@ fun ServerSheet(
 /** Read-only outbound JSON — the same thing the desktop menu shows, with a copy button. */
 @Composable
 fun JsonDialog(server: ServerProfile, onCopy: (String) -> Unit, onDismiss: () -> Unit) {
-    val json = remember(server) {
-        runCatching { XrayConfig.buildOutbound(server).toString(2) }.getOrElse { "— ошибка: ${it.message}" }
+    val errFmt = stringResource(R.string.fmt_config_error)
+    val json = remember(server, errFmt) {
+        runCatching { XrayConfig.buildOutbound(server).toString(2) }.getOrElse { errFmt.format(it.message) }
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -104,8 +107,8 @@ fun JsonDialog(server: ServerProfile, onCopy: (String) -> Unit, onDismiss: () ->
                 )
             }
         },
-        confirmButton = { TextButton({ onCopy(json) }) { Text("Копировать") } },
-        dismissButton = { TextButton(onDismiss) { Text("Закрыть", color = Moon.TextSecondary) } },
+        confirmButton = { TextButton({ onCopy(json) }) { Text(stringResource(R.string.sheets_008)) } },
+        dismissButton = { TextButton(onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) } },
         containerColor = Moon.Card,
     )
 }
@@ -120,7 +123,7 @@ fun QrDialog(title: String, url: String, onDismiss: () -> Unit) {
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 if (matrix == null) {
-                    Text("Не удалось построить QR-код", color = Moon.TextSecondary, fontSize = 12.sp)
+                    Text(stringResource(R.string.sheets_010), color = Moon.TextSecondary, fontSize = 12.sp)
                 } else {
                     Surface(color = Color.White, shape = RoundedCornerShape(10.dp)) {
                         Canvas(Modifier.padding(12.dp).size(240.dp)) {
@@ -140,7 +143,7 @@ fun QrDialog(title: String, url: String, onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(onDismiss) { Text("Закрыть") } },
+        confirmButton = { TextButton(onDismiss) { Text(stringResource(R.string.sheets_009)) } },
         containerColor = Moon.Card,
     )
 }
@@ -189,19 +192,19 @@ fun UpdateDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.FileDownload, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Обновление", color = Moon.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.sheets_011), color = Moon.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
         },
         text = {
             Column {
                 Row {
                     Column(Modifier.weight(1f)) {
-                        Text("Установлена", color = Moon.TextSecondary, fontSize = 11.5.sp)
+                        Text(stringResource(R.string.sheets_012), color = Moon.TextSecondary, fontSize = 11.5.sp)
                         Text(currentVersion, color = Moon.TextPrimary, fontSize = 15.sp,
                              fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("На GitHub", color = Moon.TextSecondary, fontSize = 11.5.sp)
+                        Text(stringResource(R.string.sheets_013), color = Moon.TextSecondary, fontSize = 11.5.sp)
                         Text(release?.version ?: "—", color = Moon.TextPrimary, fontSize = 15.sp,
                              fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
                     }
@@ -225,15 +228,15 @@ fun UpdateDialog(
         confirmButton = {
             if (available) {
                 TextButton(onClick = onDownload) {
-                    Text("Скачать", color = Moon.Accent, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.sheets_014), color = Moon.Accent, fontWeight = FontWeight.SemiBold)
                 }
             } else {
-                TextButton(onClick = onCheck) { Text("Проверить", color = Moon.Accent) }
+                TextButton(onClick = onCheck) { Text(stringResource(R.string.sheets_015), color = Moon.Accent) }
             }
         },
         dismissButton = {
-            if (available) TextButton(onClick = onCheck) { Text("Проверить", color = Moon.TextSecondary) }
-            else TextButton(onClick = onDismiss) { Text("Закрыть", color = Moon.TextSecondary) }
+            if (available) TextButton(onClick = onCheck) { Text(stringResource(R.string.sheets_015), color = Moon.TextSecondary) }
+            else TextButton(onClick = onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) }
         },
     )
 }
@@ -271,7 +274,7 @@ fun LogViewerDialog(
             ) {
                 SelectionContainer {
                     Text(
-                        text.ifBlank { "Логов пока нет." },
+                        text.ifBlank { stringResource(R.string.sheets_016) },
                         color = Color(0xFFCFC7EC), fontSize = 11.sp, lineHeight = 15.sp,
                         fontFamily = FontFamily.Monospace,
                         modifier = Modifier
@@ -282,11 +285,11 @@ fun LogViewerDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onCopy) { Text("Копировать", color = Moon.Accent) } },
+        confirmButton = { TextButton(onClick = onCopy) { Text(stringResource(R.string.sheets_008), color = Moon.Accent) } },
         dismissButton = {
             Row {
-                TextButton(onClick = onReload) { Text("Обновить", color = Moon.TextSecondary) }
-                TextButton(onClick = onDismiss) { Text("Закрыть", color = Moon.TextSecondary) }
+                TextButton(onClick = onReload) { Text(stringResource(R.string.settingsscreen_086), color = Moon.TextSecondary) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) }
             }
         },
     )

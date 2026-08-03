@@ -3,6 +3,7 @@ package cc.moon.internet.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import cc.moon.internet.R
 import cc.moon.internet.core.*
 import cc.moon.internet.data.GeoService
 import cc.moon.internet.data.Store
@@ -24,6 +25,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         /** Same cap as the desktop build; see the comment on pingServers. */
         const val PING_PARALLEL = 6
     }
+
+    /** Status text is user-facing, so it goes through resources like everything else. */
+    private fun s(@androidx.annotation.StringRes id: Int, vararg args: Any?) =
+        getApplication<Application>().getString(id, *args)
 
     private val store = Store(app)
     val state get() = store.state
@@ -81,13 +86,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
     fun checkUpdate() = viewModelScope.launch {
-        _updateStatus.value = "Проверяю…"
+        _updateStatus.value = s(R.string.vm_checking)
         val r = cc.moon.internet.data.UpdateService.latest()
-        if (r == null) { _updateStatus.value = "Не удалось проверить — нет связи с GitHub"; return@launch }
+        if (r == null) { _updateStatus.value = s(R.string.vm_check_failed); return@launch }
         _release.value = r
         _updateAvailable.value = cc.moon.internet.data.UpdateService.isNewer(r.version, appVersion)
         _updateStatus.value =
-            if (_updateAvailable.value) "Доступна версия ${r.version}" else "У вас последняя версия"
+            if (_updateAvailable.value) s(R.string.vm_update_available, r.version) else s(R.string.vm_up_to_date)
     }
 
     init {
@@ -150,8 +155,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     val sub = Subscription(url = "clipboard:${UUID.randomUUID()}", name = p.label.ifBlank { "Сервер" }, servers = listOf(p))
                     st.copy(subscriptions = st.subscriptions + sub, selectedServerRaw = st.selectedServerRaw ?: p.raw)
                 }
-                _status.value = "Сервер добавлен"
-            } ?: run { _status.value = "Не похоже на ссылку сервера" }
+                _status.value = s(R.string.vm_server_added)
+            } ?: run { _status.value = s(R.string.vm_not_a_link) }
             return@launch
         }
         _busy.value = true
@@ -173,10 +178,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         selectedServerRaw = st.selectedServerRaw ?: f.servers.firstOrNull()?.raw,
                     )
                 }
-                _status.value = "Загружено серверов: ${f.servers.size}"
+                _status.value = s(R.string.vm_loaded, f.servers.size)
                 pingAll()
             }
-            .onFailure { _status.value = "Ошибка загрузки: ${it.message}" }
+            .onFailure { _status.value = s(R.string.vm_load_error, it.message) }
         _busy.value = false
     }
 
@@ -192,7 +197,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshSubscription(url: String) = viewModelScope.launch {
         if (!url.startsWith("http")) return@launch
         _busy.value = true
-        if (refreshOne(url)) _status.value = "Подписка обновлена" else _status.value = "Не удалось обновить"
+        if (refreshOne(url)) _status.value = s(R.string.vm_sub_updated) else _status.value = s(R.string.vm_sub_update_failed)
         _busy.value = false
     }
 
@@ -222,7 +227,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun removeSubscription(url: String) = viewModelScope.launch {
         store.removeSubscription(url)
-        _status.value = "Подписка удалена"
+        _status.value = s(R.string.vm_sub_removed)
     }
 
     fun toggleCollapse(url: String) = viewModelScope.launch {
@@ -279,7 +284,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val targets = servers.filter { !it.raw.isNullOrBlank() }
         if (targets.isEmpty()) return
         val st = store.state.value
-        _status.value = "Пингую ${targets.size}…"
+        _status.value = s(R.string.vm_pinging, targets.size)
 
         // rows show a spinner instead of a stale number while they are being measured
         _pinging.value = targets.mapNotNull { it.raw }.toSet()
@@ -380,17 +385,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _checkPing.value = "…"
         val ms = MoonVpnService.runner?.measureDelay()
         _checkPing.value = when {
-            ms == null -> "нет ответа"
-            ms < 0 -> "нет ответа"
+            ms == null -> s(R.string.vm_no_reply)
+            ms < 0 -> s(R.string.vm_no_reply)
             else -> "$ms ms"
         }
     }
 
     // ---- connection ------------------------------------------------------
     fun connect() {
-        val s = store.selectedServer() ?: run { _status.value = "Сначала выберите сервер"; return }
+        val s = store.selectedServer() ?: run { _status.value = s(R.string.vm_pick_server); return }
         if (!XrayConfig.supports(s.protocol)) {
-            _status.value = "${s.protocolLabel} не поддерживается ядром xray"
+            _status.value = s(R.string.vm_unsupported, s.protocolLabel)
             return
         }
         val st = store.state.value
@@ -400,7 +405,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val socks = freeLocalPort(st.socksPort, listen)
         val http = freeLocalPort(st.httpPort, listen, avoid = setOf(socks))
         if (socks != st.socksPort || http != st.httpPort) {
-            _status.value = "Порт занят другим VPN, слушаю $socks/$http"
+            _status.value = s(R.string.vm_port_taken, socks, http)
         }
 
         var config = runCatching {
@@ -426,7 +431,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 allowLan = st.allowLan,
                 dnsList = dnsServers(st),
             )
-        }.getOrElse { _status.value = "Ошибка конфигурации: ${it.message}"; return }
+        }.getOrElse { _status.value = s(R.string.vm_config_error, it.message); return }
 
         // Прокси-режим: только локальные SOCKS/HTTP, без системного туннеля.
         if (!st.tunMode) config = XrayConfig.buildProxyOnly(config)
@@ -498,7 +503,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshGeo(force: Boolean = true) = viewModelScope.launch {
         if (_geoBusy.value) return@launch
         _geoBusy.value = true
-        _geoStatus.value = "Скачиваю…"
+        _geoStatus.value = s(R.string.vm_downloading)
         val r = store.activeRouting()
         _geoStatus.value = GeoService.refresh(
             getApplication(), r?.geoipUrl.orEmpty(), r?.geositeUrl.orEmpty(), force,
@@ -533,7 +538,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Rules are only editable on the "Свой" profile — imported ones are replaced on every fetch. */
     private suspend fun editCustom(block: (RoutingProfile) -> RoutingProfile) {
         val st = store.state.value
-        if (st.routingSource != "custom") { _status.value = "Правила меняются только в профиле «Свой»"; return }
+        if (st.routingSource != "custom") { _status.value = s(R.string.vm_rules_custom_only); return }
         val current = st.routings.firstOrNull { it.source == "custom" }
             ?: RoutingProfile(name = "Свой", source = "custom")
         store.putRouting(block(current))
@@ -554,13 +559,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 proxyPass = UUID.randomUUID().toString().replace("-", "").take(12),
             )
         }
-        _status.value = "Логин/пароль сброшены"
+        _status.value = s(R.string.vm_creds_reset)
         reconnectIfConnected()
     }
 
     fun clearLogs() {
         cc.moon.internet.data.LogStore.clear(getApplication())
-        _status.value = "Логи очищены"
+        _status.value = s(R.string.vm_logs_cleared)
     }
 
     /** Size of the core log for the settings row. */
@@ -577,7 +582,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Generic one-off message in the snackbar (copied, empty clipboard, not-built-yet screens). */
     fun notImplemented(what: String) { _status.value = what }
 
-    fun reportPermissionDenied() { _status.value = "Разрешение на VPN не выдано" }
+    fun reportPermissionDenied() { _status.value = s(R.string.vm_no_permission) }
 
     /** Settings screen edits the state directly — one setter beats twenty. */
     fun patch(block: cc.moon.internet.data.AppState.() -> cc.moon.internet.data.AppState) =

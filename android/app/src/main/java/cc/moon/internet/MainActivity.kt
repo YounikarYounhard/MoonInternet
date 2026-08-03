@@ -43,6 +43,8 @@ import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.core.Subscription
 import cc.moon.internet.ui.*
 import cc.moon.internet.vpn.MoonVpnService
+import androidx.compose.ui.res.stringResource
+import cc.moon.internet.R
 
 /** The four pages the desktop window has. */
 private enum class Page { Home, Servers, Routing, Settings }
@@ -62,6 +64,9 @@ class MainActivity : ComponentActivity() {
         /** Set by the notification's "Сервер" button. */
         const val EXTRA_OPEN_SERVERS = "open_servers"
     }
+
+    override fun attachBaseContext(base: Context) =
+        super.attachBaseContext(cc.moon.internet.data.Lang.wrap(base))
 
     private val vm: MainViewModel by viewModels()
 
@@ -122,6 +127,11 @@ class MainActivity : ComponentActivity() {
                 var logView by remember { mutableStateOf<String?>(null) }
                 var addRuleTo by remember { mutableStateOf<String?>(null) }
                 val snackbar = remember { SnackbarHostState() }
+
+                // callbacks below are plain lambdas, so their toasts are resolved in composition
+                val toastLink = stringResource(R.string.mainactivity_001)
+                val toastConfig = stringResource(R.string.mainactivity_002)
+                val toastLog = stringResource(R.string.mainactivity_003)
 
                 // Back walks the same path the user came in by; only Home exits, and even then
                 // it drops to the launcher instead of killing the app so the tunnel keeps running.
@@ -302,7 +312,7 @@ class MainActivity : ComponentActivity() {
                                 onDismiss = { subMenu = null },
                                 onUpdate = { vm.refreshSubscription(sub.url); subMenu = null },
                                 onPing = { vm.pingSubscription(sub.url); subMenu = null },
-                                onCopy = { copy(sub.url, "Ссылка скопирована"); subMenu = null },
+                                onCopy = { copy(sub.url, toastLink); subMenu = null },
                                 onQr = { qrOf = sub.name to sub.url; subMenu = null },
                                 onDelete = { vm.removeSubscription(sub.url); subMenu = null },
                             )
@@ -316,68 +326,34 @@ class MainActivity : ComponentActivity() {
                                 onConnect = { vm.selectServer(s); serverMenu = null; onToggleIfIdle() },
                                 onFavorite = { vm.toggleFavorite(s); serverMenu = null },
                                 onPing = { vm.pingServer(s); serverMenu = null },
-                                onCopy = { copy(s.raw.orEmpty(), "Ссылка скопирована"); serverMenu = null },
+                                onCopy = { copy(s.raw.orEmpty(), toastLink); serverMenu = null },
                                 onQr = { qrOf = s.label to s.raw.orEmpty(); serverMenu = null },
                                 onJson = { jsonOf = s; serverMenu = null },
                             )
                         }
 
                         jsonOf?.let { s ->
-                            JsonDialog(s, onCopy = { copy(it, "Конфигурация скопирована") }) { jsonOf = null }
+                            JsonDialog(s, onCopy = { copy(it, toastConfig) }) { jsonOf = null }
                         }
                         qrOf?.let { (title, url) -> QrDialog(title, url) { qrOf = null } }
 
-                        
-
                         logView?.let { txt ->
-
-
-                        
 
                             LogViewerDialog(
 
-
-                        
-
                                 title = "xray.log",
-
-
-                        
 
                                 text = txt,
 
-
-                        
-
                                 onReload = { logView = vm.logsTail() },
 
-
-                        
-
-                                onCopy = { copy(txt, "Лог скопирован") },
-
-
-                        
+                                onCopy = { copy(txt, toastLog) },
 
                                 onDismiss = { logView = null },
 
-
-                        
-
                             )
 
-
-                        
-
                         }
-
-
-                        
-
-                        
-
-
-                        
 
                         if (showUpdate) UpdateDialog(
 
@@ -475,7 +451,7 @@ class MainActivity : ComponentActivity() {
     private fun pasteImport() {
         val cb = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val text = cb.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
-        if (text.isBlank()) vm.notImplemented("Буфер пуст") else vm.addSubscription(text)
+        if (text.isBlank()) vm.notImplemented(getString(R.string.mainactivity_004)) else vm.addSubscription(text)
     }
 
     /**
@@ -534,7 +510,7 @@ private fun BottomNav(
                 Modifier.fillMaxWidth().height(68.dp).padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                NavTab("Сервера", Icons.Filled.Dns, page == Page.Servers, Modifier.weight(1f), onServers)
+                NavTab(stringResource(R.string.serversscreen_002), Icons.Filled.Dns, page == Page.Servers, Modifier.weight(1f), onServers)
 
                 // 52dp of moon in a 68dp row left it touching both edges of the card; it has to
                 // sit inside with air around it like the two tabs do
@@ -546,13 +522,13 @@ private fun BottomNav(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        painterResource(R.drawable.ic_moon), "Главная",
+                        painterResource(R.drawable.ic_moon), stringResource(R.string.mainactivity_005),
                         tint = Color.Unspecified,
                         modifier = Modifier.size(42.dp).graphicsLayer { alpha = if (page == Page.Home) 1f else 0.9f },
                     )
                 }
 
-                NavTab("Настройки", Icons.Filled.Settings,
+                NavTab(stringResource(R.string.settingsscreen_001), Icons.Filled.Settings,
                        page == Page.Settings || page == Page.Routing, Modifier.weight(1f), onSettings)
             }
         }

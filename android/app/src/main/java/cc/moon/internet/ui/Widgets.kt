@@ -20,11 +20,51 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import cc.moon.internet.R
 
 /**
  * The desktop's shared XAML styles, one Composable each. Sizes and paddings are copied from
  * App.xaml / SettingsView.xaml so a screen ported from XAML lines up without re-tuning.
  */
+
+/** One place for the version, fed by versionName in build.gradle.kts. */
+val APP_VERSION: String get() = cc.moon.internet.BuildConfig.VERSION_NAME
+
+/**
+ * RU/EN pill, level with the Settings title — the same control the desktop puts in the same spot.
+ *
+ * Resources are picked at context creation, so there is no live swap the way WPF does it with
+ * DynamicResource: the activity is recreated instead, which lands on the same screen and reads
+ * as an instant change.
+ */
+@Composable
+fun LanguageToggle() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val current = cc.moon.internet.data.Lang.effective(ctx)
+    Surface(shape = RoundedCornerShape(9.dp), color = Moon.Card,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft)) {
+        Row(Modifier.padding(3.dp)) {
+            listOf("ru" to "RU", "en" to "EN").forEach { (tag, label) ->
+                val active = current == tag
+                Surface(
+                    onClick = {
+                        if (!active) {
+                            cc.moon.internet.data.Lang.save(ctx, tag)
+                            (ctx as? android.app.Activity)?.recreate()
+                        }
+                    },
+                    shape = RoundedCornerShape(7.dp),
+                    color = if (active) Moon.Accent.copy(alpha = 0.18f) else Color.Transparent,
+                ) {
+                    Text(label, Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
+                         color = if (active) Moon.AccentText else Moon.TextSecondary,
+                         fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
 
 /**
  * Empty room the floating bottom nav needs at the end of a scrolling page.
@@ -68,7 +108,7 @@ fun PageHeader(title: String, big: Boolean = true, onBack: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically) {
         IconButton(onBack, Modifier.size(34.dp)) {
-            Icon(Icons.Filled.ArrowBack, "Назад", tint = Moon.TextPrimary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.ArrowBack, stringResource(R.string.routingscreen_001), tint = Moon.TextPrimary, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.width(6.dp))
         Text(title, fontSize = if (big) 24.sp else 22.sp, fontWeight = FontWeight.Bold, color = Moon.TextPrimary)

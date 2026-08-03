@@ -27,6 +27,7 @@ import cc.moon.internet.R
 import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.core.Subscription
 import cc.moon.internet.vpn.MoonVpnService.Companion.State
+import androidx.compose.ui.res.stringResource
 
 /**
  * Home, laid out exactly like the desktop build: mode switch, the moon as the connect button,
@@ -83,7 +84,7 @@ fun HomeScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2150)),
                 ) {
                     Row(Modifier.padding(3.dp)) {
-                        SegButton("Прокси", !tunMode) { onTunMode(false) }
+                        SegButton(stringResource(R.string.homescreen_001), !tunMode) { onTunMode(false) }
                         SegButton("TUN", tunMode) { onTunMode(true) }
                     }
                 }
@@ -91,7 +92,7 @@ fun HomeScreen(
                 // red dot in the corner when a newer release exists — same as on the desktop
                 Box(Modifier.align(Alignment.CenterStart).size(38.dp)) {
                     IconButton(onClick = onUpdates, modifier = Modifier.size(38.dp)) {
-                        Icon(Icons.Filled.FileDownload, "Обновления",
+                        Icon(Icons.Filled.FileDownload, stringResource(R.string.homescreen_002),
                              tint = Moon.TextSecondary, modifier = Modifier.size(19.dp))
                     }
                     if (updateAvailable) {
@@ -112,10 +113,10 @@ fun HomeScreen(
             Spacer(Modifier.height(10.dp))
             Text(
                 when (state) {
-                    State.Connected -> "Луна укрыла"
-                    State.Connecting -> "Луна просыпается…"
-                    State.Paused -> "Луна на паузе"
-                    State.Disconnected -> "Луна спит"
+                    State.Connected -> stringResource(R.string.homescreen_003)
+                    State.Connecting -> stringResource(R.string.homescreen_004)
+                    State.Paused -> stringResource(R.string.homescreen_005)
+                    State.Disconnected -> stringResource(R.string.homescreen_006)
                 },
                 fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Moon.TextPrimary,
             )
@@ -137,7 +138,7 @@ fun HomeScreen(
                 }
             } else {
                 Spacer(Modifier.height(8.dp))
-                Text("Нет активного соединения", color = Moon.TextSecondary, fontSize = 13.sp)
+                Text(stringResource(R.string.homescreen_007), color = Moon.TextSecondary, fontSize = 13.sp)
             }
         }
 
@@ -158,7 +159,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Filled.Speed, null, tint = Moon.TextPrimary, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Проверить соединение", color = Moon.TextPrimary, fontSize = 13.sp)
+                            Text(stringResource(R.string.homescreen_008), color = Moon.TextPrimary, fontSize = 13.sp)
                         }
                     }
                     if (checkPing.isNotBlank()) {
@@ -183,19 +184,19 @@ fun HomeScreen(
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.width(104.dp)) {
-                    StatCell("Отдача", "↑", upSpeed, Moon.Green)
+                    StatCell(stringResource(R.string.homescreen_009), "↑", upSpeed, Moon.Green)
                     Spacer(Modifier.height(7.dp))
-                    StatCell("Приём", "↓", downSpeed, Moon.AccentText)
+                    StatCell(stringResource(R.string.homescreen_010), "↓", downSpeed, Moon.AccentText)
                 }
                 Column(Modifier.width(90.dp)) {
-                    StatCell("Время", null, elapsed, Moon.TextPrimary)
+                    StatCell(stringResource(R.string.homescreen_011), null, elapsed, Moon.TextPrimary)
                     Spacer(Modifier.height(7.dp))
-                    StatCell("Трафик", null, traffic, Moon.TextPrimary)
+                    StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
                 }
                 Column(Modifier.weight(1f)) {
-                    ActionButton("Добавить", Icons.Filled.Add, Color(0xFF2C2058), Color(0xFFC4B4FF), onAdd)
+                    ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add, Color(0xFF2C2058), Color(0xFFC4B4FF), onAdd)
                     Spacer(Modifier.height(6.dp))
-                    ActionButton("Вставить", Icons.Filled.ContentPaste, Moon.ChipBg, Color(0xFFC6CAD3), onPaste)
+                    ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste, Moon.ChipBg, Color(0xFFC6CAD3), onPaste)
                 }
             }
         }
@@ -232,9 +233,9 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Нет подписки", color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.homescreen_013), color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(3.dp))
-                        Text("Отсканируйте QR-код или вставьте ссылку из буфера",
+                        Text(stringResource(R.string.homescreen_014),
                             color = Moon.TextSecondary, fontSize = 12.sp)
 
                         // Both ways in, right where there is nothing else to do yet — without
@@ -243,9 +244,9 @@ fun HomeScreen(
                             Modifier.fillMaxWidth().padding(top = 14.dp),
                             horizontalArrangement = Arrangement.Center,
                         ) {
-                            EmptyAction(Icons.Filled.QrCodeScanner, "Сканировать QR", onScanQr)
+                            EmptyAction(Icons.Filled.QrCodeScanner, stringResource(R.string.homescreen_015), onScanQr)
                             Spacer(Modifier.width(10.dp))
-                            EmptyAction(Icons.Filled.ContentPaste, "Вставить из буфера", onPaste)
+                            EmptyAction(Icons.Filled.ContentPaste, stringResource(R.string.homescreen_016), onPaste)
                         }
                     }
                 }

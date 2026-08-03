@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.core.Subscription
+import androidx.compose.ui.res.stringResource
+import cc.moon.internet.R
 
 /**
  * Servers, mirroring the desktop tab: header with ping/refresh, add/paste, search,
@@ -47,13 +49,15 @@ fun ServersScreen(
     listState: androidx.compose.foundation.lazy.LazyListState,
 ) {
     var query by remember { mutableStateOf("") }
-    var protocol by remember { mutableStateOf("Все") }
+    // Chips carry a stable key, never their label — a label swaps with the language, a key doesn't.
+    var protocol by remember { mutableStateOf("") }   // "" = все
+    val allLabel = stringResource(R.string.serversscreen_001)
 
     val all = subscriptions.flatMap { it.servers }
-    val protocols = remember(all) { listOf("Все") + all.map { it.protocolLabel }.distinct().sorted() }
+    val protocols = remember(all) { listOf("") + all.map { it.protocolLabel }.distinct().sorted() }
 
     fun visible(list: List<ServerProfile>) = list.filter { s ->
-        (protocol == "Все" || s.protocolLabel == protocol) &&
+        (protocol.isEmpty() || s.protocolLabel == protocol) &&
         (query.isBlank() || s.label.contains(query, ignoreCase = true))
     }.let { filtered ->
         val fav = { s: ServerProfile -> if (isFavorite(s)) 0 else 1 }
@@ -73,12 +77,12 @@ fun ServersScreen(
         item {
             Row(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 12.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text("Сервера", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = Moon.TextPrimary)
-                    Text("${all.size} серверов", fontSize = 12.sp, color = Moon.TextSecondary,
+                    Text(stringResource(R.string.serversscreen_002), fontSize = 21.sp, fontWeight = FontWeight.Bold, color = Moon.TextPrimary)
+                    Text(stringResource(R.string.fmt_servers, all.size), fontSize = 12.sp, color = Moon.TextSecondary,
                          modifier = Modifier.padding(top = 2.dp))
                 }
-                IconButton(onPingAll) { Icon(Icons.Filled.Speed, "Пинговать все", tint = Moon.TextSecondary) }
-                IconButton(onRefreshAll) { Icon(Icons.Filled.Refresh, "Обновить все", tint = Moon.TextSecondary) }
+                IconButton(onPingAll) { Icon(Icons.Filled.Speed, stringResource(R.string.serversscreen_003), tint = Moon.TextSecondary) }
+                IconButton(onRefreshAll) { Icon(Icons.Filled.Refresh, stringResource(R.string.serversscreen_004), tint = Moon.TextSecondary) }
             }
         }
 
@@ -86,12 +90,12 @@ fun ServersScreen(
             Row(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                 Surface(onClick = onAdd, shape = RoundedCornerShape(11.dp), color = Moon.Accent,
                         modifier = Modifier.weight(1f).padding(end = 4.dp)) {
-                    IconLabel(Icons.Filled.Add, "Добавить", Color.White)
+                    IconLabel(Icons.Filled.Add, stringResource(R.string.settingsscreen_195), Color.White)
                 }
                 Surface(onClick = onPaste, shape = RoundedCornerShape(11.dp), color = Moon.Card,
                         border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
                         modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                    IconLabel(Icons.Filled.ContentPaste, "Вставить", Moon.TextPrimary)
+                    IconLabel(Icons.Filled.ContentPaste, stringResource(R.string.serversscreen_005), Moon.TextPrimary)
                 }
             }
         }
@@ -100,7 +104,7 @@ fun ServersScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("Поиск серверов…", color = Moon.TextMuted, fontSize = 13.5.sp) },
+                placeholder = { Text(stringResource(R.string.serversscreen_006), color = Moon.TextMuted, fontSize = 13.5.sp) },
                 leadingIcon = { Icon(Icons.Filled.Search, null, tint = Moon.TextSecondary, modifier = Modifier.size(18.dp)) },
                 singleLine = true,
                 shape = RoundedCornerShape(11.dp),
@@ -115,14 +119,19 @@ fun ServersScreen(
         }
 
         item {
-            ChipSection("ПРОТОКОЛ", protocols, protocol) { protocol = it }
+            ChipSection(stringResource(R.string.settingsscreen_087),
+                        protocols.map { it to it.ifEmpty { allLabel } }, protocol) { protocol = it }
             ChipSection(
-                "СОРТИРОВКА",
-                listOf("Обычная", "↕ Пинг", "А–Я", "★ Избранное"),
-                when (sort) { "ping" -> "↕ Пинг"; "name" -> "А–Я"; "favorite" -> "★ Избранное"; else -> "Обычная" },
-            ) {
-                onSort(when (it) { "↕ Пинг" -> "ping"; "А–Я" -> "name"; "★ Избранное" -> "favorite"; else -> "default" })
-            }
+                stringResource(R.string.serversscreen_007),
+                listOf(
+                    "default" to stringResource(R.string.serversscreen_008),
+                    "ping" to stringResource(R.string.serversscreen_009),
+                    "name" to stringResource(R.string.serversscreen_010),
+                    "favorite" to stringResource(R.string.settingsscreen_129),
+                ),
+                sort.ifEmpty { "default" },
+                onSort,
+            )
             Spacer(Modifier.height(4.dp))
         }
 
@@ -159,10 +168,10 @@ private fun IconLabel(icon: androidx.compose.ui.graphics.vector.ImageVector, tex
 }
 
 @Composable
-private fun ChipSection(title: String, options: List<String>, selected: String, onPick: (String) -> Unit) {
+private fun ChipSection(title: String, options: List<Pair<String, String>>, selected: String, onPick: (String) -> Unit) {
     Column(Modifier.padding(top = 10.dp)) {
         SectionLabel(title, top = 0)
-        ChipFlow(options.map { it to it }, selected, onPick)
+        ChipFlow(options, selected, onPick)
     }
 }
 

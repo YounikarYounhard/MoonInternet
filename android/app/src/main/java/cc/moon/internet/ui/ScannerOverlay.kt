@@ -65,6 +65,6 @@ class ScannerOverlay(context: Context) : View(context) {
         p.quadTo(box.left, box.bottom, box.left, box.bottom - r); p.lineTo(box.left, box.bottom - arm)
         canvas.drawPath(p, bracket)
 
-        canvas.drawText("Наведите камеру на QR-код", width / 2f, box.bottom + 90f, hint)
+        canvas.drawText(context.getString(cc.moon.internet.R.string.qr_hint), width / 2f, box.bottom + 90f, hint)
     }
 }
