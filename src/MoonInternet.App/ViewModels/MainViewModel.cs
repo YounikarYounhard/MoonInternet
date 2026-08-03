@@ -855,7 +855,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     // Settings is a hub: one page with sub-pages (appearance/connection/routing/subs/ping/auto/logs), toggled here.
-    [ObservableProperty] private string settingsPage = "hub";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SettingsPageTitle), nameof(IsSettingsSubPage))]
+    private string settingsPage = "hub";
     private readonly Stack<string> _settingsBack = new();   // so a sub-page returns to wherever it was opened from
     [RelayCommand] private void OpenSettingsPage(string page)
     {
@@ -1062,6 +1064,27 @@ public partial class MainViewModel : ObservableObject
     public bool IsPingHttpGet => PingMethod == "httpget";
     public bool IsPingHttpHead => PingMethod == "httphead";
     public bool IsPingStability => PingMethod == "stability";
+
+    /// <summary>Title for the pinned settings header — one header for every sub-page.</summary>
+    public string SettingsPageTitle => SettingsPage switch
+    {
+        "appearance" => "Оформление",
+        "connection" => "Подключение",
+        "routing" => "Маршрутизация",
+        "approuting" => "Прокси по приложениям",
+        "subs" => "Настройки подписок",
+        "ping" => "Настройки пинга",
+        "auto" => "Авто",
+        "logs" => "Логи",
+        "privacy" => "Политика конфиденциальности",
+        "about" => "О приложении",
+        "terms" => "Условия использования",
+        "libs" => "Сторонние библиотеки",
+        _ => "Настройки",
+    };
+
+    /// <summary>False on the hub, which has its own big title and no back button.</summary>
+    public bool IsSettingsSubPage => SettingsPage != "hub";
 
     /// <summary>How many servers we probe at once. More than this looks like a port scan.</summary>
     public int PingParallel => 6;

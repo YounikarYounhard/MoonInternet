@@ -67,6 +67,25 @@
     </UserControl.Resources>
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- pinned header -->
+            <RowDefinition Height="*"/>       <!-- the pages -->
+        </Grid.RowDefinitions>
+
+        <!-- One header for every sub-page, outside the scrolling area so it stays put. It used to
+             live inside each page's ScrollViewer and scrolled away with the content, which left
+             no way back without scrolling to the top first. The hub keeps its own big title. -->
+        <Border Grid.Row="0" Background="{StaticResource WinBg}" Padding="24,18,24,12"
+                Visibility="{Binding IsSettingsSubPage, Converter={StaticResource BoolVis}}"
+                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
+                <TextBlock Text="{Binding SettingsPageTitle}" FontSize="22" FontWeight="Bold" Margin="6,0,0,0"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
         <!-- ================= HUB ================= -->
         <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=hub}">
@@ -91,10 +110,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=appearance}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Оформление" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <!-- Шрифт — единственное, что осталось настраиваемым. Темы, цвета, прозрачность,
                      картинки луны и фон убраны: слишком много ручек ради того, что почти никто
@@ -121,10 +136,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=connection}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Подключение" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
@@ -298,10 +309,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=routing}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Маршрутизация" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
@@ -412,10 +419,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=approuting}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Прокси по приложениям" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                </StackPanel>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16">
                     <StackPanel>
                         <TextBlock Text="Раздельный туннель (только в TUN)" FontSize="14" FontWeight="SemiBold"/>
@@ -453,10 +456,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=auto}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Авто" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
@@ -509,10 +508,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=subs}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Настройки подписок" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
@@ -554,8 +549,8 @@
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="Пинг при запуске" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Тестировать задержку при запуске приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                <TextBlock Text="Пинг при запуске" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                <TextBlock Text="Тестировать задержку при запуске приложения" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PingOnStart}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
@@ -601,10 +596,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=ping}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Настройки пинга" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <TextBlock Text="ПРОТОКОЛ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <WrapPanel>
@@ -677,14 +668,20 @@
                 <TextBlock Text="ТАЙМ-АУТ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="16,12">
                     <Grid>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Тайм-аут пинга" FontSize="14" FontWeight="SemiBold"/>
-                            <TextBlock Text="Максимальное время ожидания ответа" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                        <!-- The stepper sits on the right, so the label has to stop before it —
+                             without this margin the description ran underneath the value pill. -->
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,152,0">
+                            <TextBlock Text="Тайм-аут пинга" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            <TextBlock Text="Максимальное время ожидания ответа" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <Button Style="{StaticResource GlyphButton}" Content="&#xE738;" Command="{Binding PingTimeoutDecCommand}" ToolTip="Меньше"/>
-                            <Border CornerRadius="8" Background="#2C2058" Padding="10,4" Margin="6,0" MinWidth="42">
-                                <TextBlock Text="{Binding PingTimeoutText}" Foreground="{StaticResource AccentText}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                            <!-- Fixed width, not MinWidth: the pill grew with the number, so the
+                                 minus and plus buttons shifted sideways as the value changed and
+                                 nothing stayed put. -->
+                            <Border CornerRadius="8" Background="#2C2058" Padding="0,5" Margin="6,0" Width="64">
+                                <TextBlock Text="{Binding PingTimeoutText}" Foreground="{StaticResource AccentText}" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
                             </Border>
                             <Button Style="{StaticResource GlyphButton}" Content="&#xE710;" Command="{Binding PingTimeoutIncCommand}" ToolTip="Больше"/>
                         </StackPanel>
@@ -695,10 +692,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=logs}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Логи" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
@@ -752,10 +745,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=privacy}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Политика конфиденциальности" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                </StackPanel>
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,16">
                     <StackPanel>
@@ -798,10 +787,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=about}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="О приложении" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
 
                 <TextBlock Text="ИНФОРМАЦИЯ" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
@@ -869,10 +854,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=terms}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Условия использования" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                </StackPanel>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,16">
                     <StackPanel>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="13" TextWrapping="Wrap" LineHeight="20"
@@ -890,10 +871,6 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
                       Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=libs}">
             <StackPanel Margin="24,20,24,24">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,16" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="Назад"/>
-                    <TextBlock Text="Сторонние библиотеки" FontSize="22" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                </StackPanel>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="18,14">
                     <StackPanel>
                         <TextBlock Text="Ядра" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,6"/>
@@ -908,5 +885,6 @@
                 </Border>
             </StackPanel>
         </ScrollViewer>
+        </Grid>
     </Grid>
 </UserControl>

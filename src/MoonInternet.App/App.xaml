@@ -54,6 +54,28 @@
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
         </Style>
 
+        <!-- Tooltips default to the system's light popup, and our TextBlock style above then
+             paints the text inside it near-white: a white box with white text. Restyled to match
+             the app instead of fighting the default. -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Background" Value="{StaticResource Card}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="HasDropShadow" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border CornerRadius="8" Background="{TemplateBinding Background}"
+                                BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ===== Sidebar nav item ===== -->
         <Style x:Key="NavButton" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
