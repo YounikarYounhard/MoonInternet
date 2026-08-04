@@ -349,4 +349,8 @@
     <string name="auto_delay">"Пауза перед попыткой переподключиться"</string>
     <string name="auto_failover">"Переключаться на живой сервер"</string>
     <string name="auto_failover_sub">"Если выбранный сервер не отвечает — подключиться к самому быстрому из живых. Ваш выбор при этом сохраняется"</string>
+    <string name="notify_traffic">"Трафик на исходе"</string>
+    <string name="notify_traffic_sub">"Предупредить, когда останется меньше 10% трафика подписки"</string>
+    <string name="sub_warn_expiry">"%1$s: подписка кончается через %2$d дн."</string>
+    <string name="sub_warn_traffic">"%1$s: осталось %2$d%% трафика"</string>
 </resources>

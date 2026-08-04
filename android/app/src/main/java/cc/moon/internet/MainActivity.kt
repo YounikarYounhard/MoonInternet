@@ -160,6 +160,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Auto-connect: the view model picks the server, the activity owns the consent
+                // dialog, so the connecting has to happen here.
+                val autoConnectTo by vm.autoConnectRequest.collectAsState()
+                LaunchedEffect(autoConnectTo) {
+                    if (autoConnectTo != null) { vm.autoConnectHandled(); onToggleIfIdle() }
+                }
+
                 LaunchedEffect(status) {
                     if (status.isNotBlank()) { snackbar.showSnackbar(status); vm.clearStatus() }
                 }

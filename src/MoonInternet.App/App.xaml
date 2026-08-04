@@ -647,76 +647,52 @@
                     <TextBlock Text="{Binding ExpiryText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,0,0"/>
                 </StackPanel>
 
-                <!-- Полосы: traffic on top (green → amber → red as it fills), days below -->
-                <StackPanel Margin="0,6,14,0"
-                            Visibility="{Binding DataContext.IsSubMeterBar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
-                    <Grid Height="5" Visibility="{Binding HasTrafficMeter, Converter={StaticResource BoolVis}}">
-                        <Border Background="{StaticResource BorderSoft}" CornerRadius="3"/>
+                <!-- Полоса: срок слева, тонкая шкала, трафик справа — одной строкой -->
+                <Grid Margin="0,7,12,0"
+                      Visibility="{Binding DataContext.IsSubMeterBar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <Grid Grid.Column="1" Height="4" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Border Background="{StaticResource BorderSoft}" CornerRadius="2"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="{Binding TrafficFill}"/>
                                 <ColumnDefinition Width="{Binding TrafficRest}"/>
                             </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Background="{Binding MeterBrush}" CornerRadius="3"/>
+                            <Border Grid.Column="0" Background="{Binding MeterBrush}" CornerRadius="2"/>
                         </Grid>
                     </Grid>
-                    <Grid Height="3" Margin="0,4,0,0" Visibility="{Binding HasExpiryMeter, Converter={StaticResource BoolVis}}">
-                        <Border Background="{StaticResource BorderSoft}" CornerRadius="2"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="{Binding ExpiryFill}"/>
-                                <ColumnDefinition Width="{Binding ExpiryRest}"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Background="{Binding ExpiryBrush}" CornerRadius="2"/>
-                        </Grid>
-                    </Grid>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="9.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="4,0,0,0"/>
-                        <!-- an ∞ on its own next to another ∞ reads as a typo; hide it when there is no date -->
-                        <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
-                            <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="9.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="4,0,0,0"/>
-                        </StackPanel>
-                    </StackPanel>
-                </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                </Grid>
 
-                <!-- Точки: ten of them, lit = what is left -->
-                <StackPanel Margin="0,5,0,0"
-                            Visibility="{Binding DataContext.IsSubMeterDots, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
-                    <StackPanel Orientation="Horizontal" Visibility="{Binding HasTrafficMeter, Converter={StaticResource BoolVis}}">
-                        <ItemsControl ItemsSource="{Binding TrafficDots}" VerticalAlignment="Center">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Ellipse x:Name="dot" Width="5" Height="5" Margin="0,0,3,0" Fill="{StaticResource BorderSoft}"/>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding}" Value="True">
-                                            <Setter TargetName="dot" Property="Fill" Value="{StaticResource Accent}"/>
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding HasExpiryMeter, Converter={StaticResource BoolVis}}">
-                        <ItemsControl ItemsSource="{Binding ExpiryDots}" VerticalAlignment="Center">
-                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Ellipse x:Name="dot" Width="5" Height="5" Margin="0,0,3,0" Fill="{StaticResource BorderSoft}"/>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding}" Value="True">
-                                            <Setter TargetName="dot" Property="Fill" Value="{StaticResource AccentText}"/>
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </StackPanel>
+                <!-- Точки: тот же ряд, шкала из десяти точек -->
+                <Grid Margin="0,7,12,0"
+                      Visibility="{Binding DataContext.IsSubMeterDots, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding TrafficDots}" VerticalAlignment="Center" HorizontalAlignment="Left">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Ellipse x:Name="dot" Width="5" Height="5" Margin="0,0,3,0" Fill="{StaticResource BorderSoft}"/>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding}" Value="True">
+                                        <Setter TargetName="dot" Property="Fill" Value="{StaticResource Accent}"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Grid.Column="2" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                </Grid>
             </Grid>
         </DataTemplate>
 

@@ -132,7 +132,9 @@
                                             <TextBlock Text="{Binding Count}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
                                         </Border>
                                         <Grid Width="30" Height="28">
+                                                    <!-- hidden while the spinner runs, or the two draw on top of each other -->
                                                     <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="{DynamicResource S_ServersView_013}"
+                                                Visibility="{Binding NotPinging, Converter={StaticResource BoolVis}}"
                                                 Command="{Binding DataContext.PingSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                                     <Ellipse Width="13" Height="13" StrokeThickness="2" Stroke="{StaticResource AccentText}" StrokeDashArray="3 2"
                                                              RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False"

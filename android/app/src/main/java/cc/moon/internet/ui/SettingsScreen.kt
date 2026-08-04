@@ -478,6 +478,9 @@ private fun SubsPage(
 
         Spacer(Modifier.height(10.dp))
         MoonCard {
+            SwitchRow(stringResource(R.string.notify_traffic), stringResource(R.string.notify_traffic_sub),
+                state.notifyTrafficLow) { v -> onSet { copy(notifyTrafficLow = v) } }
+            RowDivider()
             SwitchRow(stringResource(R.string.settingsscreen_081), stringResource(R.string.settingsscreen_082),
                 state.notifyExpiry) { v -> onSet { copy(notifyExpiry = v) } }
             if (state.notifyExpiry) {
@@ -586,7 +589,8 @@ private fun PingPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
             ) { v -> onSet { copy(pingEveryMinutes = v.toInt()) } }
         }
 
-        SectionLabel(stringResource(R.string.settingsscreen_110), top = 0)
+        // top = 0 glued it to the АВТОПРОВЕРКА card above; every other section keeps the default gap
+        SectionLabel(stringResource(R.string.settingsscreen_110))
         ChipFlow(
             listOf("num" to stringResource(R.string.settingsscreen_111), "bar" to stringResource(R.string.settingsscreen_112), "both" to stringResource(R.string.settingsscreen_113), "dots" to stringResource(R.string.settingsscreen_114)),
             state.pingDisplay,

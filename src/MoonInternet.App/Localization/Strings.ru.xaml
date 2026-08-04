@@ -416,4 +416,8 @@
     <s:String x:Key="S_Auto_Delay">Пауза перед попыткой переподключиться</s:String>
     <s:String x:Key="S_Auto_Failover">Переключаться на живой сервер</s:String>
     <s:String x:Key="S_Auto_Failover_Sub">Если выбранный сервер не отвечает — подключиться к самому быстрому из живых. Ваш выбор при этом сохраняется</s:String>
+    <s:String x:Key="S_VM_130">{0}: подписка кончается через {1} дн.</s:String>
+    <s:String x:Key="S_VM_131">{0}: осталось {1}% трафика</s:String>
+    <s:String x:Key="S_Notify_Traffic">Трафик на исходе</s:String>
+    <s:String x:Key="S_Notify_Traffic_Sub">Предупредить, когда останется меньше 10% трафика подписки</s:String>
 </ResourceDictionary>

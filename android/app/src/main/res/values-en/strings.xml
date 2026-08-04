@@ -347,4 +347,8 @@
     <string name="auto_delay">"Wait before trying to reconnect"</string>
     <string name="auto_failover">"Fall over to a live server"</string>
     <string name="auto_failover_sub">"When the chosen server does not answer, connect to the fastest one that does. Your choice is kept either way"</string>
+    <string name="notify_traffic">"Traffic running out"</string>
+    <string name="notify_traffic_sub">"Warn when under 10% of the subscription traffic is left"</string>
+    <string name="sub_warn_expiry">"%1$s: the subscription runs out in %2$d d."</string>
+    <string name="sub_warn_traffic">"%1$s: %2$d%% of the traffic is left"</string>
 </resources>

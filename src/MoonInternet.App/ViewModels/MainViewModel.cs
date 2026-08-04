@@ -918,6 +918,7 @@ public partial class MainViewModel : ObservableObject
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
         PingOnStart = _settings.PingOnStart; SendHwid = _settings.SendHwid;
         ShowSubHeader = _settings.ShowSubHeader; SubMeter = _settings.SubMeter; NotifyExpiry = _settings.NotifyExpiry; ExpiryNotifyDays = _settings.ExpiryNotifyDays;
+        NotifyTrafficLow = _settings.NotifyTrafficLow;
         AutoFailover = _settings.AutoFailover; ReconnectDelaySec = _settings.ReconnectDelaySec;
         NotificationsEnabled = _settings.NotificationsEnabled; TrayBalloons = _settings.TrayBalloons;
         NotifyConnection = _settings.NotifyConnection; NotifyAppUpdate = _settings.NotifyAppUpdate;
@@ -1432,7 +1433,7 @@ public partial class MainViewModel : ObservableObject
     // How the subscription plate shows traffic and expiry — same idea as the ping display above.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSubMeterText), nameof(IsSubMeterBar), nameof(IsSubMeterDots))]
-    private string subMeter = "bar";
+    private string subMeter = "text";
     public bool IsSubMeterText => SubMeter == "text";
     public bool IsSubMeterBar => SubMeter == "bar";
     public bool IsSubMeterDots => SubMeter == "dots";
@@ -1507,6 +1508,30 @@ public partial class MainViewModel : ObservableObject
     partial void OnSendHwidChanged(bool value) { _settings.SendHwid = value; _settings.Save(); ApplyHwid(); }
     [ObservableProperty] private bool showSubHeader = true;
     partial void OnShowSubHeaderChanged(bool value) { _settings.ShowSubHeader = value; _settings.Save(); }
+    /// <summary>Warned already this run — one notice per subscription per condition, not per refresh.</summary>
+    private readonly HashSet<string> _warned = new();
+
+    /// <summary>
+    /// The two "your plan is running out" notices. Both were settings with nothing behind them:
+    /// the switches saved fine and nobody ever looked at them.
+    /// </summary>
+    private void WarnAboutSubscription(SubscriptionVM sub, SubscriptionInfo? info)
+    {
+        if (info is null) return;
+
+        if (NotifyExpiry && info.DaysLeft is { } days && days <= ExpiryNotifyDays && _warned.Add(sub.Url + "|exp"))
+            Notifier.Show("Moon Internet", string.Format(Localization.Loc.T("S_VM_130"), sub.Name, days));
+
+        if (NotifyTrafficLow && info.Total > 0)
+        {
+            double left = 1 - (double)info.Used / info.Total;
+            if (left <= 0.10 && _warned.Add(sub.Url + "|traffic"))
+                Notifier.Show("Moon Internet", string.Format(Localization.Loc.T("S_VM_131"), sub.Name, (int)Math.Round(left * 100)));
+        }
+    }
+
+    [ObservableProperty] private bool notifyTrafficLow = true;
+    partial void OnNotifyTrafficLowChanged(bool value) { _settings.NotifyTrafficLow = value; _settings.Save(); }
     [ObservableProperty] private bool notifyExpiry = true;
     partial void OnNotifyExpiryChanged(bool value) { _settings.NotifyExpiry = value; _settings.Save(); }
     [ObservableProperty]
@@ -1949,6 +1974,7 @@ public partial class MainViewModel : ObservableObject
             sub.SetServers(content.Servers);
             foreach (var srv in sub.Servers) srv.IsFavorite = srv.ShareUrl is { } fu && _settings.FavoriteServers.Contains(fu);
             sub.SetInfo(info);
+            WarnAboutSubscription(sub, info);
             sub.SetAnnouncement(announce);          // panel welcome/notice from the Announce header (overrides fake-node text)
             sub.SetRouting(content.Routing);
             sub.ApplySort(ServerSort);

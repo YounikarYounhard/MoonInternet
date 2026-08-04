@@ -643,6 +643,14 @@
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyExpiry}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_Notify_Traffic}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Notify_Traffic_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyTrafficLow}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
                         <!-- caption above the chips, not beside them: sitting on the same row it ran
                              off the card edge as soon as the language changed -->
                         <StackPanel Margin="12,0,12,10" Visibility="{Binding NotifyExpiry, Converter={StaticResource BoolVis}}">

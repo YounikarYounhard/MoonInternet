@@ -89,8 +89,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * system requires. Uses the same channel pair, so it follows the heads-up switch.
      */
     private fun notifyConnection(text: String) {
-        val st = store.state.value
-        if (!st.notificationsEnabled || !st.notifyConnection) return
+        if (!store.state.value.notifyConnection) return
+        postNotice(text)
+    }
+
+    /** Posts a one-shot notice. The master switch is the only gate here; callers add their own. */
+    private fun postNotice(text: String) {
+        if (!store.state.value.notificationsEnabled) return
         val ctx = getApplication<Application>()
         val id = if (cc.moon.internet.data.Lang.headsUp(ctx)) "moon_vpn_headsup" else "moon_vpn"
         val n = androidx.core.app.NotificationCompat.Builder(ctx, id)
@@ -121,6 +126,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (store.state.value.hwid.isBlank())
                 store.update { it.copy(hwid = UUID.randomUUID().toString().replace("-", "")) }
             if (store.state.value.updateOnStart) refreshAll(silent = true) else if (store.state.value.pingOnStart) pingAll()
+            requestAutoConnect()
         }
         // The launch check is gated: the badge and the popup are both something the user can
         // switch off on the Уведомления page, and a check nobody sees is just a request.
@@ -211,6 +217,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 }
                 _status.value = s(R.string.vm_loaded, f.servers.size)
+                warnAboutSubscription(f.title ?: hostOf(u), u, f)
                 pingAll()
             }
             .onFailure { _status.value = s(R.string.vm_load_error, it.message) }
@@ -231,6 +238,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _busy.value = true
         if (refreshOne(url)) _status.value = s(R.string.vm_sub_updated) else _status.value = s(R.string.vm_sub_update_failed)
         _busy.value = false
+    }
+
+    /** Warned already this run — one notice per subscription per condition, not per refresh. */
+    private val warned = mutableSetOf<String>()
+
+    /**
+     * The two "your plan is running out" notices. Both were switches with nothing behind them:
+     * they saved fine and nobody ever looked at them.
+     */
+    private fun warnAboutSubscription(name: String, url: String, f: SubscriptionService.Fetched) {
+        val st = store.state.value
+        if (!st.notificationsEnabled) return
+
+        if (st.notifyExpiry && f.expiryFraction >= 0) {
+            val daysLeft = Math.round((1 - f.expiryFraction) * 30).toInt()
+            if (daysLeft <= st.expiryNotifyDays && warned.add("$url|exp"))
+                postNotice(s(R.string.sub_warn_expiry, name, daysLeft))
+        }
+        if (st.notifyTrafficLow && f.trafficFraction >= 0) {
+            val leftPct = Math.round((1 - f.trafficFraction) * 100).toInt()
+            if (leftPct <= 10 && warned.add("$url|traffic"))
+                postNotice(s(R.string.sub_warn_traffic, name, leftPct))
+        }
     }
 
     /** null when the user turned the header off, so the request goes out without it. */
@@ -307,6 +337,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * back to the first server when auto-connect is switched off.
      */
     fun autoTarget(): ServerProfile? = store.autoTarget(_pings.value)
+
+    /**
+     * Raised once at launch when auto-connect is on and a server has been chosen. The activity
+     * owns the VPN consent dialog, so it has to do the connecting — the view model can only ask.
+     *
+     * Auto-connect never fired on the phone before: autoTarget() existed but only the
+     * quick-settings tile ever called it, and nothing connected on start at all.
+     */
+    private val _autoConnectRequest = MutableStateFlow<ServerProfile?>(null)
+    val autoConnectRequest = _autoConnectRequest.asStateFlow()
+    fun autoConnectHandled() { _autoConnectRequest.value = null }
+
+    private suspend fun requestAutoConnect() {
+        if (!store.state.value.autoConnect) return
+        if (vpnState.value != MoonVpnService.Companion.State.Disconnected) return
+        // Give the first ping pass a moment: without any measurement the picker has no grounds to
+        // overrule the stored preference, which is how it used to dial a server that was down.
+        repeat(20) {
+            if (_pings.value.isNotEmpty()) return@repeat
+            kotlinx.coroutines.delay(250)
+        }
+        val target = autoTarget() ?: return
+        store.selectServer(target)
+        _autoConnectRequest.value = target
+    }
 
     /**
      * Measures every server, but never more than [PING_PARALLEL] at a time.

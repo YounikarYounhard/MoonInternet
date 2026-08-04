@@ -86,29 +86,33 @@ fun SubMeter(
     expiryFraction: Double,
     style: String,
 ) {
-    // An unlimited plan still gets a bar — a full one in a muted accent, meaning "no ceiling".
-    // Hiding it was read as "the bars do not work".
     val tUnlimited = trafficFraction < 0
-    val eUnlimited = expiryFraction < 0
     when (style) {
-        "bar" -> Column(Modifier.padding(top = 6.dp, end = 14.dp)) {
-            MeterBar(if (tUnlimited) 1.0 else trafficFraction,
-                     if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction), 5.dp)
-            Spacer(Modifier.height(4.dp))
-            MeterBar(if (eUnlimited) 1.0 else expiryFraction,
-                     if (eUnlimited) Moon.MeterIdle else Moon.Accent, 3.dp)
-            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Download, null, tint = Moon.TextMuted, modifier = Modifier.size(10.dp))
-                Text(" $trafficText", color = Moon.TextMuted, fontSize = 10.5.sp)
-                Spacer(Modifier.width(10.dp))
-                Icon(Icons.Filled.Event, null, tint = Moon.TextMuted, modifier = Modifier.size(10.dp))
-                Text(" $expiryText", color = Moon.TextMuted, fontSize = 10.5.sp)
+        // One line, the way INCY lays it out: expiry on the left, a thin track in the middle,
+        // traffic on the right. Two stacked bars with their own captions took three times the
+        // height and said the same thing.
+        "bar" -> Row(Modifier.padding(top = 7.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp)
+            Text(" · ", color = Moon.TextMuted, fontSize = 10.5.sp)
+            Box(Modifier.weight(1f).padding(end = 8.dp)) {
+                MeterBar(if (tUnlimited) 1.0 else trafficFraction,
+                         if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction), 4.dp)
             }
+            Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp)
         }
-        "dots" -> Column(Modifier.padding(top = 5.dp)) {
-            MeterDots(trafficFraction, if (tUnlimited) Moon.MeterIdle else Moon.Accent, trafficText)
-            Spacer(Modifier.height(4.dp))
-            MeterDots(expiryFraction, if (eUnlimited) Moon.MeterIdle else Moon.AccentText, expiryText)
+        "dots" -> Row(Modifier.padding(top = 7.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp)
+            Text(" · ", color = Moon.TextMuted, fontSize = 10.5.sp)
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                // dots show what is LEFT, so a full row is a fresh plan
+                val lit = if (tUnlimited) 10 else Math.round((1 - trafficFraction.coerceIn(0.0, 1.0)) * 10).toInt()
+                val color = if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction)
+                repeat(10) { i ->
+                    Box(Modifier.padding(end = 3.dp).size(5.dp).clip(CircleShape)
+                            .background(if (i < lit) color else Moon.BorderSoft))
+                }
+            }
+            Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp)
         }
         else -> Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
@@ -135,24 +139,9 @@ private fun MeterBar(fraction: Double, color: Color, height: androidx.compose.ui
     }
 }
 
-@Composable
-private fun MeterDots(fraction: Double, color: Color, label: String) {
-    // dots show what is LEFT, so a full row is a fresh plan
-    val lit = if (fraction < 0) 10 else Math.round((1 - fraction.coerceIn(0.0, 1.0)) * 10).toInt()
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        repeat(10) { i ->
-            Box(Modifier.padding(end = 3.dp).size(5.dp).clip(CircleShape)
-                    .background(if (i < lit) color else Moon.BorderSoft))
-        }
-        Text(label, color = Moon.TextMuted, fontSize = 10.5.sp, modifier = Modifier.padding(start = 5.dp))
-    }
-}
-
-
 /**
  * Ping next to a server row, in the style the user picked — the same four the desktop offers.
- * A row being measured shows a spinner instead of a stale number, so a batch fills in visibly
- * one row at a time rather than snapping to thirty numbers at once.
+ * A row being measured shows a spinner *instead of* the number, never on top of it.
  *
  * signal: 4 bars/dots for a fast answer down to 1 for a slow one, 0 when it did not answer.
  */

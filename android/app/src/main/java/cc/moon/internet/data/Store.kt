@@ -32,7 +32,7 @@ data class AppState(
     val updateOnStart: Boolean = true,
     val pingOnStart: Boolean = true,
     val showSubHeader: Boolean = true,
-    val subMeter: String = "bar",   // text | bar | dots — как плашка подписки показывает остаток
+    val subMeter: String = "text",   // text | bar | dots — как плашка подписки показывает остаток
     /** Routing profiles imported from subscriptions (incy/happ) plus the user's own. */
     val routings: List<RoutingProfile> = emptyList(),
     val routingSource: String = "incy",
@@ -60,6 +60,7 @@ data class AppState(
     val notifyConnection: Boolean = false,
     val notifyAppUpdate: Boolean = true,
     val notifyExpiry: Boolean = true,
+    val notifyTrafficLow: Boolean = true,   // предупредить, когда осталось меньше 10 % трафика
     val expiryNotifyDays: Int = 3,
     val sendHwid: Boolean = true,
     val autoConnectTarget: String = "first",   // first | favorite | last
@@ -109,7 +110,7 @@ class Store(private val ctx: Context) {
     private val _state = MutableStateFlow(AppState())
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 2 }
+    private companion object { const val CURRENT_VERSION = 3 }
 
     suspend fun load() = withContext(Dispatchers.IO) {
         val loaded = runCatching {
@@ -117,8 +118,9 @@ class Store(private val ctx: Context) {
         }.getOrDefault(AppState(settingsVersion = CURRENT_VERSION))
         // v2: probes are spaced out by default now, so a batch fills the list one row at a time
         // instead of snapping to thirty numbers at once.
+        // v3: the plate shows plain numbers unless asked otherwise.
         _state.value = if (loaded.settingsVersion < CURRENT_VERSION)
-            loaded.copy(pingStagger = true, settingsVersion = CURRENT_VERSION).also { save(it) }
+            loaded.copy(pingStagger = true, subMeter = "text", settingsVersion = CURRENT_VERSION).also { save(it) }
         else loaded
     }
 

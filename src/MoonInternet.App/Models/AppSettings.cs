@@ -54,8 +54,9 @@ public sealed class AppSettings
     public bool PingOnStart { get; set; } = true;              // measure latency on launch
     public bool SendHwid { get; set; } = true;                 // send a device id header with subscription requests
     public bool ShowSubHeader { get; set; } = true;            // show the subscription announcement banner
-    public string SubMeter { get; set; } = "bar";              // text | bar | dots — how the plate shows traffic/expiry
+    public string SubMeter { get; set; } = "text";              // text | bar | dots — how the plate shows traffic/expiry
     public bool NotifyExpiry { get; set; } = true;             // warn before the subscription expires
+    public bool NotifyTrafficLow { get; set; } = true;         // warn when under 10% of the quota is left
     public int ExpiryNotifyDays { get; set; } = 3;             // 1 | 3 | 5 | 7
     public string? Hwid { get; set; }                          // stable per-install device id (generated once)
     public string? Language { get; set; }                      // "ru" | "en"; null = follow the system
@@ -96,13 +97,15 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 2;
+    private const int CurrentVersion = 3;
 
     private void Migrate()
     {
         // v2: probes are spaced out by default now, so a batch fills the list in one row at a
         // time instead of snapping to thirty numbers at once.
         if (SettingsVersion < 2) PingStagger = true;
+        // v3: the plate shows plain numbers unless asked otherwise.
+        if (SettingsVersion < 3) SubMeter = "text";
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }
 
