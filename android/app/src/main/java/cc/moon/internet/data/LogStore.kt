@@ -20,12 +20,8 @@ object LogStore {
         val f = file(ctx)
         val bytes = if (f.exists()) f.length() else 0L
         if (bytes == 0L) return "—"
-        // bytes below a kilobyte, or a fresh log reads "0 КБ" and looks like nothing was written
-        return when {
-            bytes < 1024 -> "$bytes Б"
-            bytes < 1024 * 1024 -> "%.0f КБ".format(bytes / 1024.0)
-            else -> "%.1f МБ".format(bytes / 1024.0 / 1024)
-        }
+        // one formatter for the whole app, so the units follow the language switch here too
+        return SubscriptionService.size(bytes)
     }
 
     fun clear(ctx: Context) {

@@ -116,6 +116,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch {
             store.load()                                  // offline first: servers show instantly
+            // A stable per-install id, made once. Panels key their limits off it, and the About
+            // row was showing an empty value because nothing ever created one.
+            if (store.state.value.hwid.isBlank())
+                store.update { it.copy(hwid = UUID.randomUUID().toString().replace("-", "")) }
             if (store.state.value.updateOnStart) refreshAll(silent = true) else if (store.state.value.pingOnStart) pingAll()
         }
         // The launch check is gated: the badge and the popup are both something the user can
@@ -186,7 +190,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return@launch
         }
         _busy.value = true
-        runCatching { SubscriptionService.fetch(u) }
+        runCatching { SubscriptionService.fetch(u, hwidHeader()) }
             .onSuccess { f ->
                 store.update { st ->
                     val sub = Subscription(
@@ -229,8 +233,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _busy.value = false
     }
 
+    /** null when the user turned the header off, so the request goes out without it. */
+    private fun hwidHeader() = store.state.value.let { if (it.sendHwid) it.hwid.ifBlank { null } else null }
+
     private suspend fun refreshOne(u: String): Boolean =
-        runCatching { SubscriptionService.fetch(u) }.onSuccess { f ->
+        runCatching { SubscriptionService.fetch(u, hwidHeader()) }.onSuccess { f ->
             store.update { st ->
                 st.copy(subscriptions = st.subscriptions.map {
                     if (it.url != u) it else it.copy(
