@@ -174,8 +174,11 @@ fun HubCard(icon: ImageVector, title: String, subtitle: String, onClick: () -> U
             ) { Icon(icon, null, tint = Moon.AccentText, modifier = Modifier.size(19.dp)) }
             Column(Modifier.weight(1f).padding(start = 14.dp)) {
                 Text(title, color = Moon.TextPrimary, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = Moon.TextSecondary, fontSize = 11.5.sp,
-                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                // two lines, not one: a subtitle that fits in Russian does not always fit in
+                // English, and an ellipsis in the middle of "Refresh, expiry, auto-update" is worse
+                // than a second line
+                Text(subtitle, color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 15.sp,
+                     maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
             }
             Icon(Icons.Filled.ChevronRight, null, tint = Moon.TextSecondary, modifier = Modifier.size(18.dp))
         }

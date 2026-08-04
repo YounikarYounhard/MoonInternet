@@ -440,4 +440,6 @@
     <s:String x:Key="S_VM_239">No background image set</s:String>
     <s:String x:Key="S_VM_240">default (the moon)</s:String>
     <s:String x:Key="S_VM_064">not downloaded — fetched once on the first connection</s:String>
+    <s:String x:Key="S_VM_120">{0} servers</s:String>
+    <s:String x:Key="S_VM_121">Servers loaded: {0}</s:String>
 </ResourceDictionary>

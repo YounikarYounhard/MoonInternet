@@ -169,7 +169,7 @@ public partial class MainViewModel : ObservableObject
 
     private void NotifyServerListChanged()
     {
-        OnPropertyChanged(nameof(TotalServers));
+        OnPropertyChanged(nameof(TotalServers)); OnPropertyChanged(nameof(TotalServersText));
         OnPropertyChanged(nameof(HasServers));
         OnPropertyChanged(nameof(HasNoServers));
         OnPropertyChanged(nameof(AllServers));
@@ -216,6 +216,7 @@ public partial class MainViewModel : ObservableObject
 
     public string RoutingName => SelectedRouting?.Name ?? Localization.Loc.T("S_None");
     /// <summary>StringFormat cannot take a DynamicResource, so the whole line is built here.</summary>
+    public string TotalServersText => string.Format(Localization.Loc.T("S_VM_120"), TotalServers);
     public string RoutingSubtitle => string.Format(Localization.Loc.T("S_Routing_Sub_Fmt"), RoutingName);
     public bool HasMultipleRoutings => AvailableRoutings.Count > 1;
     public bool HasRoutings => AvailableRoutings.Count > 0;
@@ -1321,7 +1322,7 @@ public partial class MainViewModel : ObservableObject
         foreach (var p in new[] { nameof(ConnectButtonText), nameof(TrayToggleText), nameof(StateText),
                                   nameof(SelectedServerLabel), nameof(RuleBucketTitle), nameof(VpnDnsLabel),
                                   nameof(UpdateButtonHint), nameof(SubUpdateHint), nameof(FilterChips),
-                                  nameof(CheckPingTrayText), nameof(GeoipInfo), nameof(GeositeInfo),
+                                  nameof(CheckPingTrayText), nameof(GeoipInfo), nameof(GeositeInfo), nameof(TotalServersText),
                                   nameof(GeoSources), nameof(LogsSizeInfo) })
             OnPropertyChanged(p);
         RefreshLogsInfo();
@@ -1924,7 +1925,7 @@ public partial class MainViewModel : ObservableObject
             RestartAutoUpdateTimer();               // (re)arm periodic auto-refresh now that a subscription exists
             SelectedServer ??= sub.Servers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? sub.Servers.FirstOrDefault();
             Status = TotalServers > 0
-                ? $"Загружено серверов: {TotalServers}" + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
+                ? string.Format(Localization.Loc.T("S_VM_121"), TotalServers) + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
                 : Localization.Loc.T("S_VM_220");
             await MaybeAutoConnect(sub);
         }

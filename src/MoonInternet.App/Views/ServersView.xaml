@@ -17,7 +17,7 @@
             <StackPanel>
                 <TextBlock Text="{DynamicResource S_ServersView_001}" FontSize="21" FontWeight="Bold"/>
                 <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"
-                           Text="{Binding TotalServers, Mode=OneWay, StringFormat={}{0} серверов}"/>
+                           Text="{Binding TotalServersText, Mode=OneWay}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                 <Button Style="{StaticResource GlyphButton}" Width="34" Height="34" Content="&#xEC4A;" ToolTip="{DynamicResource S_ServersView_002}"
