@@ -32,6 +32,7 @@ data class AppState(
     val updateOnStart: Boolean = true,
     val pingOnStart: Boolean = true,
     val showSubHeader: Boolean = true,
+    val subMeter: String = "bar",   // text | bar | dots — как плашка подписки показывает остаток
     /** Routing profiles imported from subscriptions (incy/happ) plus the user's own. */
     val routings: List<RoutingProfile> = emptyList(),
     val routingSource: String = "incy",

@@ -19,6 +19,8 @@ object SubscriptionService {
         val announcement: String,
         val trafficText: String,
         val expiryText: String,
+        val trafficFraction: Double,
+        val expiryFraction: Double,
         val updateMinutes: Int,
         val routingLinks: List<String>,
     )
@@ -44,8 +46,10 @@ object SubscriptionService {
                 servers = parsed.servers,
                 title = decodeHeader(header("profile-title")),
                 announcement = decodeHeader(header("announce")) ?: parsed.announcement,
-                trafficText = info.first,
-                expiryText = info.second,
+                trafficText = info.traffic,
+                expiryText = info.expiry,
+                trafficFraction = info.trafficFraction,
+                expiryFraction = info.expiryFraction,
                 updateMinutes = header("profile-update-interval")?.toIntOrNull()?.times(60) ?: 0,
                 routingLinks = SubscriptionParser.routingLinks(body) +
                     listOfNotNull(header("routing")),
@@ -64,9 +68,14 @@ object SubscriptionService {
         }.getOrNull()
     }
 
-    /** "upload=…; download=…; total=…; expire=…" → ("12.3 ГБ / ∞", "22.07.26"). */
-    private fun parseUserInfo(raw: String?): Pair<String, String> {
-        if (raw.isNullOrBlank()) return "—" to "∞"
+    data class UserInfo(
+        val traffic: String, val expiry: String,
+        val trafficFraction: Double, val expiryFraction: Double,
+    )
+
+    /** "upload=…; download=…; total=…; expire=…" → text plus the two fractions the meters need. */
+    private fun parseUserInfo(raw: String?): UserInfo {
+        if (raw.isNullOrBlank()) return UserInfo("—", "∞", -1.0, -1.0)
         val map = raw.split(';').mapNotNull {
             val p = it.trim().split('=', limit = 2)
             if (p.size == 2) p[0].trim().lowercase() to (p[1].trim().toLongOrNull() ?: 0L) else null
@@ -81,7 +90,15 @@ object SubscriptionService {
             val d = java.util.Date(expire * 1000)
             java.text.SimpleDateFormat("dd.MM.yy", java.util.Locale.getDefault()).format(d)
         } else "∞"
-        return traffic to expiry
+
+        val trafficFraction = if (total > 0) (used.toDouble() / total).coerceIn(0.0, 1.0) else -1.0
+        // A month is the plan length nearly every panel sells, so it is the scale a bar is read
+        // against; anything longer just shows full until it is inside the last thirty days.
+        val expiryFraction = if (expire > 0) {
+            val daysLeft = (expire * 1000 - System.currentTimeMillis()) / 86_400_000.0
+            (1 - daysLeft / 30.0).coerceIn(0.0, 1.0)
+        } else -1.0
+        return UserInfo(traffic, expiry, trafficFraction, expiryFraction)
     }
 
     fun size(b: Long): String = when {

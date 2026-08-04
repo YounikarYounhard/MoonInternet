@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 
 namespace MoonInternet.App.Models;
@@ -52,6 +52,7 @@ public sealed class AppSettings
     public bool PingOnStart { get; set; } = true;              // measure latency on launch
     public bool SendHwid { get; set; } = true;                 // send a device id header with subscription requests
     public bool ShowSubHeader { get; set; } = true;            // show the subscription announcement banner
+    public string SubMeter { get; set; } = "bar";              // text | bar | dots — how the plate shows traffic/expiry
     public bool NotifyExpiry { get; set; } = true;             // warn before the subscription expires
     public int ExpiryNotifyDays { get; set; } = 3;             // 1 | 3 | 5 | 7
     public string? Hwid { get; set; }                          // stable per-install device id (generated once)

@@ -196,6 +196,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         announcement = f.announcement,
                         trafficText = f.trafficText,
                         expiryText = f.expiryText,
+                        trafficFraction = f.trafficFraction,
+                        expiryFraction = f.expiryFraction,
                         updateIntervalMinutes = f.updateMinutes,
                         fetchedAt = System.currentTimeMillis(),
                     )
@@ -237,6 +239,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         announcement = f.announcement,
                         trafficText = f.trafficText,
                         expiryText = f.expiryText,
+                        trafficFraction = f.trafficFraction,
+                        expiryFraction = f.expiryFraction,
                         fetchedAt = System.currentTimeMillis(),
                     )
                 })

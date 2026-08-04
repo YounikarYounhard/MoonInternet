@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
@@ -78,6 +80,76 @@ fun LanguageToggle() {
 @Composable
 fun bottomNavSpace(): androidx.compose.ui.unit.Dp =
     84.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+
+/**
+ * Subscription traffic/expiry, in whatever form the user picked: text, bars or dots.
+ *
+ * The panel hands us bytes and a timestamp; the text form throws that away, so Subscription keeps
+ * the two fractions and this draws them. Shared by Home and Servers so both plates read the same.
+ */
+@Composable
+fun SubMeter(
+    trafficText: String,
+    expiryText: String,
+    trafficFraction: Double,
+    expiryFraction: Double,
+    style: String,
+) {
+    when (style) {
+        "bar" -> Column(Modifier.padding(top = 6.dp, end = 14.dp)) {
+            if (trafficFraction >= 0) MeterBar(trafficFraction, meterColor(trafficFraction), 5.dp)
+            if (expiryFraction >= 0) {
+                Spacer(Modifier.height(4.dp))
+                MeterBar(expiryFraction, Moon.Accent, 3.dp)
+            }
+            Row(Modifier.padding(top = 4.dp)) {
+                Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp)
+                Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp, modifier = Modifier.padding(start = 10.dp))
+            }
+        }
+        "dots" -> Column(Modifier.padding(top = 5.dp)) {
+            MeterDots(trafficFraction, Moon.Accent, trafficText)
+            Spacer(Modifier.height(4.dp))
+            MeterDots(expiryFraction, Moon.AccentText, expiryText)
+        }
+        else -> Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
+            Text(" $trafficText", color = Moon.TextSecondary, fontSize = 11.5.sp)
+            Spacer(Modifier.width(12.dp))
+            Icon(Icons.Filled.Event, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
+            Text(" $expiryText", color = Moon.TextSecondary, fontSize = 11.5.sp)
+        }
+    }
+}
+
+/** Green while there is room, amber past 75%, red past 90% — the usual traffic-light read. */
+private fun meterColor(f: Double) = when {
+    f >= 0.9 -> Moon.Danger
+    f >= 0.75 -> Color(0xFFE8B339)
+    else -> Moon.Green
+}
+
+@Composable
+private fun MeterBar(fraction: Double, color: Color, height: androidx.compose.ui.unit.Dp) {
+    Box(Modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(height / 2)).background(Moon.BorderSoft)) {
+        Box(Modifier.fillMaxWidth(fraction.toFloat().coerceIn(0f, 1f)).fillMaxHeight()
+                .clip(RoundedCornerShape(height / 2)).background(color))
+    }
+}
+
+@Composable
+private fun MeterDots(fraction: Double, color: Color, label: String) {
+    // dots show what is LEFT, so a full row is a fresh plan
+    val lit = if (fraction < 0) 10 else Math.round((1 - fraction.coerceIn(0.0, 1.0)) * 10).toInt()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        repeat(10) { i ->
+            Box(Modifier.padding(end = 3.dp).size(5.dp).clip(CircleShape)
+                    .background(if (i < lit) color else Moon.BorderSoft))
+        }
+        Text(label, color = Moon.TextMuted, fontSize = 10.5.sp, modifier = Modifier.padding(start = 5.dp))
+    }
+}
 
 /** HubCard: 38dp rounded icon tile + title + subtitle + chevron. */
 @Composable

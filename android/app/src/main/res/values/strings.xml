@@ -328,4 +328,9 @@
     <string name="notify_conn_sub">"Сообщать каждый раз, когда туннель поднялся или упал"</string>
     <string name="notify_upd">"Новая версия приложения"</string>
     <string name="notify_upd_sub">"Проверка GitHub при запуске — сообщить, если вышла свежая сборка"</string>
+    <string name="submeter_title">"Трафик и срок подписки"</string>
+    <string name="submeter_sub">"Как показывать остаток на плашке подписки"</string>
+    <string name="submeter_text">"Текст"</string>
+    <string name="submeter_bar">"Полосы"</string>
+    <string name="submeter_dots">"Точки"</string>
 </resources>

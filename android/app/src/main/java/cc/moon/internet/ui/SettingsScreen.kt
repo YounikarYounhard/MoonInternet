@@ -452,6 +452,19 @@ private fun SubsPage(
             RowDivider()
             SwitchRow(stringResource(R.string.settingsscreen_079), stringResource(R.string.settingsscreen_080),
                 state.showServerCount) { v -> onSet { copy(showServerCount = v) } }
+            RowDivider()
+            Column(Modifier.padding(12.dp)) {
+                Text(stringResource(R.string.submeter_title), color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.submeter_sub), color = Moon.TextSecondary, fontSize = 12.sp,
+                     modifier = Modifier.padding(top = 2.dp))
+                Spacer(Modifier.height(8.dp))
+                ChipFlow(
+                    listOf("text" to stringResource(R.string.submeter_text),
+                           "bar" to stringResource(R.string.submeter_bar),
+                           "dots" to stringResource(R.string.submeter_dots)),
+                    state.subMeter,
+                ) { v -> onSet { copy(subMeter = v) } }
+            }
         }
 
         Spacer(Modifier.height(10.dp))

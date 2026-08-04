@@ -122,6 +122,9 @@ data class Subscription(
     val announcement: String = "",
     val trafficText: String = "—",
     val expiryText: String = "∞",
+    /** Share of the plan used / elapsed, <0 when unlimited or unknown — for the bar and dots. */
+    val trafficFraction: Double = -1.0,
+    val expiryFraction: Double = -1.0,
     val updateIntervalMinutes: Int = 0,
     val fetchedAt: Long = 0,
 )

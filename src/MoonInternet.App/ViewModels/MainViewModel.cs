@@ -896,7 +896,7 @@ public partial class MainViewModel : ObservableObject
         AutoUpdateSubs = _settings.AutoUpdateSubs; AutoUpdateSubsMinutes = _settings.AutoUpdateSubsMinutes;
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
         PingOnStart = _settings.PingOnStart; SendHwid = _settings.SendHwid;
-        ShowSubHeader = _settings.ShowSubHeader; NotifyExpiry = _settings.NotifyExpiry; ExpiryNotifyDays = _settings.ExpiryNotifyDays;
+        ShowSubHeader = _settings.ShowSubHeader; SubMeter = _settings.SubMeter; NotifyExpiry = _settings.NotifyExpiry; ExpiryNotifyDays = _settings.ExpiryNotifyDays;
         NotificationsEnabled = _settings.NotificationsEnabled; TrayBalloons = _settings.TrayBalloons;
         NotifyConnection = _settings.NotifyConnection; NotifyAppUpdate = _settings.NotifyAppUpdate;
         ApplyHwid();
@@ -1377,6 +1377,15 @@ public partial class MainViewModel : ObservableObject
     public bool IsPingDispBoth => PingDisplay == "both";
     public bool IsPingDispDots => PingDisplay == "dots";
     [RelayCommand] private void SetPingDisplay(string d) { PingDisplay = d; _settings.PingDisplay = d; _settings.Save(); NotifyServerListChanged(); }
+
+    // How the subscription plate shows traffic and expiry — same idea as the ping display above.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSubMeterText), nameof(IsSubMeterBar), nameof(IsSubMeterDots))]
+    private string subMeter = "bar";
+    public bool IsSubMeterText => SubMeter == "text";
+    public bool IsSubMeterBar => SubMeter == "bar";
+    public bool IsSubMeterDots => SubMeter == "dots";
+    [RelayCommand] private void SetSubMeter(string d) { SubMeter = d; _settings.SubMeter = d; _settings.Save(); }
 
     [ObservableProperty] private string pingTestUrl = "https://www.gstatic.com/generate_204";
     partial void OnPingTestUrlChanged(string value) { _settings.PingTestUrl = value?.Trim() ?? ""; _settings.Save(); }

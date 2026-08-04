@@ -63,6 +63,7 @@ fun HomeScreen(
     sortedIn: (Subscription) -> List<ServerProfile>,
     onScanQr: () -> Unit,
     showServerCount: Boolean,
+    subMeter: String,
     updateAvailable: Boolean,
     onUpdates: () -> Unit,
     listState: androidx.compose.foundation.lazy.LazyListState,
@@ -208,6 +209,7 @@ fun HomeScreen(
             val sub = subscriptions[i]
             SubscriptionCard(
                     showServerCount = showServerCount,
+                    subMeter = subMeter,
                 sub = sub,
                 collapsed = sub.url in collapsed,
                 showHeader = showSubHeader,
@@ -334,6 +336,7 @@ private fun ActionButton(
 @Composable
 private fun SubscriptionCard(
     showServerCount: Boolean,
+    subMeter: String,
     sub: Subscription,
     servers: List<ServerProfile>,
     collapsed: Boolean,
@@ -369,13 +372,8 @@ private fun SubscriptionCard(
                     Column {
                         Text(sub.name, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                              maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
-                            Text(" ${sub.trafficText}", color = Moon.TextSecondary, fontSize = 11.5.sp)
-                            Spacer(Modifier.width(12.dp))
-                            Icon(Icons.Filled.Event, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
-                            Text(" ${sub.expiryText}", color = Moon.TextSecondary, fontSize = 11.5.sp)
-                        }
+                        SubMeter(sub.trafficText, sub.expiryText,
+                                 sub.trafficFraction, sub.expiryFraction, subMeter)
                     }
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {

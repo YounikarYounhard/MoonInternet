@@ -332,4 +332,9 @@
     <s:String x:Key="S_Notify_Upd">New app version</s:String>
     <s:String x:Key="S_Notify_Upd_Sub">Checks GitHub at launch — tell me when a newer build is out</s:String>
     <s:String x:Key="S_Notify_Section">WHAT TO SHOW</s:String>
+    <s:String x:Key="S_SubMeter_Title">Traffic and expiry</s:String>
+    <s:String x:Key="S_SubMeter_Sub">How the subscription plate shows what is left</s:String>
+    <s:String x:Key="S_SubMeter_Text">Text</s:String>
+    <s:String x:Key="S_SubMeter_Bar">Bars</s:String>
+    <s:String x:Key="S_SubMeter_Dots">Dots</s:String>
 </ResourceDictionary>

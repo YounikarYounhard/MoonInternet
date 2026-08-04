@@ -35,6 +35,7 @@ fun ServersScreen(
     sort: String,
     showSubHeader: Boolean,
     showServerCount: Boolean,
+    subMeter: String,
     onSort: (String) -> Unit,
     onToggleCollapse: (String) -> Unit,
     onSelect: (ServerProfile) -> Unit,
@@ -141,6 +142,7 @@ fun ServersScreen(
             if (shown.isNotEmpty() || query.isBlank()) {
                 SubGroup(
                     showServerCount = showServerCount,
+                    subMeter = subMeter,
                     sub = sub, servers = shown, collapsed = sub.url in collapsed, showHeader = showSubHeader,
                     selected = selected, pings = pings, isFavorite = isFavorite,
                     onToggleCollapse = { onToggleCollapse(sub.url) },
@@ -178,6 +180,7 @@ private fun ChipSection(title: String, options: List<Pair<String, String>>, sele
 @Composable
 private fun SubGroup(
     showServerCount: Boolean,
+    subMeter: String,
     sub: Subscription,
     servers: List<ServerProfile>,
     collapsed: Boolean,
@@ -210,13 +213,8 @@ private fun SubGroup(
                     Column {
                         Text(sub.name, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                              maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
-                            Text(" ${sub.trafficText}", color = Moon.TextSecondary, fontSize = 11.5.sp)
-                            Spacer(Modifier.width(12.dp))
-                            Icon(Icons.Filled.Event, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
-                            Text(" ${sub.expiryText}", color = Moon.TextSecondary, fontSize = 11.5.sp)
-                        }
+                        SubMeter(sub.trafficText, sub.expiryText,
+                                 sub.trafficFraction, sub.expiryFraction, subMeter)
                     }
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {

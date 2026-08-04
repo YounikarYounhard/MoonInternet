@@ -1,6 +1,7 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +20,43 @@ public partial class SubscriptionVM : ObservableObject
     [ObservableProperty] private string name;
     [ObservableProperty] private string trafficText = "—";
     [ObservableProperty] private string expiryText = "∞";
+
+    // ---- meters -----------------------------------------------------------
+    // The panel gives us bytes and a timestamp; the text form throws that away. Keeping the two
+    // fractions lets the plate draw a bar or a row of dots instead of a number nobody reads.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TrafficFill), nameof(TrafficRest), nameof(HasTrafficMeter),
+        nameof(MeterBrush), nameof(TrafficDots))]
+    private double trafficFraction = -1;          // <0 = unlimited or unknown
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ExpiryFill), nameof(ExpiryRest), nameof(HasExpiryMeter), nameof(ExpiryDots))]
+    private double expiryFraction = -1;
+
+    public bool HasTrafficMeter => TrafficFraction >= 0;
+    public bool HasExpiryMeter => ExpiryFraction >= 0;
+    /// <summary>Bar width as a pair of star columns — filled and remaining.</summary>
+    public GridLength TrafficFill => Star(TrafficFraction);
+    public GridLength TrafficRest => Star(1 - Math.Clamp(TrafficFraction, 0, 1));
+    public GridLength ExpiryFill => Star(ExpiryFraction);
+    public GridLength ExpiryRest => Star(1 - Math.Clamp(ExpiryFraction, 0, 1));
+    private static GridLength Star(double f) => new(Math.Clamp(f, 0, 1), GridUnitType.Star);
+
+    /// <summary>Green while there is room, amber past 75%, red past 90% — the usual traffic-light read.</summary>
+    public System.Windows.Media.Brush MeterBrush =>
+        TrafficFraction >= 0.9 ? MeterRed : TrafficFraction >= 0.75 ? MeterAmber : MeterGreen;
+
+    private static readonly System.Windows.Media.Brush MeterGreen = ServerItem.Frozen(0x34, 0xD3, 0x99);
+    private static readonly System.Windows.Media.Brush MeterAmber = ServerItem.Frozen(0xE8, 0xB3, 0x39);
+    private static readonly System.Windows.Media.Brush MeterRed = ServerItem.Frozen(0xFF, 0x6B, 0x8A);
+
+    /// <summary>Ten dots, filled left to right. Same information as the bar, smaller and calmer.</summary>
+    public IReadOnlyList<bool> TrafficDots => Dots(TrafficFraction);
+    public IReadOnlyList<bool> ExpiryDots => Dots(ExpiryFraction);
+    private static bool[] Dots(double f)
+    {
+        int on = f < 0 ? 10 : (int)Math.Round(Math.Clamp(1 - f, 0, 1) * 10);   // dots show what is LEFT
+        return Enumerable.Range(0, 10).Select(i => i < on).ToArray();
+    }
 
     /// <summary>True while this subscription is being pinged — the button shows a spinner.</summary>
     [ObservableProperty]
@@ -83,6 +121,10 @@ public partial class SubscriptionVM : ObservableObject
         if (info is null) return;
         TrafficText = info.TrafficText;
         ExpiryText = info.ExpiryText + (info.DaysLeft is { } d ? $" · {d}д" : "");
+        TrafficFraction = info.Total > 0 ? Math.Clamp((double)info.Used / info.Total, 0, 1) : -1;
+        // A month is the plan length nearly every panel sells, so it is the scale a bar is read
+        // against; anything longer just shows full until it is inside the last thirty days.
+        ExpiryFraction = info.DaysLeft is { } days ? Math.Clamp(1 - days / 30.0, 0, 1) : -1;
     }
 
     /// <summary>Restore traffic/expiry text from the offline cache (no SubscriptionInfo available).</summary>

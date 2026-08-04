@@ -600,6 +600,16 @@
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowServerCount}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <StackPanel Margin="12">
+                            <TextBlock Text="{DynamicResource S_SubMeter_Title}" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="{DynamicResource S_SubMeter_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <RadioButton Style="{StaticResource Chip}" GroupName="submeter" Content="{DynamicResource S_SubMeter_Text}" Margin="0,0,8,0" Command="{Binding SetSubMeterCommand}" CommandParameter="text" IsChecked="{Binding IsSubMeterText, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="submeter" Content="{DynamicResource S_SubMeter_Bar}" Margin="0,0,8,0" Command="{Binding SetSubMeterCommand}" CommandParameter="bar" IsChecked="{Binding IsSubMeterBar, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="submeter" Content="{DynamicResource S_SubMeter_Dots}" Command="{Binding SetSubMeterCommand}" CommandParameter="dots" IsChecked="{Binding IsSubMeterDots, Mode=OneWay}"/>
+                            </WrapPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

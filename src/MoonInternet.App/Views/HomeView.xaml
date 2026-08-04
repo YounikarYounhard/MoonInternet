@@ -1,4 +1,4 @@
-<UserControl x:Class="MoonInternet.App.Views.HomeView"
+﻿<UserControl x:Class="MoonInternet.App.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:app="clr-namespace:MoonInternet.App">
@@ -243,12 +243,7 @@
                                                                 <TextBlock Grid.Column="0" x:Name="chev" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Margin="0,0,11,0"/>
                                                                 <StackPanel Grid.Column="1">
                                                                     <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                                                                        <TextBlock Text="{Binding TrafficText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,12,0"/>
-                                                                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                                                                        <TextBlock Text="{Binding ExpiryText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,0,0"/>
-                                                                    </StackPanel>
+                                                                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SubMeter}"/>
                                                                 </StackPanel>
                                                             </Grid>
                                                         </Border>

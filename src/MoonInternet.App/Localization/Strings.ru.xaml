@@ -302,4 +302,9 @@
     <s:String x:Key="S_Notify_Upd">Новая версия приложения</s:String>
     <s:String x:Key="S_Notify_Upd_Sub">Проверка GitHub при запуске — сообщить, если вышла свежая сборка</s:String>
     <s:String x:Key="S_Notify_Section">ЧТО ПОКАЗЫВАТЬ</s:String>
+    <s:String x:Key="S_SubMeter_Title">Трафик и срок подписки</s:String>
+    <s:String x:Key="S_SubMeter_Sub">Как показывать остаток на плашке подписки</s:String>
+    <s:String x:Key="S_SubMeter_Text">Текст</s:String>
+    <s:String x:Key="S_SubMeter_Bar">Полосы</s:String>
+    <s:String x:Key="S_SubMeter_Dots">Точки</s:String>
 </ResourceDictionary>

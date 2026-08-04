@@ -326,4 +326,9 @@
     <string name="notify_conn_sub">"Say something every time the tunnel comes up or goes down"</string>
     <string name="notify_upd">"New app version"</string>
     <string name="notify_upd_sub">"Checks GitHub at launch — tell me when a newer build is out"</string>
+    <string name="submeter_title">"Traffic and expiry"</string>
+    <string name="submeter_sub">"How the subscription plate shows what is left"</string>
+    <string name="submeter_text">"Text"</string>
+    <string name="submeter_bar">"Bars"</string>
+    <string name="submeter_dots">"Dots"</string>
 </resources>
