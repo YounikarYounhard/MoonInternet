@@ -572,6 +572,9 @@ public partial class MainViewModel : ObservableObject
         // Nothing measured yet — we have no grounds to overrule the preference.
         if (!AnyMeasured) return preferred;
         if (Reachable(preferred)) return preferred;
+        // The user can ask us to respect the preference even when it looks dead — some servers
+        // simply do not answer a probe while carrying traffic perfectly well.
+        if (!AutoFailover) return preferred;
 
         var pool = AutoConnectTarget.StartsWith("favorite")
             ? AllServers.Where(s => s.IsFavorite).ToList()
@@ -915,6 +918,7 @@ public partial class MainViewModel : ObservableObject
         NotifyOnUpdate = _settings.NotifyOnUpdate; UpdateSubsOnStart = _settings.UpdateSubsOnStart;
         PingOnStart = _settings.PingOnStart; SendHwid = _settings.SendHwid;
         ShowSubHeader = _settings.ShowSubHeader; SubMeter = _settings.SubMeter; NotifyExpiry = _settings.NotifyExpiry; ExpiryNotifyDays = _settings.ExpiryNotifyDays;
+        AutoFailover = _settings.AutoFailover; ReconnectDelaySec = _settings.ReconnectDelaySec;
         NotificationsEnabled = _settings.NotificationsEnabled; TrayBalloons = _settings.TrayBalloons;
         NotifyConnection = _settings.NotifyConnection; NotifyAppUpdate = _settings.NotifyAppUpdate;
         ApplyHwid();
@@ -1132,21 +1136,40 @@ public partial class MainViewModel : ObservableObject
     private async void LoadCoreVersions()
     {
         if (_coreVersionsLoaded) return;
-        _coreVersionsLoaded = true;
         var cores = CoreLocator.CoresDir();
-        XrayVersion = await RunVersion(System.IO.Path.Combine(cores, "xray", "xray.exe")) ?? "—";
-        SingBoxVersion = await RunVersion(System.IO.Path.Combine(cores, "singbox", "sing-box.exe")) ?? "—";
+        // Off the UI thread: starting two processes and reading their output on the dispatcher
+        // is enough to stall the page, and a stall here reads as "it just shows dashes".
+        var (xray, sing) = await Task.Run(async () => (
+            await RunVersion(System.IO.Path.Combine(cores, "xray", "xray.exe")).ConfigureAwait(false),
+            await RunVersion(System.IO.Path.Combine(cores, "singbox", "sing-box.exe")).ConfigureAwait(false)
+        )).ConfigureAwait(true);
+        XrayVersion = xray ?? "—";
+        SingBoxVersion = sing ?? "—";
+        // Only latch when something actually answered, so a first look before the cores are
+        // unpacked does not leave the row on a dash for the rest of the session.
+        _coreVersionsLoaded = xray is not null || sing is not null;
     }
     private static async Task<string?> RunVersion(string exe)
     {
         try
         {
             if (!System.IO.File.Exists(exe)) return null;
-            var psi = new System.Diagnostics.ProcessStartInfo(exe, "version") { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
+            var psi = new System.Diagnostics.ProcessStartInfo(exe, "version")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = System.IO.Path.GetDirectoryName(exe)!,
+            };
             using var p = System.Diagnostics.Process.Start(psi);
             if (p is null) return null;
-            string outp = await p.StandardOutput.ReadToEndAsync();
-            p.WaitForExit(3000);
+            // sing-box prints its version to stdout, xray to stdout too — but a core that fails to
+            // start says so on stderr, and an undrained pipe would block it mid-write.
+            var stdout = p.StandardOutput.ReadToEndAsync();
+            var stderr = p.StandardError.ReadToEndAsync();
+            await p.WaitForExitAsync().ConfigureAwait(false);
+            string outp = await stdout.ConfigureAwait(false) + await stderr.ConfigureAwait(false);
             var m = System.Text.RegularExpressions.Regex.Match(outp, @"\d+\.\d+\.\d+");
             return m.Success ? m.Value : null;
         }
@@ -1448,6 +1471,18 @@ public partial class MainViewModel : ObservableObject
         ? (IsSubIntAuto ? string.Format(Localization.Loc.T("S_VM_090"), FmtMin(EffectiveUpdateMin)) : string.Format(Localization.Loc.T("S_VM_091"), FmtMin(EffectiveUpdateMin)))
         : Localization.Loc.T("S_VM_092");
     private static string FmtMin(int m) => m < 60 ? string.Format(Localization.Loc.T("S_VM_093"), m) : m % 60 == 0 ? string.Format(Localization.Loc.T("S_VM_094"), m / 60) : string.Format(Localization.Loc.T("S_VM_095"), m / 60, m % 60);
+
+    [ObservableProperty] private bool autoFailover = true;
+    partial void OnAutoFailoverChanged(bool v) { _settings.AutoFailover = v; _settings.Save(); }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDelay3), nameof(IsDelay5), nameof(IsDelay10), nameof(IsDelay30))]
+    private int reconnectDelaySec = 5;
+    public bool IsDelay3 => ReconnectDelaySec == 3;
+    public bool IsDelay5 => ReconnectDelaySec == 5;
+    public bool IsDelay10 => ReconnectDelaySec == 10;
+    public bool IsDelay30 => ReconnectDelaySec == 30;
+    [RelayCommand] private void SetReconnectDelay(string v)
+    { ReconnectDelaySec = int.Parse(v); _settings.ReconnectDelaySec = ReconnectDelaySec; _settings.Save(); }
 
     [ObservableProperty] private bool notifyOnUpdate;
     partial void OnNotifyOnUpdateChanged(bool value) { _settings.NotifyOnUpdate = value; _settings.Save(); }
@@ -2181,26 +2216,33 @@ public partial class MainViewModel : ObservableObject
         {
             if (PingMethod == "stability") { await StabilitySub(sub); return; }
 
-            // Always out the physical card, not only while OUR tunnel is up. A TUN stack answers
-            // the handshake itself and every server then reads a fake 0-1 ms — and the tunnel
-            // doing that is just as likely to be INCY's or HAPP's, running while we sit idle.
-            int? outIf = Pinger.PhysicalIfIndex();
-
-            using var gate = new SemaphoreSlim(PingParallel);
             var servers = sub.Servers.ToList();
             foreach (var s in servers) s.Pinging = true;
 
-            var tasks = servers.Select(async (s, i) =>
+            // The whole batch runs off the UI thread. Enumerating the NICs alone takes long enough
+            // to drop frames, and thirty probes' worth of continuations landing on the dispatcher
+            // is what made the window stop repainting mid-ping.
+            await Task.Run(async () =>
             {
-                // Optional stagger: thirty handshakes in the same instant look like a port scan
-                // to some providers, and the panel throttles or drops them.
-                if (PingStagger && PingStaggerMs > 0) await Task.Delay(i * PingStaggerMs);
-                await gate.WaitAsync();
-                try { s.Ping = await ProbeAsync(s, outIf); }
-                finally { gate.Release(); s.Pinging = false; }
-            });
-            await Task.WhenAll(tasks);
-            Application.Current?.Dispatcher.Invoke(() => { sub.Refresh(); RefreshReachability(); });
+                // Always out the physical card, not only while OUR tunnel is up. A TUN stack
+                // answers the handshake itself and every server then reads a fake 0-1 ms — and the
+                // tunnel doing that is just as likely to be INCY's or HAPP's, running while we idle.
+                int? outIf = Pinger.PhysicalIfIndex();
+
+                using var gate = new SemaphoreSlim(PingParallel);
+                var tasks = servers.Select(async (s, i) =>
+                {
+                    // Stagger: thirty handshakes in the same instant look like a port scan to some
+                    // providers, and it is also the difference between rows filling in one by one
+                    // and the whole list snapping to numbers before the spinners are even seen.
+                    if (PingStagger && PingStaggerMs > 0) await Task.Delay(i * PingStaggerMs).ConfigureAwait(false);
+                    await gate.WaitAsync().ConfigureAwait(false);
+                    try { s.Ping = await ProbeAsync(s, outIf).ConfigureAwait(false); }
+                    finally { gate.Release(); s.Pinging = false; }
+                });
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }).ConfigureAwait(true);
+            sub.Refresh(); RefreshReachability();
         }
         finally { sub.Pinging = false; }
     }

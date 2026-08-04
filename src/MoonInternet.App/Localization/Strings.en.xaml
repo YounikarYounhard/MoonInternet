@@ -442,4 +442,8 @@
     <s:String x:Key="S_VM_064">not downloaded — fetched once on the first connection</s:String>
     <s:String x:Key="S_VM_120">{0} servers</s:String>
     <s:String x:Key="S_VM_121">Servers loaded: {0}</s:String>
+    <s:String x:Key="S_Ping_UseStability">Use “Stability”</s:String>
+    <s:String x:Key="S_Auto_Delay">Wait before trying to reconnect</s:String>
+    <s:String x:Key="S_Auto_Failover">Fall over to a live server</s:String>
+    <s:String x:Key="S_Auto_Failover_Sub">When the chosen server does not answer, connect to the fastest one that does. Your choice is kept either way</s:String>
 </ResourceDictionary>

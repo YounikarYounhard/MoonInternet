@@ -163,14 +163,6 @@
                     <StackPanel>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="{DynamicResource S_SettingsView_020}" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="{DynamicResource S_SettingsView_021}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                            </StackPanel>
-                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoReconnect}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        </Grid>
-                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
-                        <Grid Margin="12">
-                            <StackPanel Margin="0,0,58,0">
                                 <TextBlock Text="Kill Switch" FontSize="14" FontWeight="SemiBold"/>
                                 <TextBlock Text="{DynamicResource S_SettingsView_022}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
@@ -523,6 +515,33 @@
                                 </WrapPanel>
                             </StackPanel>
                         </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <!-- Auto-reconnect lives here, not on Подключение: it is the same family as
+                             auto-connect, and one place to look beats two. -->
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_SettingsView_020}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_021}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoReconnect}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Margin="12,0,12,12" Visibility="{Binding AutoReconnect, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="{DynamicResource S_Auto_Delay}" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <RadioButton Style="{StaticResource Chip}" GroupName="recodelay" Content="3 с" Margin="0,0,8,0" Command="{Binding SetReconnectDelayCommand}" CommandParameter="3" IsChecked="{Binding IsDelay3, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="recodelay" Content="5 с" Margin="0,0,8,0" Command="{Binding SetReconnectDelayCommand}" CommandParameter="5" IsChecked="{Binding IsDelay5, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="recodelay" Content="10 с" Margin="0,0,8,0" Command="{Binding SetReconnectDelayCommand}" CommandParameter="10" IsChecked="{Binding IsDelay10, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="recodelay" Content="30 с" Command="{Binding SetReconnectDelayCommand}" CommandParameter="30" IsChecked="{Binding IsDelay30, Mode=OneWay}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_Auto_Failover}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Auto_Failover_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoFailover}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -648,13 +667,28 @@
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="Moon Ping" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="moon" IsChecked="{Binding IsPingMoon, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="TCP" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="tcp" IsChecked="{Binding IsPingTcp, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP GET" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httpget" IsChecked="{Binding IsPingHttpGet, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="{DynamicResource S_SettingsView_117}" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="stability" IsChecked="{Binding IsPingStability, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
                 </WrapPanel>
-                <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,6" TextWrapping="Wrap"
+                <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,16" TextWrapping="Wrap"
                            Text="{DynamicResource S_SettingsView_118}"/>
-                <TextBlock Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="4,0,0,16" TextWrapping="Wrap"
-                           Text="{DynamicResource S_SettingsView_119}"/>
+
+                <!-- Стабильность стоит отдельно: она поднимает настоящее соединение, работает
+                     заметно дольше остальных и пока в бете. -->
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14" Margin="0,0,0,16">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{DynamicResource S_SettingsView_117}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Border CornerRadius="6" Background="#33F5C042" Padding="7,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{DynamicResource S_SettingsView_048}" Foreground="#F5C042" FontSize="9.5" FontWeight="Bold"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,6,0,10" TextWrapping="Wrap"
+                                   Text="{DynamicResource S_SettingsView_119}"/>
+                        <WrapPanel>
+                            <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="{DynamicResource S_Ping_UseStability}" Command="{Binding SetPingMethodCommand}" CommandParameter="stability" IsChecked="{Binding IsPingStability, Mode=OneWay}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
 
                 <TextBlock Text="{DynamicResource S_SettingsView_120}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14" Margin="0,0,0,16">

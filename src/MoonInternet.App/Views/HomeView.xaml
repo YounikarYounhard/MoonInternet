@@ -25,9 +25,27 @@
 
                 <!-- Update: small tile, red dot in its top-right corner when there is something new -->
                 <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Width="36" Height="36">
-                    <Button Style="{StaticResource GlyphButton}" Width="36" Height="36" FontSize="15"
-                            Content="&#xE896;" Command="{Binding OpenUpdateDialogCommand}"
-                            ToolTip="{Binding UpdateButtonHint}"/>
+                    <!-- Framed like the rest of our small buttons rather than a bare glyph. -->
+                    <Button Cursor="Hand" Command="{Binding OpenUpdateDialogCommand}"
+                            ToolTip="{Binding UpdateButtonHint}"
+                            >
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="b" Width="36" Height="36" CornerRadius="10"
+                                        Background="{StaticResource Card}"
+                                        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+                                    <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                               Foreground="{StaticResource AccentText}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="b" Property="Background" Value="#1AFFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <Ellipse Width="9" Height="9" Fill="{StaticResource Danger}" Stroke="#150B30" StrokeThickness="1.5"
                              HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0"
                              Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}"/>

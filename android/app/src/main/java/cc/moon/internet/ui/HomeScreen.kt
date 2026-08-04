@@ -38,12 +38,16 @@ import androidx.compose.ui.res.stringResource
 fun HomeScreen(
     state: State,
     tunMode: Boolean,
+    socksPort: Int,
+    httpPort: Int,
     onTunMode: (Boolean) -> Unit,
     server: ServerProfile?,
     subscriptions: List<Subscription>,
     collapsed: Set<String>,
     onToggleCollapse: (String) -> Unit,
     pings: Map<String, Int>,
+    pinging: Set<String>,
+    pingDisplay: String,
     isFavorite: (ServerProfile) -> Boolean,
     checkPing: String,
     showSubHeader: Boolean,
@@ -143,6 +147,24 @@ fun HomeScreen(
             }
         }
 
+        // ---- proxy mode: say where the listeners are --------------------------
+        // Android has no system-wide proxy a normal app can set, so in this mode nothing is
+        // captured automatically — the address has to go into whatever app should use it.
+        item {
+            if (!tunMode && state == State.Connected) {
+                Spacer(Modifier.height(10.dp))
+                Surface(shape = RoundedCornerShape(11.dp), color = Moon.Card,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft)) {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Text("SOCKS5 127.0.0.1:$socksPort · HTTP 127.0.0.1:$httpPort",
+                             color = Moon.AccentText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.proxy_mode_hint), color = Moon.TextSecondary,
+                             fontSize = 11.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 3.dp))
+                    }
+                }
+            }
+        }
+
         // ---- connection check (only while connected) -------------------------
         item {
             if (state == State.Connected) {
@@ -215,6 +237,8 @@ fun HomeScreen(
                 showHeader = showSubHeader,
                 selected = server,
                 pings = pings,
+                pinging = pinging,
+                pingDisplay = pingDisplay,
                 isFavorite = isFavorite,
                 servers = sortedIn(sub),
                 onToggleCollapse = { onToggleCollapse(sub.url) },
@@ -343,6 +367,8 @@ private fun SubscriptionCard(
     showHeader: Boolean,
     selected: ServerProfile?,
     pings: Map<String, Int>,
+    pinging: Set<String>,
+    pingDisplay: String,
     isFavorite: (ServerProfile) -> Boolean,
     onToggleCollapse: () -> Unit,
     onMenu: () -> Unit,
@@ -414,6 +440,8 @@ private fun SubscriptionCard(
                             server = s,
                             selected = s.raw == selected?.raw,
                             ping = pings[s.raw],
+                            pinging = s.raw in pinging,
+                            pingDisplay = pingDisplay,
                             favorite = isFavorite(s),
                             onClick = { onSelect(s) },
                             onMenu = { onServerMenu(s) },
@@ -431,6 +459,8 @@ fun ServerRowCompact(
     server: ServerProfile,
     selected: Boolean,
     ping: Int?,
+    pinging: Boolean,
+    pingDisplay: String,
     favorite: Boolean,
     onClick: () -> Unit,
     onMenu: () -> Unit,
@@ -457,11 +487,7 @@ fun ServerRowCompact(
                 Icon(Icons.Filled.Star, null, tint = Moon.TextSecondary, modifier = Modifier.size(12.dp))
                 Spacer(Modifier.width(7.dp))
             }
-            ping?.let {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(pingColorOf(it)))
-                Spacer(Modifier.width(6.dp))
-                Text(if (it < 0) "✕" else "$it ms", color = Moon.TextSecondary, fontSize = 11.5.sp)
-            }
+            PingIndicator(ping, pinging, pingDisplay)
             IconButton(onMenu, Modifier.size(30.dp)) {
                 Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(16.dp))
             }

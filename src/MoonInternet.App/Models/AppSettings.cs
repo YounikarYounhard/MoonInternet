@@ -32,6 +32,8 @@ public sealed class AppSettings
     public string ServerSort { get; set; } = "default";    // default | ping | name
     public bool AutoConnectOnStart { get; set; }           // off by default
     public string AutoConnectTarget { get; set; } = "first"; // first | last | lowest
+    public bool AutoFailover { get; set; } = true;         // preferred server is down -> take the fastest live one
+    public int ReconnectDelaySec { get; set; } = 5;        // wait before an auto-reconnect attempt: 3 | 5 | 10 | 30
     public string AppRouteMode { get; set; } = "off";      // off | bypass (apps go direct) | only (only apps via VPN)
     public List<string> AppRouteApps { get; set; } = new(); // process names, e.g. "chrome.exe"
     public List<string> FavoriteServers { get; set; } = new(); // favourited servers, keyed by their share link (Raw)
@@ -41,7 +43,7 @@ public sealed class AppSettings
     public string PingTestUrl { get; set; } = "https://www.gstatic.com/generate_204";
     public int PingTimeoutMs { get; set; } = 4000;             // per-probe timeout
     public bool ShowServerCount { get; set; } = true;   // badge with the number of servers on a subscription
-    public bool PingStagger { get; set; }                      // space the probes out instead of all at once
+    public bool PingStagger { get; set; } = true;              // space the probes out instead of all at once
     public int PingStaggerMs { get; set; } = 150;              // gap between them when staggering
     public int PingEveryMinutes { get; set; }                  // 0 = off; re-ping in the background this often
     // Subscription settings
@@ -89,6 +91,21 @@ public sealed class AppSettings
     public int LogKeepDays { get; set; } = 7;          // 1 | 3 | 7 | 30 | 0 = forever
     public int LogMaxMb { get; set; } = 20;            // trim the file above this size
 
+    /// <summary>
+    /// Bumped when a default changes in a way an existing install should pick up. Without it a
+    /// saved value from the old default wins forever and the change only reaches new installs.
+    /// </summary>
+    public int SettingsVersion { get; set; }
+    private const int CurrentVersion = 2;
+
+    private void Migrate()
+    {
+        // v2: probes are spaced out by default now, so a batch fills the list in one row at a
+        // time instead of snapping to thirty numbers at once.
+        if (SettingsVersion < 2) PingStagger = true;
+        if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
+    }
+
     private static string Dir => MoonInternet.Core.AppPaths.DataDir;   // portable: next to the exe
     private static string FilePath => Path.Combine(Dir, "settings.json");
 
@@ -97,10 +114,14 @@ public sealed class AppSettings
         try
         {
             if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
+            {
+                var loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
+                loaded.Migrate();
+                return loaded;
+            }
         }
         catch { /* corrupt settings -> defaults */ }
-        return new AppSettings();
+        return new AppSettings { SettingsVersion = CurrentVersion };
     }
 
     public void Save()

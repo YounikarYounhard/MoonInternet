@@ -344,4 +344,9 @@
     <string name="speed_gbit" formatted="false">"%.2f Гбит/с"</string>
     <string name="fmt_sub_meta_noexp">"%1$d серверов · %2$s"</string>
     <string name="section_protocol">"ПРОТОКОЛ"</string>
+    <string name="ping_use_stability">"Использовать «Стабильность»"</string>
+    <string name="proxy_mode_hint">"Android не умеет системный прокси — впишите этот адрес в приложение, которое должно ходить через него. Остальной трафик идёт напрямую."</string>
+    <string name="auto_delay">"Пауза перед попыткой переподключиться"</string>
+    <string name="auto_failover">"Переключаться на живой сервер"</string>
+    <string name="auto_failover_sub">"Если выбранный сервер не отвечает — подключиться к самому быстрому из живых. Ваш выбор при этом сохраняется"</string>
 </resources>

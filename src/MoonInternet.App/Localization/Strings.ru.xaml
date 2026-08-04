@@ -412,4 +412,8 @@
     <s:String x:Key="S_VM_064">не загружены — скачаются один раз при подключении</s:String>
     <s:String x:Key="S_VM_120">{0} серверов</s:String>
     <s:String x:Key="S_VM_121">Загружено серверов: {0}</s:String>
+    <s:String x:Key="S_Ping_UseStability">Использовать «Стабильность»</s:String>
+    <s:String x:Key="S_Auto_Delay">Пауза перед попыткой переподключиться</s:String>
+    <s:String x:Key="S_Auto_Failover">Переключаться на живой сервер</s:String>
+    <s:String x:Key="S_Auto_Failover_Sub">Если выбранный сервер не отвечает — подключиться к самому быстрому из живых. Ваш выбор при этом сохраняется</s:String>
 </ResourceDictionary>

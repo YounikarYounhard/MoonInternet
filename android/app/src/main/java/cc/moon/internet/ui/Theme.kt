@@ -31,6 +31,8 @@ object Moon {
     val Card         = Color(0xFF181229)
     val CardHover    = Color(0xFF221A3A)
     val ChipBg       = Color(0xFF1B1530)
+    /** A meter with no ceiling to fill towards — calm, not alarming. */
+    val MeterIdle = Color(0xFF4A3E78)
     val BorderSoft   = Color(0xFF2C2545)
     val AccentText   = Color(0xFFB9A7FF)
     val Green        = Color(0xFF34D399)

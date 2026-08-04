@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
             MoonTheme(fontName = state.fontName) {
                 val vpn by vm.vpnState.collectAsState()
                 val pings by vm.pings.collectAsState()
+                val pinging by vm.pinging.collectAsState()
                 val (up, down) = vm.speed.collectAsState().value
                 val elapsed by vm.elapsed.collectAsState()
                 val traffic by vm.sessionTraffic.collectAsState()
@@ -213,12 +214,16 @@ class MainActivity : ComponentActivity() {
                             Page.Home -> HomeScreen(
                                 state = vpn,
                                 tunMode = state.tunMode,
+                                socksPort = state.socksPort,
+                                httpPort = state.httpPort,
                                 onTunMode = vm::setProxyMode,
                                 server = selected,
                                 subscriptions = state.subscriptions,
                                 collapsed = collapsed,
                                 onToggleCollapse = vm::toggleCollapse,
                                 pings = pings,
+                                pinging = pinging,
+                                pingDisplay = state.pingDisplay,
                                 isFavorite = vm::isFavorite,
                                 checkPing = checkPing,
                                 showSubHeader = state.showSubHeader,
@@ -245,6 +250,8 @@ class MainActivity : ComponentActivity() {
                                 subscriptions = state.subscriptions,
                                 selected = selected,
                                 pings = pings,
+                                pinging = pinging,
+                                pingDisplay = state.pingDisplay,
                                 isFavorite = vm::isFavorite,
                                 collapsed = collapsed,
                                 sort = state.sort,

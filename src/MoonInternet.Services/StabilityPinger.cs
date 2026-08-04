@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -85,7 +85,7 @@ public sealed class StabilityPinger
         Process? core = null;
         try
         {
-            await File.WriteAllTextAsync(configPath, BuildProbeConfig(servers, ports), ct);
+            await File.WriteAllTextAsync(configPath, BuildProbeConfig(servers, ports), ct).ConfigureAwait(false);
 
             core = Process.Start(new ProcessStartInfo
             {
@@ -101,7 +101,7 @@ public sealed class StabilityPinger
 
             // The core binds its listeners a moment after the process appears; probing before that
             // gives every server a false "refused".
-            await Task.Delay(700, ct);
+            await Task.Delay(700, ct).ConfigureAwait(false);
             if (core.HasExited) { LastError = "ядро вышло сразу: " + await core.StandardError.ReadToEndAsync(ct) + await core.StandardOutput.ReadToEndAsync(ct); return Array.Empty<StabilityResult>(); }
 
             var results = new List<StabilityResult>(servers.Count);
@@ -109,7 +109,7 @@ public sealed class StabilityPinger
             {
                 ct.ThrowIfCancellationRequested();
                 progress?.Report($"Проверяю {i + 1} из {servers.Count}…");
-                results.Add(await ProbeOne(servers[i].Key, ports[i], probeUrl, attempts, timeoutMs, ct));
+                results.Add(await ProbeOne(servers[i].Key, ports[i], probeUrl, attempts, timeoutMs, ct).ConfigureAwait(false));
             }
             results.AddRange(skipped);
             return results;
@@ -141,7 +141,7 @@ public sealed class StabilityPinger
             var sw = Stopwatch.StartNew();
             try
             {
-                using var res = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+                using var res = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                 if ((int)res.StatusCode < 500) samples.Add((int)sw.ElapsedMilliseconds);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested) { /* timeout — a failed attempt */ }

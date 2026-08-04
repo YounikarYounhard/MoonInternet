@@ -44,27 +44,17 @@ val APP_VERSION: String get() = cc.moon.internet.BuildConfig.VERSION_NAME
 fun LanguageToggle() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val current = cc.moon.internet.data.Lang.effective(ctx)
-    Surface(shape = RoundedCornerShape(9.dp), color = Moon.Card,
-            border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft)) {
-        Row(Modifier.padding(3.dp)) {
-            listOf("ru" to "RU", "en" to "EN").forEach { (tag, label) ->
-                val active = current == tag
-                Surface(
-                    onClick = {
-                        if (!active) {
-                            cc.moon.internet.data.Lang.save(ctx, tag)
-                            (ctx as? android.app.Activity)?.recreate()
-                        }
-                    },
-                    shape = RoundedCornerShape(7.dp),
-                    color = if (active) Moon.Accent.copy(alpha = 0.18f) else Color.Transparent,
-                ) {
-                    Text(label, Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
-                         color = if (active) Moon.AccentText else Moon.TextSecondary,
-                         fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
+    Surface(
+        onClick = {
+            cc.moon.internet.data.Lang.save(ctx, if (current == "ru") "en" else "ru")
+            (ctx as? android.app.Activity)?.recreate()
+        },
+        shape = RoundedCornerShape(9.dp),
+        color = Moon.Card,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+    ) {
+        Text(current.uppercase(), Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+             color = Moon.AccentText, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -96,16 +86,17 @@ fun SubMeter(
     expiryFraction: Double,
     style: String,
 ) {
-    // Nothing to meter on an unlimited plan with no expiry — a bar of nothing and ten dots that
-    // never move say less than the plain "458 ГБ / ∞" the text style already gives.
-    val meterable = trafficFraction >= 0 || expiryFraction >= 0
-    when (if (meterable) style else "text") {
+    // An unlimited plan still gets a bar — a full one in a muted accent, meaning "no ceiling".
+    // Hiding it was read as "the bars do not work".
+    val tUnlimited = trafficFraction < 0
+    val eUnlimited = expiryFraction < 0
+    when (style) {
         "bar" -> Column(Modifier.padding(top = 6.dp, end = 14.dp)) {
-            if (trafficFraction >= 0) MeterBar(trafficFraction, meterColor(trafficFraction), 5.dp)
-            if (expiryFraction >= 0) {
-                Spacer(Modifier.height(4.dp))
-                MeterBar(expiryFraction, Moon.Accent, 3.dp)
-            }
+            MeterBar(if (tUnlimited) 1.0 else trafficFraction,
+                     if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction), 5.dp)
+            Spacer(Modifier.height(4.dp))
+            MeterBar(if (eUnlimited) 1.0 else expiryFraction,
+                     if (eUnlimited) Moon.MeterIdle else Moon.Accent, 3.dp)
             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Download, null, tint = Moon.TextMuted, modifier = Modifier.size(10.dp))
                 Text(" $trafficText", color = Moon.TextMuted, fontSize = 10.5.sp)
@@ -115,11 +106,9 @@ fun SubMeter(
             }
         }
         "dots" -> Column(Modifier.padding(top = 5.dp)) {
-            if (trafficFraction >= 0) MeterDots(trafficFraction, Moon.Accent, trafficText)
-            if (expiryFraction >= 0) {
-                if (trafficFraction >= 0) Spacer(Modifier.height(4.dp))
-                MeterDots(expiryFraction, Moon.AccentText, expiryText)
-            }
+            MeterDots(trafficFraction, if (tUnlimited) Moon.MeterIdle else Moon.Accent, trafficText)
+            Spacer(Modifier.height(4.dp))
+            MeterDots(expiryFraction, if (eUnlimited) Moon.MeterIdle else Moon.AccentText, expiryText)
         }
         else -> Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
@@ -156,6 +145,55 @@ private fun MeterDots(fraction: Double, color: Color, label: String) {
                     .background(if (i < lit) color else Moon.BorderSoft))
         }
         Text(label, color = Moon.TextMuted, fontSize = 10.5.sp, modifier = Modifier.padding(start = 5.dp))
+    }
+}
+
+
+/**
+ * Ping next to a server row, in the style the user picked — the same four the desktop offers.
+ * A row being measured shows a spinner instead of a stale number, so a batch fills in visibly
+ * one row at a time rather than snapping to thirty numbers at once.
+ *
+ * signal: 4 bars/dots for a fast answer down to 1 for a slow one, 0 when it did not answer.
+ */
+@Composable
+fun PingIndicator(ping: Int?, busy: Boolean, style: String) {
+    if (busy) {
+        CircularProgressIndicator(Modifier.size(13.dp), color = Moon.Accent, strokeWidth = 1.6.dp)
+        return
+    }
+    val ms = ping ?: return
+    val color = pingColorOf(ms)
+    val signal = when {
+        ms < 0 -> 0
+        ms < 80 -> 4
+        ms < 160 -> 3
+        ms < 300 -> 2
+        else -> 1
+    }
+    val text = if (ms < 0) "✕" else "$ms ms"
+    when (style) {
+        "dots" -> Row(verticalAlignment = Alignment.CenterVertically) {
+            repeat(4) { i ->
+                Box(Modifier.padding(horizontal = 1.dp).size(6.dp).clip(CircleShape)
+                        .background(color.copy(alpha = if (i < signal) 1f else 0.22f)))
+            }
+        }
+        "bar", "both" -> Row(verticalAlignment = Alignment.Bottom) {
+            listOf(4.dp, 7.dp, 10.dp, 13.dp).forEachIndexed { i, h ->
+                Box(Modifier.padding(horizontal = 1.dp).width(3.dp).height(h)
+                        .background(color.copy(alpha = if (i < signal) 1f else 0.22f)))
+            }
+            if (style == "both") {
+                Spacer(Modifier.width(6.dp))
+                Text(text, color = Moon.TextSecondary, fontSize = 11.5.sp)
+            }
+        }
+        else -> Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+            Spacer(Modifier.width(6.dp))
+            Text(text, color = Moon.TextSecondary, fontSize = 11.5.sp)
+        }
     }
 }
 

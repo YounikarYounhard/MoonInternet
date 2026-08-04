@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -25,9 +25,9 @@ public static class Pinger
                 client.Client.SetSocketOption(SocketOptionLevel.IP, IP_UNICAST_IF, IPAddress.HostToNetworkOrder(idx));
             }
             var connect = client.ConnectAsync(host, port);
-            if (await Task.WhenAny(connect, Task.Delay(timeoutMs)) != connect || !client.Connected)
+            if (await Task.WhenAny(connect, Task.Delay(timeoutMs)).ConfigureAwait(false) != connect || !client.Connected)
                 return -1;
-            await connect; // surface connect exceptions
+            await connect.ConfigureAwait(false); // surface connect exceptions
             return (int)sw.ElapsedMilliseconds;
         }
         catch
@@ -47,15 +47,15 @@ public static class Pinger
             if (outIfIndex is int idx)
                 client.Client.SetSocketOption(SocketOptionLevel.IP, IP_UNICAST_IF, IPAddress.HostToNetworkOrder(idx));
             var connect = client.ConnectAsync(host, port);
-            if (await Task.WhenAny(connect, Task.Delay(timeoutMs)) != connect || !client.Connected) return -1;
-            await connect;
+            if (await Task.WhenAny(connect, Task.Delay(timeoutMs)).ConfigureAwait(false) != connect || !client.Connected) return -1;
+            await connect.ConfigureAwait(false);
             var stream = client.GetStream();
             var req = System.Text.Encoding.ASCII.GetBytes($"{(head ? "HEAD" : "GET")} / HTTP/1.1\r\nHost: {host}\r\nUser-Agent: MoonInternet\r\nConnection: close\r\n\r\n");
-            await stream.WriteAsync(req);
+            await stream.WriteAsync(req).ConfigureAwait(false);
             var buf = new byte[1];
             var read = stream.ReadAsync(buf, 0, 1);
-            if (await Task.WhenAny(read, Task.Delay(timeoutMs)) != read) return (int)sw.ElapsedMilliseconds;
-            await read;
+            if (await Task.WhenAny(read, Task.Delay(timeoutMs)).ConfigureAwait(false) != read) return (int)sw.ElapsedMilliseconds;
+            await read.ConfigureAwait(false);
             return (int)sw.ElapsedMilliseconds;
         }
         catch { return -1; }
@@ -68,7 +68,7 @@ public static class Pinger
         try
         {
             using var ping = new Ping();
-            var reply = await ping.SendPingAsync(host, timeoutMs);
+            var reply = await ping.SendPingAsync(host, timeoutMs).ConfigureAwait(false);
             return reply.Status == IPStatus.Success ? (int)reply.RoundtripTime : -1;
         }
         catch { return -1; }
@@ -84,7 +84,7 @@ public static class Pinger
         {
             using var client = new TcpClient(AddressFamily.InterNetwork);
             var connect = client.ConnectAsync(host, port);
-            if (await Task.WhenAny(connect, Task.Delay(timeoutMs)) != connect) return -1;   // dropped, no answer
+            if (await Task.WhenAny(connect, Task.Delay(timeoutMs)).ConfigureAwait(false) != connect) return -1;   // dropped, no answer
             await connect;                                    // unlikely: port actually open
             return (int)sw.ElapsedMilliseconds;
         }

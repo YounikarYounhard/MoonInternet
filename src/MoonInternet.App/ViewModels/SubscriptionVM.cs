@@ -32,22 +32,37 @@ public partial class SubscriptionVM : ObservableObject
     [NotifyPropertyChangedFor(nameof(ExpiryFill), nameof(ExpiryRest), nameof(HasExpiryMeter), nameof(ExpiryDots))]
     private double expiryFraction = -1;
 
-    public bool HasTrafficMeter => TrafficFraction >= 0;
-    public bool HasExpiryMeter => ExpiryFraction >= 0;
+    // An unlimited plan still gets a bar — a full one in a muted accent, meaning "no ceiling".
+    // Hiding it instead was read as "the bars do not work".
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MeterBrush), nameof(ExpiryBrush))]
+    private bool trafficUnlimited = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ExpiryBrush))]
+    private bool expiryUnlimited = true;
+
+    public bool HasTrafficMeter => true;
+    public bool HasExpiryMeter => true;
     /// <summary>Bar width as a pair of star columns — filled and remaining.</summary>
-    public GridLength TrafficFill => Star(TrafficFraction);
-    public GridLength TrafficRest => Star(1 - Math.Clamp(TrafficFraction, 0, 1));
-    public GridLength ExpiryFill => Star(ExpiryFraction);
-    public GridLength ExpiryRest => Star(1 - Math.Clamp(ExpiryFraction, 0, 1));
+    public GridLength TrafficFill => Star(TrafficUnlimited ? 1 : TrafficFraction);
+    public GridLength TrafficRest => Star(TrafficUnlimited ? 0 : 1 - Math.Clamp(TrafficFraction, 0, 1));
+    public GridLength ExpiryFill => Star(ExpiryUnlimited ? 1 : ExpiryFraction);
+    public GridLength ExpiryRest => Star(ExpiryUnlimited ? 0 : 1 - Math.Clamp(ExpiryFraction, 0, 1));
     private static GridLength Star(double f) => new(Math.Clamp(f, 0, 1), GridUnitType.Star);
 
     /// <summary>Green while there is room, amber past 75%, red past 90% — the usual traffic-light read.</summary>
     public System.Windows.Media.Brush MeterBrush =>
-        TrafficFraction >= 0.9 ? MeterRed : TrafficFraction >= 0.75 ? MeterAmber : MeterGreen;
+        TrafficUnlimited ? MeterIdle
+        : TrafficFraction >= 0.9 ? MeterRed
+        : TrafficFraction >= 0.75 ? MeterAmber : MeterGreen;
+    public System.Windows.Media.Brush ExpiryBrush => ExpiryUnlimited ? MeterIdle : MeterAccent;
 
     private static readonly System.Windows.Media.Brush MeterGreen = ServerItem.Frozen(0x34, 0xD3, 0x99);
     private static readonly System.Windows.Media.Brush MeterAmber = ServerItem.Frozen(0xE8, 0xB3, 0x39);
     private static readonly System.Windows.Media.Brush MeterRed = ServerItem.Frozen(0xFF, 0x6B, 0x8A);
+    private static readonly System.Windows.Media.Brush MeterAccent = ServerItem.Frozen(0x9D, 0x7B, 0xFF);
+    /// <summary>No ceiling to fill towards — a calm bar rather than a scary full red one.</summary>
+    private static readonly System.Windows.Media.Brush MeterIdle = ServerItem.Frozen(0x4A, 0x3E, 0x78);
 
     /// <summary>Ten dots, filled left to right. Same information as the bar, smaller and calmer.</summary>
     public IReadOnlyList<bool> TrafficDots => Dots(TrafficFraction);
@@ -57,6 +72,9 @@ public partial class SubscriptionVM : ObservableObject
         int on = f < 0 ? 10 : (int)Math.Round(Math.Clamp(1 - f, 0, 1) * 10);   // dots show what is LEFT
         return Enumerable.Range(0, 10).Select(i => i < on).ToArray();
     }
+
+    partial void OnTrafficFractionChanged(double value) => TrafficUnlimited = value < 0;
+    partial void OnExpiryFractionChanged(double value) => ExpiryUnlimited = value < 0;
 
     /// <summary>True while this subscription is being pinged — the button shows a spinner.</summary>
     [ObservableProperty]

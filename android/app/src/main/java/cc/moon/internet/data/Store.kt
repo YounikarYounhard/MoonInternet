@@ -45,7 +45,7 @@ data class AppState(
     val preferredIp: String = "auto",   // auto | ipv4 | ipv6
     val showServerCount: Boolean = true,   // кружок с числом серверов у подписки
     val pingMethod: String = "moon",    // moon | tcp | httpget | httphead | stability
-    val pingStagger: Boolean = false,   // space the probes out instead of firing them all at once
+    val pingStagger: Boolean = true,    // space the probes out instead of firing them all at once
     val pingStaggerMs: Int = 150,       // gap between them when staggering
     val pingEveryMinutes: Int = 0,      // 0 = off; otherwise re-ping in the background this often
     val pingDisplay: String = "num",    // num | dot | both | off
@@ -63,6 +63,8 @@ data class AppState(
     val expiryNotifyDays: Int = 3,
     val sendHwid: Boolean = true,
     val autoConnectTarget: String = "first",   // first | favorite | last
+    val autoFailover: Boolean = true,          // выбранный сервер молчит -> взять самый быстрый живой
+    val reconnectDelaySec: Int = 5,            // пауза перед попыткой переподключиться: 3 | 5 | 10 | 30
     val logsEnabled: Boolean = true,
     val logLevel: String = "warning",
     // appearance — the desktop keeps these in theme.json; on a phone one state file is enough
@@ -88,6 +90,11 @@ data class AppState(
     val logKeepDays: Int = 7,
     val subIntervalMinutes: Int = 0,    // 0 = follow the subscription's own interval
     val hwid: String = "",
+    /**
+     * Bumped when a default changes in a way an existing install should pick up. Without it a
+     * saved value from the old default wins forever and the change only reaches new installs.
+     */
+    val settingsVersion: Int = 0,
 )
 
 /**
@@ -102,11 +109,20 @@ class Store(private val ctx: Context) {
     private val _state = MutableStateFlow(AppState())
     val state = _state.asStateFlow()
 
+    private companion object { const val CURRENT_VERSION = 2 }
+
     suspend fun load() = withContext(Dispatchers.IO) {
-        _state.value = runCatching {
-            if (file.exists()) json.decodeFromString<AppState>(file.readText()) else AppState()
-        }.getOrDefault(AppState())
+        val loaded = runCatching {
+            if (file.exists()) json.decodeFromString<AppState>(file.readText()) else AppState(settingsVersion = CURRENT_VERSION)
+        }.getOrDefault(AppState(settingsVersion = CURRENT_VERSION))
+        // v2: probes are spaced out by default now, so a batch fills the list one row at a time
+        // instead of snapping to thirty numbers at once.
+        _state.value = if (loaded.settingsVersion < CURRENT_VERSION)
+            loaded.copy(pingStagger = true, settingsVersion = CURRENT_VERSION).also { save(it) }
+        else loaded
     }
+
+    private fun save(st: AppState) = runCatching { file.writeText(json.encodeToString(st)) }
 
     suspend fun update(block: (AppState) -> AppState) = withContext(Dispatchers.IO) {
         val next = block(_state.value)
@@ -190,6 +206,9 @@ class Store(private val ctx: Context) {
         // Nothing measured yet — we have no grounds to overrule the preference.
         val measuredAny = all.any { pings.containsKey(it.raw) }
         if (!measuredAny || reachable(preferred)) return preferred
+        // The user can ask us to respect the preference even when it looks dead — some servers
+        // simply do not answer a probe while carrying traffic perfectly well.
+        if (!st.autoFailover) return preferred
 
         val pool = if (st.autoConnectTarget.startsWith("favorite") && favs.isNotEmpty()) favs else all
         return lowest(pool) ?: lowest(all)   // null when nothing answered at all

@@ -64,14 +64,16 @@ enum class SettingsPage(
 @Composable
 fun SettingsScreen(state: AppState, onOpen: (SettingsPage) -> Unit) {
     Column(Modifier.fillMaxSize().background(Moon.WinBg)) {
-        Row(Modifier.padding(start = 26.dp, end = 24.dp, top = 18.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.settingsscreen_001), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Moon.TextPrimary)
-                Text("Moon Internet · $APP_VERSION", fontSize = 12.5.sp, color = Moon.TextSecondary,
-                     modifier = Modifier.padding(top = 2.dp))
+        Column(Modifier.padding(start = 26.dp, end = 24.dp, top = 18.dp, bottom = 14.dp)) {
+            // The pill sits on the title's own line, not centred on the title+version block —
+            // that is where the desktop puts it.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.settingsscreen_001), fontSize = 26.sp, fontWeight = FontWeight.Bold,
+                     color = Moon.TextPrimary, modifier = Modifier.weight(1f))
+                LanguageToggle()
             }
-            LanguageToggle()
+            Text("Moon Internet · $APP_VERSION", fontSize = 12.5.sp, color = Moon.TextSecondary,
+                 modifier = Modifier.padding(top = 2.dp))
         }
         LazyColumn(
             Modifier.fillMaxSize().padding(horizontal = 24.dp),
@@ -168,9 +170,6 @@ private fun ConnectionPage(
 ) {
     Column {
         MoonCard {
-            SwitchRow(stringResource(R.string.settingsscreen_005), stringResource(R.string.settingsscreen_006),
-                state.autoReconnect) { v -> onSet { copy(autoReconnect = v) } }
-            RowDivider()
             SwitchRow("Kill Switch", stringResource(R.string.settingsscreen_007),
                 state.killSwitch) { v -> onSet { copy(killSwitch = v) } }
             RowDivider()
@@ -528,18 +527,35 @@ private fun PingPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
         SectionLabel(stringResource(R.string.settingsscreen_087), top = 0)
         ChipFlow(
             listOf("moon" to "Moon Ping", "tcp" to "TCP", "httpget" to "HTTP GET",
-                   "httphead" to "HTTP HEAD", "stability" to stringResource(R.string.settingsscreen_088)),
+                   "httphead" to "HTTP HEAD"),
             state.pingMethod,
         ) { v -> onSet { copy(pingMethod = v) } }
         Text(stringResource(R.string.settingsscreen_089) +
              stringResource(R.string.settingsscreen_090) +
              stringResource(R.string.settingsscreen_091),
              color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 16.sp,
-             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 6.dp))
-        Text(stringResource(R.string.settingsscreen_092) +
-             stringResource(R.string.settingsscreen_093),
-             color = Moon.AccentText, fontSize = 11.5.sp, lineHeight = 16.sp,
-             modifier = Modifier.padding(start = 4.dp, bottom = 16.dp))
+             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 16.dp))
+
+        // Стабильность стоит отдельно: она поднимает настоящее соединение, работает заметно
+        // дольше остальных и пока в бете.
+        MoonCard(padding = 14) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.settingsscreen_088), color = Moon.TextPrimary,
+                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(8.dp))
+                Surface(shape = RoundedCornerShape(6.dp), color = Color(0x33F5C042)) {
+                    Text(stringResource(R.string.settingsscreen_031), Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                         color = Color(0xFFF5C042), fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Text(stringResource(R.string.settingsscreen_092) + stringResource(R.string.settingsscreen_093),
+                 color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 16.sp,
+                 modifier = Modifier.padding(top = 6.dp, bottom = 10.dp))
+            ChipFlow(listOf("stability" to stringResource(R.string.ping_use_stability)), state.pingMethod) { v ->
+                onSet { copy(pingMethod = if (pingMethod == "stability") "moon" else v) }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
 
         SectionLabel(stringResource(R.string.settingsscreen_094), top = 0)
         MoonCard {
@@ -645,7 +661,22 @@ private fun AutoPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
                 }
             }
         }
-        // «Автозапуск с Windows» и «Авто-скрытие в трее» — только для ПК.
+        RowDivider()
+        // Auto-reconnect lives here, not on Подключение: it is the same family as auto-connect,
+        // and one place to look beats two.
+        SwitchRow(stringResource(R.string.settingsscreen_005), stringResource(R.string.settingsscreen_006),
+            state.autoReconnect) { v -> onSet { copy(autoReconnect = v) } }
+        if (state.autoReconnect) {
+            Column(Modifier.padding(12.dp, 0.dp, 12.dp, 12.dp)) {
+                Text(stringResource(R.string.auto_delay), color = Moon.TextSecondary, fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+                ChipFlow(listOf("3" to "3 с", "5" to "5 с", "10" to "10 с", "30" to "30 с"),
+                         state.reconnectDelaySec.toString()) { v -> onSet { copy(reconnectDelaySec = v.toInt()) } }
+            }
+        }
+        RowDivider()
+        SwitchRow(stringResource(R.string.auto_failover), stringResource(R.string.auto_failover_sub),
+            state.autoFailover) { v -> onSet { copy(autoFailover = v) } }
     }
 }
 

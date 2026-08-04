@@ -667,14 +667,14 @@
                                 <ColumnDefinition Width="{Binding ExpiryFill}"/>
                                 <ColumnDefinition Width="{Binding ExpiryRest}"/>
                             </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Background="{StaticResource Accent}" CornerRadius="2"/>
+                            <Border Grid.Column="0" Background="{Binding ExpiryBrush}" CornerRadius="2"/>
                         </Grid>
                     </Grid>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="9.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="4,0,0,0"/>
                         <!-- an ∞ on its own next to another ∞ reads as a typo; hide it when there is no date -->
-                        <StackPanel Orientation="Horizontal" Margin="10,0,0,0" Visibility="{Binding HasExpiryMeter, Converter={StaticResource BoolVis}}">
+                        <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
                             <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="9.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="4,0,0,0"/>
                         </StackPanel>
