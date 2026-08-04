@@ -94,9 +94,18 @@ fun HomeScreen(
 
                 // red dot in the corner when a newer release exists — same as on the desktop
                 Box(Modifier.align(Alignment.CenterStart).size(38.dp)) {
-                    IconButton(onClick = onUpdates, modifier = Modifier.size(38.dp)) {
-                        Icon(Icons.Filled.FileDownload, stringResource(R.string.homescreen_002),
-                             tint = Moon.TextSecondary, modifier = Modifier.size(19.dp))
+                    // framed like the rest of our small buttons — a bare glyph did not read as one
+                    Surface(
+                        onClick = onUpdates,
+                        shape = RoundedCornerShape(10.dp),
+                        color = Moon.Card,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+                        modifier = Modifier.size(38.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.FileDownload, stringResource(R.string.homescreen_002),
+                                 tint = Moon.AccentText, modifier = Modifier.size(19.dp))
+                        }
                     }
                     if (updateAvailable) {
                         Box(

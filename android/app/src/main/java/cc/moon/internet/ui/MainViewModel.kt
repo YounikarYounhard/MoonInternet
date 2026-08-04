@@ -107,6 +107,33 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         runCatching { androidx.core.app.NotificationManagerCompat.from(ctx).notify(42, n) }
     }
 
+    /** 0..100 while an update is downloading, -1 when the size is unknown, null when idle. */
+    private val _downloadProgress = MutableStateFlow<Int?>(null)
+    val downloadProgress = _downloadProgress.asStateFlow()
+
+    /**
+     * Fetches the release APK and opens the system installer on it. Android never installs
+     * silently — the installer asks, and on 8+ the user has to allow "install unknown apps" for us
+     * once; both are its own screens. If that permission is missing we send them straight to it.
+     */
+    fun downloadAndInstall() = viewModelScope.launch {
+        val url = _release.value?.apkUrl
+        val ctx = getApplication<Application>()
+        if (url.isNullOrBlank()) { _updateStatus.value = s(R.string.upd_no_apk); return@launch }
+        if (!cc.moon.internet.data.ApkInstaller.canInstall(ctx)) {
+            _updateStatus.value = s(R.string.upd_allow_install)
+            cc.moon.internet.data.ApkInstaller.openInstallPermission(ctx)
+            return@launch
+        }
+        _downloadProgress.value = 0
+        _updateStatus.value = s(R.string.upd_downloading)
+        val file = cc.moon.internet.data.ApkInstaller.download(ctx, url) { p -> _downloadProgress.value = p }
+        _downloadProgress.value = null
+        if (file == null) { _updateStatus.value = s(R.string.upd_failed); return@launch }
+        _updateStatus.value = s(R.string.upd_installing)
+        if (!cc.moon.internet.data.ApkInstaller.install(ctx, file)) _updateStatus.value = s(R.string.upd_failed)
+    }
+
     /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
     fun checkUpdate() = viewModelScope.launch {
         _updateStatus.value = s(R.string.vm_checking)
@@ -125,13 +152,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // row was showing an empty value because nothing ever created one.
             if (store.state.value.hwid.isBlank())
                 store.update { it.copy(hwid = UUID.randomUUID().toString().replace("-", "")) }
-            if (store.state.value.updateOnStart) refreshAll(silent = true) else if (store.state.value.pingOnStart) pingAll()
+            // Both, not one or the other: refreshAll bails out early when there is nothing to
+            // fetch, and the ping went with it — which is why the list opened with no numbers
+            // until the button was pressed.
+            if (store.state.value.updateOnStart) refreshAll(silent = true)
+            if (store.state.value.pingOnStart && _pings.value.isEmpty()) pingAll()
             requestAutoConnect()
         }
         // The launch check is gated: the badge and the popup are both something the user can
         // switch off on the Уведомления page, and a check nobody sees is just a request.
         viewModelScope.launch {
-            store.load()
+            store.load()   // no-op if the block above got there first
             if (store.state.value.notificationsEnabled && store.state.value.notifyAppUpdate) checkUpdate()
         }
         viewModelScope.launch { watchTraffic() }
@@ -495,7 +526,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val st = store.state.value
 
         // Another VPN client on the phone probably owns 10808/10809 already — see freeLocalPort.
-        val listen = if (st.allowLan) "0.0.0.0" else "127.0.0.1"
+        // proxy mode also shares the listeners on the LAN — that is what makes it a proxy
+        val listen = if (st.allowLan || !st.tunMode) "0.0.0.0" else "127.0.0.1"
         val socks = freeLocalPort(st.socksPort, listen)
         val http = freeLocalPort(st.httpPort, listen, avoid = setOf(socks))
         if (socks != st.socksPort || http != st.httpPort) {
@@ -517,7 +549,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 logLevel = if (st.logsEnabled) st.logLevel else "none",
                 logFile = if (st.logsEnabled) cc.moon.internet.data.LogStore.file(getApplication()).absolutePath else null,
                 socksPort = socks,
-                    proxyUser = st.proxyUser,
+                httpPort = http,
+                proxyUser = st.proxyUser,
                 proxyPass = st.proxyPass,
                 socksAuth = st.socks5Auth,
                 httpAuth = st.httpProxyAuth,
@@ -527,7 +560,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }.getOrElse { _status.value = s(R.string.vm_config_error, it.message); return }
 
         // Прокси-режим: только локальные SOCKS/HTTP, без системного туннеля.
-        if (!st.tunMode) config = XrayConfig.buildProxyOnly(config)
+        // Proxy mode keeps the tunnel. Stripping the tun inbound left nothing capturing traffic,
+        // which is why picking it looked like the app had stopped working — INCY's "proxy" is
+        // their TUN_PROXY, tunnel plus an exposed local proxy, not their PROXY_ONLY.
 
         if (st.useRouting && store.activeRouting() != null && !GeoService.ready(getApplication())) {
             refreshGeo(force = false)

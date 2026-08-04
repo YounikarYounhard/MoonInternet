@@ -181,6 +181,7 @@ fun UpdateDialog(
     release: cc.moon.internet.data.ReleaseInfo?,
     status: String,
     available: Boolean,
+    progress: Int?,
     onCheck: () -> Unit,
     onDownload: () -> Unit,
     onDismiss: () -> Unit,
@@ -210,6 +211,12 @@ fun UpdateDialog(
                              fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
                     }
                 }
+                progress?.let { p ->
+                    if (p >= 0) LinearProgressIndicator({ p / 100f }, Modifier.fillMaxWidth().padding(top = 12.dp),
+                                                        color = Moon.Accent, trackColor = Moon.BorderSoft)
+                    else LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp),
+                                                 color = Moon.Accent, trackColor = Moon.BorderSoft)
+                }
                 if (status.isNotBlank()) {
                     Text(status, color = Moon.AccentText, fontSize = 12.5.sp,
                          modifier = Modifier.padding(top = 12.dp))
@@ -228,7 +235,7 @@ fun UpdateDialog(
         },
         confirmButton = {
             if (available) {
-                TextButton(onClick = onDownload) {
+                TextButton(onClick = onDownload, enabled = progress == null) {
                     Text(stringResource(R.string.sheets_014), color = Moon.Accent, fontWeight = FontWeight.SemiBold)
                 }
             } else {

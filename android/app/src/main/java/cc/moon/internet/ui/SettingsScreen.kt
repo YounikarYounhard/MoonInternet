@@ -681,6 +681,40 @@ private fun AutoPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
         RowDivider()
         SwitchRow(stringResource(R.string.auto_failover), stringResource(R.string.auto_failover_sub),
             state.autoFailover) { v -> onSet { copy(autoFailover = v) } }
+        RowDivider()
+        SwitchRow(stringResource(R.string.auto_boot), stringResource(R.string.auto_boot_sub),
+            state.startOnBoot) { v -> onSet { copy(startOnBoot = v) } }
+    }
+
+    // Two things only the system can grant. Both are one screen away and neither can be set for
+    // the user, so these rows take them straight there instead of explaining where to look.
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    SectionLabel(stringResource(R.string.auto_permissions))
+    MoonCard {
+        val ignoring = remember {
+            val pm = ctx.getSystemService(android.os.PowerManager::class.java)
+            android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M ||
+                pm.isIgnoringBatteryOptimizations(ctx.packageName)
+        }
+        NavRow(
+            stringResource(R.string.auto_battery),
+            stringResource(if (ignoring) R.string.auto_battery_done else R.string.auto_battery_sub),
+        ) {
+            runCatching {
+                ctx.startActivity(
+                    android.content.Intent(
+                        android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        android.net.Uri.parse("package:" + ctx.packageName),
+                    )
+                )
+            }
+        }
+        RowDivider()
+        NavRow(stringResource(R.string.auto_alwayson), stringResource(R.string.auto_alwayson_sub)) {
+            // No API can turn this on for us — it lives in the system VPN screen by design.
+            runCatching { ctx.startActivity(android.content.Intent("android.net.vpn.SETTINGS")) }
+                .onFailure { runCatching { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_SETTINGS)) } }
+        }
     }
 }
 

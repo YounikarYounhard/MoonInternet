@@ -33,7 +33,7 @@
     <string name="page_libs">"Сторонние библиотеки"</string>
     <string name="settingsscreen_001">"Настройки"</string>
     <string name="settingsscreen_002">"ШРИФТ"</string>
-    <string name="settingsscreen_003">"Comic (как на ПК)"</string>
+    <string name="settingsscreen_003">"Comic Sans"</string>
     <string name="settingsscreen_004">"Системный"</string>
     <string name="settingsscreen_005">"Авто-переподключение"</string>
     <string name="settingsscreen_006">"Если ядро упало — переподключиться автоматически"</string>
@@ -366,4 +366,17 @@
     <string name="welcome_scan">"Сканировать QR-код"</string>
     <string name="welcome_paste">"Вставить из буфера"</string>
     <string name="welcome_skip">"Позже"</string>
+    <string name="upd_no_apk">"В релизе нет APK — откройте страницу релиза"</string>
+    <string name="upd_allow_install">"Разрешите установку из этого приложения и нажмите ещё раз"</string>
+    <string name="upd_downloading">"Скачиваю обновление…"</string>
+    <string name="upd_installing">"Открываю установщик…"</string>
+    <string name="upd_failed">"Не удалось скачать обновление"</string>
+    <string name="auto_boot">"Запускать при включении телефона"</string>
+    <string name="auto_boot_sub">"Поднять туннель сразу после перезагрузки. Разрешение на VPN переживает перезагрузку, повторно подтверждать не нужно"</string>
+    <string name="auto_permissions">"РАЗРЕШЕНИЯ СИСТЕМЫ"</string>
+    <string name="auto_battery">"Не усыплять в фоне"</string>
+    <string name="auto_battery_sub">"Система может обрывать туннель ради экономии батареи. Нажмите и подтвердите"</string>
+    <string name="auto_battery_done">"Уже разрешено"</string>
+    <string name="auto_alwayson">"Постоянный VPN"</string>
+    <string name="auto_alwayson_sub">"Android умеет держать VPN всегда включённым. Включается только в системных настройках — откроем их"</string>
 </resources>

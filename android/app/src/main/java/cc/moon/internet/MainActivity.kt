@@ -118,6 +118,7 @@ class MainActivity : ComponentActivity() {
                 val updateAvailable by vm.updateAvailable.collectAsState()
                 val release by vm.release.collectAsState()
                 val updateStatus by vm.updateStatus.collectAsState()
+                val downloadProgress by vm.downloadProgress.collectAsState()
 
                 // Saveable, not plain remember: switching the language recreates the activity, and
                 // landing back on Home every time reads like the app restarted.
@@ -397,9 +398,11 @@ class MainActivity : ComponentActivity() {
 
                             available = updateAvailable,
 
+                            progress = downloadProgress,
+
                             onCheck = { vm.checkUpdate() },
 
-                            onDownload = { openUrl(release?.apkUrl ?: release?.pageUrl) },
+                            onDownload = { vm.downloadAndInstall() },
 
                             onDismiss = { showUpdate = false },
 

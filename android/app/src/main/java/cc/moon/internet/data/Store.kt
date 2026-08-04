@@ -5,6 +5,7 @@ import cc.moon.internet.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -64,6 +65,7 @@ data class AppState(
     val expiryNotifyDays: Int = 3,
     val sendHwid: Boolean = true,
     val autoConnectTarget: String = "first",   // first | favorite | last
+    val startOnBoot: Boolean = false,          // поднять туннель после перезагрузки телефона
     val autoFailover: Boolean = true,          // выбранный сервер молчит -> взять самый быстрый живой
     val reconnectDelaySec: Int = 5,            // пауза перед попыткой переподключиться: 3 | 5 | 10 | 30
     val logsEnabled: Boolean = true,
@@ -113,7 +115,21 @@ class Store(private val ctx: Context) {
 
     private companion object { const val CURRENT_VERSION = 4 }
 
-    suspend fun load() = withContext(Dispatchers.IO) {
+    private val loadOnce = kotlinx.coroutines.sync.Mutex()
+    @Volatile private var loaded = false
+
+    /**
+     * Reads the state file. Callable from anywhere, but it only ever reads once: two coroutines
+     * racing here meant the second one could read the file mid-write, fail to decode, fall back to
+     * defaults — and then the next update() wrote those defaults over everything the user had.
+     */
+    suspend fun load() = loadOnce.withLock {
+        if (loaded) return@withLock
+        loaded = true
+        loadNow()
+    }
+
+    private suspend fun loadNow() = withContext(Dispatchers.IO) {
         val loaded = runCatching {
             if (file.exists()) json.decodeFromString<AppState>(file.readText()) else AppState(settingsVersion = CURRENT_VERSION)
         }.getOrDefault(AppState(settingsVersion = CURRENT_VERSION))

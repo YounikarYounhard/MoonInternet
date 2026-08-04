@@ -31,7 +31,7 @@
     <string name="page_libs">"Third-party libraries"</string>
     <string name="settingsscreen_001">"Settings"</string>
     <string name="settingsscreen_002">"FONT"</string>
-    <string name="settingsscreen_003">"Comic (as on PC)"</string>
+    <string name="settingsscreen_003">"Comic Sans"</string>
     <string name="settingsscreen_004">"System"</string>
     <string name="settingsscreen_005">"Auto-reconnect"</string>
     <string name="settingsscreen_006">"Reconnect on its own if the core dies"</string>
@@ -364,4 +364,17 @@
     <string name="welcome_scan">"Scan a QR code"</string>
     <string name="welcome_paste">"Paste from the clipboard"</string>
     <string name="welcome_skip">"Later"</string>
+    <string name="upd_no_apk">"No APK in this release — open the release page"</string>
+    <string name="upd_allow_install">"Allow installing from this app, then tap again"</string>
+    <string name="upd_downloading">"Downloading the update…"</string>
+    <string name="upd_installing">"Opening the installer…"</string>
+    <string name="upd_failed">"Could not download the update"</string>
+    <string name="auto_boot">"Start when the phone starts"</string>
+    <string name="auto_boot_sub">"Bring the tunnel up right after a reboot. The VPN consent survives a restart, so nothing to confirm again"</string>
+    <string name="auto_permissions">"SYSTEM PERMISSIONS"</string>
+    <string name="auto_battery">"Do not sleep in the background"</string>
+    <string name="auto_battery_sub">"The system may cut the tunnel to save battery. Tap and confirm"</string>
+    <string name="auto_battery_done">"Already allowed"</string>
+    <string name="auto_alwayson">"Always-on VPN"</string>
+    <string name="auto_alwayson_sub">"Android can keep a VPN always on. Only the system settings can turn it on — we will open them"</string>
 </resources>
