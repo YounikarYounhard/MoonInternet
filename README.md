@@ -1,12 +1,36 @@
-# 🌙 Moon Internet
+<div align="center">
 
-Кастомизируемый VPN/прокси-клиент для **Windows** (WPF / .NET 9) и **Android** (Kotlin / Compose).
-Работает с подписками HAPP, INCY, V2Ray/Xray и совместимыми.
+<img src="src/MoonInternet.App/Assets/moon.png" width="110" alt="Moon Internet">
 
-*[English version](README-EN.md)*
+# Moon Internet
 
-> **Статус: 0.9.0 beta.** Приложением можно пользоваться каждый день, но шероховатости есть.
-> Интерфейс пока **только на русском**.
+**VPN/прокси-клиент для Windows и Android.**
+Ваши подписки, ваши серверы, ваши правила — и ничего, что уходит наружу.
+
+[![Release](https://img.shields.io/github/v/release/YounikarYounhard/MoonInternet?include_prereleases&label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F&color=9D7BFF)](../../releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/YounikarYounhard/MoonInternet/total?label=%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D0%B9&color=34D399)](../../releases)
+[![License](https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-blue)](LICENSE)
+![Platforms](https://img.shields.io/badge/Windows%2010%2F11-x64-0078D6)
+![Android](https://img.shields.io/badge/Android%207.0%2B-arm64-3DDC84)
+
+### [⬇ Скачать](../../releases/latest) · [English](README-EN.md)
+
+</div>
+
+---
+
+<div align="center">
+
+<img src="docs/win-home.png" width="270" alt="Главный экран"> <img src="docs/win-settings.png" width="270" alt="Настройки"> <img src="docs/win-servers.png" width="270" alt="Сервера">
+
+<img src="docs/and-home.png" width="200" alt="Android — главная"> <img src="docs/and-settings.png" width="200" alt="Android — настройки"> <img src="docs/and-servers.png" width="200" alt="Android — сервера">
+
+</div>
+
+---
+
+> **Статус: 0.9.1 beta.** Приложением можно пользоваться каждый день, но шероховатости есть.
+> Интерфейс на **русском и английском**, переключается на лету.
 
 | Платформа | Состояние | Что скачивать |
 |---|---|---|
@@ -25,6 +49,9 @@
 - **Действия с сервером** — избранное, пинг, просмотр конфигурации (JSON с подсветкой), копирование ссылки, QR-код
 - **Живая статистика** — реальная скорость приёма/отдачи и трафик за сессию, прямо из ядра
 - **Трей** — подключение, смена сервера, пинг, сортировка, режим транспорта
+- **Обновления** — проверка GitHub при запуске, скачивание и запуск установщика прямо из приложения
+- **Уведомления** — подключение, новая версия, конец трафика и срок подписки; всплывать или молча
+- **Два языка** — русский и английский, переключатель в настройках
 - **Оформление** — темы, цвета кнопок/фона/текста, шрифт, прозрачность окна, свои картинки луны
 
 ## Установка (Windows)

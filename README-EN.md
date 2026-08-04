@@ -1,18 +1,40 @@
-# 🌙 Moon Internet
+<div align="center">
 
-A customizable VPN/proxy client for **Windows** (WPF / .NET 9) and **Android** (Kotlin / Compose).
-Works with HAPP, INCY, V2Ray/Xray and Nekoray-style subscriptions.
+<img src="src/MoonInternet.App/Assets/moon.png" width="110" alt="Moon Internet">
 
-**Кастомизируемый VPN/прокси-клиент для Windows и Android.** Подписки HAPP, INCY, V2Ray/Xray и совместимые.
+# Moon Internet
 
-*[Версия на русском](README.md)*
+**A VPN/proxy client for Windows and Android.**
+Your subscriptions, your servers, your rules — and nothing that leaves the device.
 
-> **Status: 0.9.0 beta.** Usable day to day, but expect rough edges.
-> The UI is currently **Russian only**.
+[![Release](https://img.shields.io/github/v/release/YounikarYounhard/MoonInternet?include_prereleases&label=release&color=9D7BFF)](../../releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/YounikarYounhard/MoonInternet/total?color=34D399)](../../releases)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+![Platforms](https://img.shields.io/badge/Windows%2010%2F11-x64-0078D6)
+![Android](https://img.shields.io/badge/Android%207.0%2B-arm64-3DDC84)
 
-| Platform | State | Download |
+### [⬇ Download](../../releases/latest) · [Русский](README.md)
+
+</div>
+
+---
+
+<div align="center">
+
+<img src="docs/win-home.png" width="270" alt="Home"> <img src="docs/win-settings.png" width="270" alt="Settings"> <img src="docs/win-servers.png" width="270" alt="Servers">
+
+<img src="docs/and-home.png" width="200" alt="Android home"> <img src="docs/and-settings.png" width="200" alt="Android settings"> <img src="docs/and-servers.png" width="200" alt="Android servers">
+
+</div>
+
+---
+
+> **Status: 0.9.1 beta.** Usable every day, with rough edges left.
+> The interface is in **Russian and English**, switchable on the fly.
+
+| Platform | State | What to download |
 |---|---|---|
-| Windows 10/11 x64 | released | `MoonInternet-Setup-*.exe` |
+| Windows 10/11 x64 | release | `MoonInternet-Setup-*.exe` |
 | Android 7.0+ (arm64) | beta | `MoonInternet-*.apk` |
 
 ---
