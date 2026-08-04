@@ -26,6 +26,7 @@ data class AppState(
     val dns: String = "1.1.1.1",
     val ipv6: Boolean = false,
     val sort: String = "default",
+    /** Always true for now: the proxy-only mode was removed, another is planned. */
     val tunMode: Boolean = true,
     /** urls of subscriptions the user collapsed on Home */
     val collapsed: List<String> = emptyList(),
@@ -111,9 +112,13 @@ class Store(private val ctx: Context) {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; prettyPrint = false }
 
     private val _state = MutableStateFlow(AppState())
+
+    /** False until the state file has been read, so nothing renders off the defaults. */
+    private val _ready = MutableStateFlow(false)
+    val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 4 }
+    private companion object { const val CURRENT_VERSION = 5 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -139,12 +144,14 @@ class Store(private val ctx: Context) {
         // v4: anybody who already has a subscription has clearly been past the first launch.
         _state.value = if (loaded.settingsVersion < CURRENT_VERSION)
             loaded.copy(
+                tunMode = true,   // v5: proxy-only is gone; anybody stuck in it gets the tunnel back
                 pingStagger = true,
                 subMeter = "text",
                 welcomeShown = loaded.welcomeShown || loaded.subscriptions.isNotEmpty(),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
         else loaded
+        _ready.value = true
     }
 
     private fun save(st: AppState) = runCatching { file.writeText(json.encodeToString(st)) }

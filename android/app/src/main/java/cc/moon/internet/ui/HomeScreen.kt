@@ -37,8 +37,6 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun HomeScreen(
     state: State,
-    tunMode: Boolean,
-    onTunMode: (Boolean) -> Unit,
     server: ServerProfile?,
     subscriptions: List<Subscription>,
     collapsed: Set<String>,
@@ -77,7 +75,10 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = bottomNavSpace()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // ---- Прокси / TUN, с плиткой обновления слева ----------------------
+        // ---- режим, с плиткой обновления слева -----------------------------
+        // One button for now. A proxy-only mode is not a thing on Android — HAPP, INCY and
+        // v2RayTun do not offer one either — so promising it with a second tab was misleading.
+        // The row stays a row because another mode is planned for it.
         item {
             Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -87,8 +88,7 @@ fun HomeScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2150)),
                 ) {
                     Row(Modifier.padding(3.dp)) {
-                        SegButton(stringResource(R.string.homescreen_001), !tunMode) { onTunMode(false) }
-                        SegButton("TUN", tunMode) { onTunMode(true) }
+                        SegButton(stringResource(R.string.mode_tunnel), true) { }
                     }
                 }
 
@@ -194,18 +194,21 @@ fun HomeScreen(
         // ---- stats + add/paste ----------------------------------------------
         item {
             Spacer(Modifier.height(12.dp))
+            // Everything shares the width by weight. Fixed columns beside a weighted one was the
+            // actual tablet problem: the buttons took every extra pixel and the readouts kept
+            // their 104dp whatever the screen was.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.width(104.dp)) {
+                Column(Modifier.weight(1f).widthIn(min = 104.dp)) {
                     StatCell(stringResource(R.string.homescreen_009), "↑", upSpeed, Moon.Green)
                     Spacer(Modifier.height(7.dp))
                     StatCell(stringResource(R.string.homescreen_010), "↓", downSpeed, Moon.AccentText)
                 }
-                Column(Modifier.width(90.dp)) {
+                Column(Modifier.weight(1f).widthIn(min = 90.dp)) {
                     StatCell(stringResource(R.string.homescreen_011), null, elapsed, Moon.TextPrimary)
                     Spacer(Modifier.height(7.dp))
                     StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
                 }
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
                     ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add, Color(0xFF2C2058), Color(0xFFC4B4FF), onAdd)
                     Spacer(Modifier.height(6.dp))
                     ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste, Moon.ChipBg, Color(0xFFC6CAD3), onPaste)

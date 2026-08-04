@@ -379,4 +379,5 @@
     <string name="auto_battery_done">"Уже разрешено"</string>
     <string name="auto_alwayson">"Постоянный VPN"</string>
     <string name="auto_alwayson_sub">"Android умеет держать VPN всегда включённым. Включается только в системных настройках — откроем их"</string>
+    <string name="mode_tunnel">"Туннель"</string>
 </resources>

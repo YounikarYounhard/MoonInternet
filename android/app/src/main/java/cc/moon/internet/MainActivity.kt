@@ -50,13 +50,6 @@ import cc.moon.internet.R
 /** The four pages the desktop window has. */
 private enum class Page { Home, Servers, Routing, Settings }
 
-/**
- * How wide the content is allowed to get. The desktop window it was ported from is 420dp;
- * a little more than that reads fine on a big phone, and anything past it is a tablet
- * stretching a layout that was never meant to fill one.
- */
-private val CONTENT_MAX_WIDTH = 460.dp
-
 class MainActivity : ComponentActivity() {
 
     companion object {
@@ -94,7 +87,14 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(state.accentHex, state.bgHex, state.textHex) {
                 applyTheme(state.accentHex, state.bgHex, state.textHex)
             }
+            val ready by vm.ready.collectAsState()
             MoonTheme(fontName = state.fontName) {
+                // Nothing until the state file has been read: rendering off the defaults flashed
+                // the welcome screen for a frame on every launch.
+                if (!ready) {
+                    Box(Modifier.fillMaxSize().background(Moon.WinBg))
+                    return@MoonTheme
+                }
                 // First launch takes the whole window: there is nothing behind it worth seeing
                 // until a subscription exists.
                 if (!state.welcomeShown) {
@@ -222,17 +222,13 @@ class MainActivity : ComponentActivity() {
                     },
                 ) { pad ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                    // The layout is a phone layout — it was ported from a 420dp-wide desktop
-                    // window. Left to fill a tablet it stretches into nonsense: the Добавить /
-                    // Вставить column grew until the speed and traffic readouts had no room.
-                    // Capping the content and centring it fixes every row at once, and is what
-                    // the other clients do on a tablet too.
-                    Box(Modifier.padding(pad).widthIn(max = CONTENT_MAX_WIDTH).fillMaxHeight()) {
+                    // Full width on purpose. Capping it to a phone column left a tablet mostly
+                    // empty, which reads worse than a stretched row — the rows that actually
+                    // misbehaved are fixed where they are, in the layouts themselves.
+                    Box(Modifier.padding(pad).fillMaxSize()) {
                         when (page) {
                             Page.Home -> HomeScreen(
                                 state = vpn,
-                                tunMode = state.tunMode,
-                                onTunMode = vm::setProxyMode,
                                 server = selected,
                                 subscriptions = state.subscriptions,
                                 collapsed = collapsed,
@@ -526,9 +522,6 @@ private fun BottomNav(
 ) {
     Box(
         modifier
-            // the cap goes before fillMaxWidth, not after: constraints flow outwards in, so
-            // filling first and clamping second leaves the bar full width on a tablet
-            .widthIn(max = CONTENT_MAX_WIDTH)
             .fillMaxWidth()
             // the inset next, so the card clears the system buttons instead of sitting on them
             .navigationBarsPadding()

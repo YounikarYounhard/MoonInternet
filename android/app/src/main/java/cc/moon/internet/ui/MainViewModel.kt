@@ -32,6 +32,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val store = Store(app)
     val state get() = store.state
+    val ready get() = store.ready
 
     private val _status = MutableStateFlow("")
     val status = _status.asStateFlow()
@@ -143,6 +144,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _updateAvailable.value = cc.moon.internet.data.UpdateService.isNewer(r.version, appVersion)
         _updateStatus.value =
             if (_updateAvailable.value) s(R.string.vm_update_available, r.version) else s(R.string.vm_up_to_date)
+        val st = store.state.value
+        if (_updateAvailable.value && st.notificationsEnabled && st.notifyAppUpdate)
+            postNotice(s(R.string.vm_update_available, r.version))
     }
 
     init {
@@ -159,12 +163,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (store.state.value.pingOnStart && _pings.value.isEmpty()) pingAll()
             requestAutoConnect()
         }
-        // The launch check is gated: the badge and the popup are both something the user can
-        // switch off on the Уведомления page, and a check nobody sees is just a request.
-        viewModelScope.launch {
-            store.load()   // no-op if the block above got there first
-            if (store.state.value.notificationsEnabled && store.state.value.notifyAppUpdate) checkUpdate()
-        }
+        // Always check at launch. Gating the check itself on the notification setting left the
+        // About page showing a dash for the GitHub version and "you are up to date" for something
+        // nobody had looked up — the setting belongs on the popup, not on the lookup.
+        checkUpdate()
         viewModelScope.launch { watchTraffic() }
         viewModelScope.launch {
             vpnState.collect { s ->
@@ -352,7 +354,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissWelcome() = viewModelScope.launch { store.update { it.copy(welcomeShown = true) } }
 
-    fun setTunMode(on: Boolean) = viewModelScope.launch { store.update { it.copy(tunMode = on) } }
 
     fun sortedServers(): List<ServerProfile> = store.sortedServers(_pings.value)
 
@@ -732,11 +733,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Last lines of the core log, for the viewer. */
     fun logsTail(): String = cc.moon.internet.data.LogStore.tail(getApplication())
-
-    fun setProxyMode(tun: Boolean) = viewModelScope.launch {
-        store.update { it.copy(tunMode = tun) }
-        reconnectIfConnected()
-    }
 
     /** Generic one-off message in the snackbar (copied, empty clipboard, not-built-yet screens). */
     fun notImplemented(what: String) { _status.value = what }

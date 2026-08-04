@@ -377,4 +377,5 @@
     <string name="auto_battery_done">"Already allowed"</string>
     <string name="auto_alwayson">"Always-on VPN"</string>
     <string name="auto_alwayson_sub">"Android can keep a VPN always on. Only the system settings can turn it on — we will open them"</string>
+    <string name="mode_tunnel">"Tunnel"</string>
 </resources>
