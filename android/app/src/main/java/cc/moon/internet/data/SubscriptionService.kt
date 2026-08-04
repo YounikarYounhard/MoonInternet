@@ -1,6 +1,7 @@
 package cc.moon.internet.data
 
 import android.util.Base64
+import cc.moon.internet.R
 import cc.moon.internet.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -102,21 +103,38 @@ object SubscriptionService {
     }
 
     fun size(b: Long): String = when {
-        b < 1024 -> "$b Б"
-        b < 1024L * 1024 -> String.format("%.1f КБ", b / 1024.0)
-        b < 1024L * 1024 * 1024 -> String.format("%.1f МБ", b / 1048576.0)
-        b < 1024L * 1024 * 1024 * 1024 -> String.format("%.2f ГБ", b / 1073741824.0)
-        else -> String.format("%.2f ТБ", b / 1099511627776.0)
+        b < 1024 -> String.format(unit(0), b.toDouble())
+        b < 1024L * 1024 -> String.format(unit(1), b / 1024.0)
+        b < 1024L * 1024 * 1024 -> String.format(unit(2), b / 1048576.0)
+        b < 1024L * 1024 * 1024 * 1024 -> String.format(unit(3), b / 1073741824.0)
+        else -> String.format(unit(4), b / 1099511627776.0)
     }
+
+    /**
+     * Unit suffixes come from resources, so they follow the language switch. Set once from the
+     * application context — these are called from a Service and a ViewModel, and threading a
+     * Context through every call site to format a number is not worth it.
+     */
+    private var units: List<String> = listOf("%.0f B", "%.1f KB", "%.1f MB", "%.2f GB", "%.2f TB")
+    private var speeds: List<String> = listOf("%.0f bit/s", "%.1f kbit/s", "%.1f Mbit/s", "%.2f Gbit/s")
+
+    fun loadUnits(ctx: android.content.Context) {
+        units = listOf(R.string.unit_b, R.string.unit_kb, R.string.unit_mb, R.string.unit_gb, R.string.unit_tb)
+            .map(ctx::getString)
+        speeds = listOf(R.string.speed_bit, R.string.speed_kbit, R.string.speed_mbit, R.string.speed_gbit)
+            .map(ctx::getString)
+    }
+
+    private fun unit(i: Int) = units[i]
 
     /** Speed in bits, like a speed test shows it. */
     fun speed(bytesPerSec: Long): String {
         val bits = bytesPerSec * 8.0
         return when {
-            bits < 1000 -> String.format("%.0f бит/с", bits)
-            bits < 1_000_000 -> String.format("%.1f Кбит/с", bits / 1000)
-            bits < 1_000_000_000 -> String.format("%.1f Мбит/с", bits / 1_000_000)
-            else -> String.format("%.2f Гбит/с", bits / 1_000_000_000)
+            bits < 1000 -> String.format(speeds[0], bits)
+            bits < 1_000_000 -> String.format(speeds[1], bits / 1000)
+            bits < 1_000_000_000 -> String.format(speeds[2], bits / 1_000_000)
+            else -> String.format(speeds[3], bits / 1_000_000_000)
         }
     }
 }

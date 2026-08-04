@@ -333,4 +333,15 @@
     <string name="submeter_text">"Текст"</string>
     <string name="submeter_bar">"Полосы"</string>
     <string name="submeter_dots">"Точки"</string>
+    <string name="unit_b" formatted="false">"%.0f Б"</string>
+    <string name="unit_kb" formatted="false">"%.1f КБ"</string>
+    <string name="unit_mb" formatted="false">"%.1f МБ"</string>
+    <string name="unit_gb" formatted="false">"%.2f ГБ"</string>
+    <string name="unit_tb" formatted="false">"%.2f ТБ"</string>
+    <string name="speed_bit" formatted="false">"%.0f бит/с"</string>
+    <string name="speed_kbit" formatted="false">"%.1f Кбит/с"</string>
+    <string name="speed_mbit" formatted="false">"%.1f Мбит/с"</string>
+    <string name="speed_gbit" formatted="false">"%.2f Гбит/с"</string>
+    <string name="fmt_sub_meta_noexp">"%1$d серверов · %2$s"</string>
+    <string name="section_protocol">"ПРОТОКОЛ"</string>
 </resources>

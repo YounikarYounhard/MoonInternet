@@ -120,7 +120,7 @@ fun ServersScreen(
         }
 
         item {
-            ChipSection(stringResource(R.string.settingsscreen_087),
+            ChipSection(stringResource(R.string.section_protocol),
                         protocols.map { it to it.ifEmpty { allLabel } }, protocol) { protocol = it }
             ChipSection(
                 stringResource(R.string.serversscreen_007),

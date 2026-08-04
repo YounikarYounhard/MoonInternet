@@ -331,4 +331,15 @@
     <string name="submeter_text">"Text"</string>
     <string name="submeter_bar">"Bars"</string>
     <string name="submeter_dots">"Dots"</string>
+    <string name="unit_b" formatted="false">"%.0f B"</string>
+    <string name="unit_kb" formatted="false">"%.1f KB"</string>
+    <string name="unit_mb" formatted="false">"%.1f MB"</string>
+    <string name="unit_gb" formatted="false">"%.2f GB"</string>
+    <string name="unit_tb" formatted="false">"%.2f TB"</string>
+    <string name="speed_bit" formatted="false">"%.0f bit/s"</string>
+    <string name="speed_kbit" formatted="false">"%.1f kbit/s"</string>
+    <string name="speed_mbit" formatted="false">"%.1f Mbit/s"</string>
+    <string name="speed_gbit" formatted="false">"%.2f Gbit/s"</string>
+    <string name="fmt_sub_meta_noexp">"%1$d servers · %2$s"</string>
+    <string name="section_protocol">"PROTOCOL"</string>
 </resources>

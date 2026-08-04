@@ -201,7 +201,17 @@ private fun ConnectionPage(
         MoonCard {
             SwitchRow(stringResource(R.string.settingsscreen_018),
                 stringResource(R.string.settingsscreen_019),
-                state.socks5Auth) { v -> onSet { copy(socks5Auth = v) } }
+                state.socks5Auth) { v ->
+                // Generate on the way in, like the desktop does: turning the switch on with empty
+                // credentials left the accounts block out of the config, so nothing was protected.
+                onSet {
+                    if (v && proxyUser.isBlank())
+                        copy(socks5Auth = true,
+                             proxyUser = "moon_" + java.util.UUID.randomUUID().toString().replace("-", "").take(8),
+                             proxyPass = java.util.UUID.randomUUID().toString().replace("-", "").take(12))
+                    else copy(socks5Auth = v)
+                }
+            }
             if (state.socks5Auth) {
                 val userToast = stringResource(R.string.settingsscreen_021)
                 val passToast = stringResource(R.string.settingsscreen_023)
@@ -472,12 +482,17 @@ private fun SubsPage(
             SwitchRow(stringResource(R.string.settingsscreen_081), stringResource(R.string.settingsscreen_082),
                 state.notifyExpiry) { v -> onSet { copy(notifyExpiry = v) } }
             if (state.notifyExpiry) {
-                Row(Modifier.padding(12.dp, 0.dp, 12.dp, 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    listOf(1, 3, 5, 7).forEach { d ->
-                        Chip("$d", state.expiryNotifyDays == d) { onSet { copy(expiryNotifyDays = d) } }
-                        Spacer(Modifier.width(8.dp))
-                    }
+                // caption above the chips, not beside them: next to four chips it had room for
+                // three words in Russian and wrapped to three lines in English
+                Column(Modifier.padding(12.dp, 0.dp, 12.dp, 10.dp)) {
                     Text(stringResource(R.string.settingsscreen_083), color = Moon.TextSecondary, fontSize = 12.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        listOf(1, 3, 5, 7).forEach { d ->
+                            Chip("$d", state.expiryNotifyDays == d) { onSet { copy(expiryNotifyDays = d) } }
+                            Spacer(Modifier.width(8.dp))
+                        }
+                    }
                 }
             }
         }
@@ -489,7 +504,8 @@ private fun SubsPage(
                     Column(Modifier.weight(1f)) {
                         Text(sub.name, color = Moon.TextPrimary, fontSize = 13.5.sp,
                              fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(stringResource(R.string.fmt_sub_meta, sub.servers.size, sub.trafficText, sub.expiryText),
+                        Text(if (sub.expiryText == "∞") stringResource(R.string.fmt_sub_meta_noexp, sub.servers.size, sub.trafficText)
+                             else stringResource(R.string.fmt_sub_meta, sub.servers.size, sub.trafficText, sub.expiryText),
                              color = Moon.TextSecondary, fontSize = 11.5.sp)
                     }
                     TextButton({ onRemoveSub(sub.url) }) { Text(stringResource(R.string.settingsscreen_084), color = Moon.Danger, fontSize = 12.5.sp) }

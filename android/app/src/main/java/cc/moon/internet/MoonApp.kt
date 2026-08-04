@@ -14,6 +14,7 @@ class MoonApp : Application() {
         super.onCreate()
         // Before anything opens the file: a debug level left on overnight would otherwise grow
         // without limit, and the retention the Логи page offers has to be honoured by someone.
+        cc.moon.internet.data.SubscriptionService.loadUnits(this)
         LogStore.prune(this, keepDays = 7)
     }
 }

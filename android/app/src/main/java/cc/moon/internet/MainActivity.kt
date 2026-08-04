@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -107,11 +108,19 @@ class MainActivity : ComponentActivity() {
                 val release by vm.release.collectAsState()
                 val updateStatus by vm.updateStatus.collectAsState()
 
-                var page by remember { mutableStateOf(Page.Home) }
+                // Saveable, not plain remember: switching the language recreates the activity, and
+                // landing back on Home every time reads like the app restarted.
+                var pageName by rememberSaveable { mutableStateOf(Page.Home.name) }
+                var page by remember { mutableStateOf(Page.valueOf(pageName)) }
+                LaunchedEffect(page) { pageName = page.name }
                 // one scroll state per list, so switching tabs comes back where you left off
                 val homeScroll = rememberLazyListState()
                 val serversScroll = rememberLazyListState()
-                var settingsPage by remember { mutableStateOf<SettingsPage?>(null) }
+                var settingsPageName by rememberSaveable { mutableStateOf("") }
+                var settingsPage by remember {
+                    mutableStateOf(settingsPageName.takeIf { it.isNotEmpty() }?.let(SettingsPage::valueOf))
+                }
+                LaunchedEffect(settingsPage) { settingsPageName = settingsPage?.name.orEmpty() }
                 // sub-pages can open other sub-pages (About → Terms), so back needs a stack
                 val settingsBack = remember { mutableStateListOf<SettingsPage>() }
                 // touching the core loads a 19 MB native library; keep it off the first frame

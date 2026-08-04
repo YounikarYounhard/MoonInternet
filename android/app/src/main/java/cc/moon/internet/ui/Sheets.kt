@@ -45,7 +45,8 @@ fun SubscriptionSheet(
     onDelete: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Moon.Card) {
-        SheetHeader(sub.name, stringResource(R.string.fmt_sub_meta, sub.servers.size, sub.trafficText, sub.expiryText))
+        SheetHeader(sub.name, if (sub.expiryText == "∞") stringResource(R.string.fmt_sub_meta_noexp, sub.servers.size, sub.trafficText)
+                              else stringResource(R.string.fmt_sub_meta, sub.servers.size, sub.trafficText, sub.expiryText))
         SheetItem(Icons.Filled.Refresh, stringResource(R.string.settingsscreen_086), onUpdate)
         SheetItem(Icons.Filled.Speed, stringResource(R.string.sheets_001), onPing)
         SheetItem(Icons.Filled.ContentCopy, stringResource(R.string.sheets_002), onCopy)
