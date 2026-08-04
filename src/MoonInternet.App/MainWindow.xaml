@@ -332,6 +332,12 @@
                         </StackPanel>
                     </Grid>
 
+                    <!-- indeterminate when the server does not send a length -->
+                    <ProgressBar Height="4" Margin="0,12,0,0" Foreground="{StaticResource Accent}"
+                                 Background="{StaticResource BorderSoft}" BorderThickness="0"
+                                 Minimum="0" Maximum="100" Value="{Binding DownloadPercent, Mode=OneWay, FallbackValue=0}"
+                                 IsIndeterminate="{Binding DownloadPercent, Converter={StaticResource NegOne}}"
+                                 Visibility="{Binding IsDownloading, Converter={StaticResource BoolVis}}"/>
                     <TextBlock Text="{Binding UpdateStatus}" Foreground="{StaticResource AccentText}" FontSize="12.5" Margin="0,12,0,0" TextWrapping="Wrap"/>
 
                     <Border CornerRadius="12" Background="#0B0916" BorderBrush="#2A2150" BorderThickness="1"
@@ -345,6 +351,7 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
                         <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_038}" Command="{Binding CheckUpdateCommand}" Padding="16,9" Margin="0,0,8,0"/>
                         <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_MainWindow_039}" Command="{Binding DownloadUpdateCommand}" Padding="22,9"
+                                IsEnabled="{Binding IsDownloading, Converter={StaticResource InvBool}}"
                                 Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}"/>
                     </StackPanel>
                 </StackPanel>

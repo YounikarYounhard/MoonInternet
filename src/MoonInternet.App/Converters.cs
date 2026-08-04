@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
@@ -27,6 +27,13 @@ public sealed class InverseBoolConverter : IValueConverter
 {
     public object Convert(object? value, Type t, object? p, CultureInfo c) => value is not true;
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => value is not true;
+}
+
+/// <summary>True when the value is -1 — the download progress we report for an unknown size.</summary>
+public sealed class NegativeOneConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo c) => value is int and < 0;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => Binding.DoNothing;
 }
 
 /// <summary>Visible only when ALL bound bools are true (e.g. banner: has-announcement AND show-header enabled).</summary>

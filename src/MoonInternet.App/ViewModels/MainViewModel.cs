@@ -1111,13 +1111,39 @@ public partial class MainViewModel : ObservableObject
     /// a download, verifying it and relaunching.
     /// </summary>
     [RelayCommand]
-    private void DownloadUpdate()
+    private async Task DownloadUpdate()
     {
-        var url = _assetUrl ?? _releasePage;
-        if (string.IsNullOrEmpty(url)) return;
-        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
-        catch { UpdateStatus = Localization.Loc.T("S_VM_076"); }
+        // No installer in the release (or nothing but a page) — the browser is still the answer.
+        if (string.IsNullOrEmpty(_assetUrl))
+        {
+            if (string.IsNullOrEmpty(_releasePage)) return;
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_releasePage!) { UseShellExecute = true }); }
+            catch { UpdateStatus = Localization.Loc.T("S_VM_076"); }
+            return;
+        }
+
+        DownloadPercent = 0;
+        UpdateStatus = Localization.Loc.T("S_Upd_Downloading");
+        var progress = new Progress<int>(p => DownloadPercent = p);
+        string? file = await UpdateDownloader.DownloadAsync(_assetUrl!, progress);
+        DownloadPercent = null;
+
+        if (file is null) { UpdateStatus = Localization.Loc.T("S_Upd_Failed"); return; }
+
+        UpdateStatus = Localization.Loc.T("S_Upd_Installing");
+        if (!UpdateDownloader.Run(file)) { UpdateStatus = Localization.Loc.T("S_Upd_Failed"); return; }
+
+        // The installer replaces files this process is holding open, so we get out of its way.
+        // A beat first, so the status is readable and the installer's window is up.
+        await Task.Delay(1200);
+        System.Windows.Application.Current?.Shutdown();
     }
+
+    /// <summary>0..100 while downloading, -1 when the size is unknown, null when idle.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDownloading))]
+    private int? downloadPercent;
+    public bool IsDownloading => DownloadPercent is not null;
 
     // ===== About =====
     // The fourth part is the build counter we bump while working (0.9.1.N); it is dropped for a

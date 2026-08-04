@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
@@ -43,6 +43,8 @@ public partial class App : Application
         // Before the window: every localised string is a DynamicResource, and with no dictionary
         // merged they resolve to nothing and the whole UI comes up blank.
         Localization.Loc.Apply(Localization.Loc.Resolve(AppSettings.Load().Language));
+        // Whatever the updater downloaded has done its job by the time we run again.
+        MoonInternet.Services.UpdateDownloader.CleanUp();
 
         ActiveTheme = ThemeStore.Load();
         ThemeService.ApplyColors(ActiveTheme); // colours before the window renders (window bg/font applied on Loaded)

@@ -44,6 +44,7 @@
         <local:EnumToVisibilityConverter x:Key="EnumVis"/>
         <local:EnumToBoolConverter x:Key="EnumBool"/>
         <local:InverseBoolConverter x:Key="InvBool"/>
+        <local:NegativeOneConverter x:Key="NegOne"/>
         <local:HexToBrushConverter x:Key="HexBrush"/>
         <local:SignalOpacityConverter x:Key="SignalOp"/>
         <local:AllTrueToVisibilityConverter x:Key="AllVis"/>
