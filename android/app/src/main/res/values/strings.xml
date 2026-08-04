@@ -353,4 +353,13 @@
     <string name="notify_traffic_sub">"Предупредить, когда останется меньше 10% трафика подписки"</string>
     <string name="sub_warn_expiry">"%1$s: подписка кончается через %2$d дн."</string>
     <string name="sub_warn_traffic">"%1$s: осталось %2$d%% трафика"</string>
+    <string name="notif_speed">"Скорость: %1$s"</string>
+    <string name="notif_total">"Всего: ↑ %1$s ↓ %2$s"</string>
+    <string name="notif_time">"Время: %1$s"</string>
+    <string name="notif_ping">"Пинг: %1$s"</string>
+    <string name="notif_start">"Запустить"</string>
+    <string name="notif_pause">"Пауза"</string>
+    <string name="notif_disconnect">"Отключить"</string>
+    <string name="notif_server">"Сервер"</string>
+    <string name="notif_ping_action">"Пинг"</string>
 </resources>

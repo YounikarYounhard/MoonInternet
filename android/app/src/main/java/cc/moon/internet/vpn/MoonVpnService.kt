@@ -279,15 +279,8 @@ class MoonVpnService : VpnService() {
     }
 
     /** Same formatting the UI uses, kept local so the service has no dependency on the VM. */
-    private fun speedText(bytesPerSec: Long): String {
-        val bits = bytesPerSec * 8
-        return when {
-            bits < 1_000 -> "$bits бит/с"
-            bits < 1_000_000 -> String.format("%.1f Кбит/с", bits / 1_000.0)
-            bits < 1_000_000_000 -> String.format("%.1f Мбит/с", bits / 1_000_000.0)
-            else -> String.format("%.2f Гбит/с", bits / 1_000_000_000.0)
-        }
-    }
+    // ditto: shared formatter, so bit/s follows the language like everything else
+    private fun speedText(bytesPerSec: Long) = cc.moon.internet.data.SubscriptionService.speed(bytesPerSec)
 
     private fun stopCore() {
         runCatching { runner?.stop() }
@@ -365,44 +358,47 @@ class MoonVpnService : VpnService() {
         )
 
         val paused = _state.value == State.Paused
+        val state = when {
+            paused -> getString(R.string.homescreen_005)
+            connecting -> getString(R.string.homescreen_004)
+            else -> getString(R.string.homescreen_003)
+        }
+
+        // Laid out the way INCY does it: the server is the headline, and the numbers sit under it
+        // as labelled lines instead of one run-on row. Our state word moves to the sub-text so it
+        // is still there without taking the title from the thing you actually look for.
         val b = NotificationCompat.Builder(this, channelId())
             .setSmallIcon(R.drawable.ic_tile_moon)
-            .setContentTitle(when {
-                paused -> getString(R.string.homescreen_005)
-                connecting -> getString(R.string.homescreen_004)
-                else -> getString(R.string.homescreen_003)
-            })
+            .setContentTitle(profile.ifBlank { "Moon Internet" })
+            .setSubText(state)
             .setContentIntent(open)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setShowWhen(false)
 
-        if (paused) {
-            b.setContentText("Соединение приостановлено · ${profile.ifBlank { "Moon Internet" }}")
-        } else if (connecting) {
-            b.setContentText(profile.ifBlank { "Moon Internet" })
+        if (paused || connecting) {
+            b.setContentText(state)
         } else {
-            // line 1: server, line 2: speed / traffic / time / ping — the desktop tray shows the same
             val (up, down) = traffic.value
-            val stats = buildString {
-                append(detail ?: "↑ —  ↓ —")
-                append("  ·  ").append(sizeText(up + down))
-                append("  ·  ").append(elapsedText())
-                livePing.value?.let { append("  ·  ").append(it) }
+            val speed = getString(R.string.notif_speed, detail ?: "↑ —  ↓ —")
+            val lines = buildString {
+                append(speed).append('\n')
+                append(getString(R.string.notif_total, sizeText(up), sizeText(down))).append('\n')
+                append(getString(R.string.notif_time, elapsedText()))
+                livePing.value?.let { append('\n').append(getString(R.string.notif_ping, it)) }
             }
-            b.setContentText(stats)
-                .setSubText(profile.ifBlank { "Moon Internet" })
-                .setStyle(NotificationCompat.BigTextStyle().bigText(stats).setSummaryText(profile))
+            b.setContentText(speed)                                  // collapsed: one line
+                .setStyle(NotificationCompat.BigTextStyle().bigText(lines))   // expanded: all of it
         }
 
         if (paused) {
-            b.addAction(0, "Запустить", service(ACTION_RECONNECT, 3))
-            b.addAction(0, "Отключить", service(ACTION_DISCONNECT, 1))
-            b.addAction(0, "Сервер", pickServer)
+            b.addAction(0, getString(R.string.notif_start), service(ACTION_RECONNECT, 3))
+            b.addAction(0, getString(R.string.notif_disconnect), service(ACTION_DISCONNECT, 1))
+            b.addAction(0, getString(R.string.notif_server), pickServer)
         } else {
-            b.addAction(0, "Пауза", service(ACTION_PAUSE, 4))
-            b.addAction(0, "Пинг", service(ACTION_PING, 2))
-            b.addAction(0, "Отключить", service(ACTION_DISCONNECT, 1))
+            b.addAction(0, getString(R.string.notif_pause), service(ACTION_PAUSE, 4))
+            b.addAction(0, getString(R.string.notif_ping_action), service(ACTION_PING, 2))
+            b.addAction(0, getString(R.string.notif_disconnect), service(ACTION_DISCONNECT, 1))
         }
         return b.build()
     }
@@ -414,12 +410,8 @@ class MoonVpnService : VpnService() {
         return String.format("%02d:%02d:%02d", secs / 3600, (secs % 3600) / 60, secs % 60)
     }
 
-    private fun sizeText(bytes: Long): String = when {
-        bytes < 1024 -> "$bytes Б"
-        bytes < 1024L * 1024 -> String.format("%.1f КБ", bytes / 1024.0)
-        bytes < 1024L * 1024 * 1024 -> String.format("%.1f МБ", bytes / 1048576.0)
-        else -> String.format("%.2f ГБ", bytes / 1073741824.0)
-    }
+    // one formatter for the whole app, so the units follow the language here too
+    private fun sizeText(bytes: Long) = cc.moon.internet.data.SubscriptionService.size(bytes)
 
     private fun updateNotification(profile: String, connecting: Boolean, detail: String? = null) {
         getSystemService(NotificationManager::class.java)

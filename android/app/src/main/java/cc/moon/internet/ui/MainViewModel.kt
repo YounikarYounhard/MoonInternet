@@ -533,7 +533,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
 
         MoonVpnService.start(
-            getApplication(), config, s.label,
+            // flag + label: the notification headline, same as INCY's
+            getApplication(), config, (flagOf(s) + " " + s.label).trim(),
             tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
         )
     }
