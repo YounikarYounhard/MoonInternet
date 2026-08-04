@@ -181,7 +181,9 @@
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="b" Background="Transparent" Padding="12">
                                         <Grid>
-                                            <StackPanel>
+                                            <!-- room for the glyph on the right, or the description's
+                                                 second line runs straight under it -->
+                                            <StackPanel Margin="0,0,30,0">
                                                 <TextBlock Text="{DynamicResource S_SettingsView_023}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource AccentText}"/>
                                                 <TextBlock Text="{DynamicResource S_SettingsView_024}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                             </StackPanel>
@@ -233,7 +235,7 @@
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
                         <Grid Margin="12">
-                            <StackPanel Margin="0,0,12,0">
+                            <StackPanel Margin="0,0,58,0">
                                 <TextBlock Text="{DynamicResource S_SettingsView_035}" FontSize="14" FontWeight="SemiBold"/>
                                 <TextBlock Text="{DynamicResource S_SettingsView_036}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
@@ -270,7 +272,7 @@
                         </StackPanel>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
-                            <StackPanel Margin="0,0,12,0">
+                            <StackPanel Margin="0,0,58,0">
                                 <TextBlock Text="{DynamicResource S_SettingsView_042}" FontSize="14" FontWeight="SemiBold"/>
                                 <TextBlock Text="{DynamicResource S_SettingsView_043}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
@@ -278,7 +280,7 @@
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
-                            <StackPanel Margin="0,0,12,0">
+                            <StackPanel Margin="0,0,58,0">
                                 <TextBlock Text="{DynamicResource S_SettingsView_044}" FontSize="14" FontWeight="SemiBold"/>
                                 <TextBlock Text="{DynamicResource S_SettingsView_045}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
@@ -349,7 +351,7 @@
                                         <Grid>
                                             <StackPanel>
                                                 <TextBlock Text="{DynamicResource S_SettingsView_058}" FontSize="14" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding RoutingName, StringFormat='Профиль, правила · {0}'}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding RoutingSubtitle}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
                                             </StackPanel>
                                             <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                         </Grid>
@@ -622,12 +624,16 @@
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyExpiry}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
-                        <StackPanel Orientation="Horizontal" Margin="12,0,12,10" Visibility="{Binding NotifyExpiry, Converter={StaticResource BoolVis}}">
-                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="1" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="1" IsChecked="{Binding IsExp1, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="3" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="3" IsChecked="{Binding IsExp3, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="5" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="5" IsChecked="{Binding IsExp5, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="7" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="7" IsChecked="{Binding IsExp7, Mode=OneWay}"/>
-                            <TextBlock Text="{DynamicResource S_SettingsView_115}" Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        <!-- caption above the chips, not beside them: sitting on the same row it ran
+                             off the card edge as soon as the language changed -->
+                        <StackPanel Margin="12,0,12,10" Visibility="{Binding NotifyExpiry, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="{DynamicResource S_SettingsView_115}" Foreground="{StaticResource TextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <WrapPanel>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="1" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="1" IsChecked="{Binding IsExp1, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="3" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="3" IsChecked="{Binding IsExp3, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="5" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="5" IsChecked="{Binding IsExp5, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource Chip}" GroupName="expdays" Content="7" Margin="0,0,8,0" Command="{Binding SetExpiryDaysCommand}" CommandParameter="7" IsChecked="{Binding IsExp7, Mode=OneWay}"/>
+                            </WrapPanel>
                         </StackPanel>
                     </StackPanel>
                 </Border>

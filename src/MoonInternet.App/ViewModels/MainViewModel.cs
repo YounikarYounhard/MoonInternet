@@ -80,7 +80,7 @@ public partial class ServerItem : ObservableObject
 
     public string PingText => Ping switch { -2 => "—", -1 => "✕", _ => $"{Ping} ms" };
     public int PingSignal => Ping switch { < 0 => 0, < 60 => 4, < 120 => 3, < 220 => 2, _ => 1 };  // 0..4 for dots/bar
-    public string FavoriteText => IsFavorite ? "Убрать из избранного" : "Добавить в избранное";
+    public string FavoriteText => IsFavorite ? Localization.Loc.T("S_VM_001") : Localization.Loc.T("S_VM_002");
     partial void OnIsFavoriteChanged(bool value) => OnPropertyChanged(nameof(FavoriteText));
     /// <summary>
     /// Five shared, frozen brushes instead of a new one per read.
@@ -164,7 +164,7 @@ public partial class MainViewModel : ObservableObject
     public IEnumerable<string> Protocols => AllServers.Select(s => s.Protocol).Distinct().OrderBy(x => x);
     /// <summary>"Все" + the protocols actually present, as ONE list so chips wrap item-by-item
     /// (a nested ItemsControl inside a WrapPanel wraps as a single block — that's why everything jumped to line 2).</summary>
-    public IEnumerable<string> FilterChips => new[] { "Все" }.Concat(Protocols);
+    public IEnumerable<string> FilterChips => new[] { Localization.Loc.T("S_VM_030") }.Concat(Protocols);
     public bool IsFilterAll => Filter == "Все";
 
     private void NotifyServerListChanged()
@@ -199,22 +199,24 @@ public partial class MainViewModel : ObservableObject
         ["sub"] = new[] { 30.0, 544, 900, 176 },
     };
     [ObservableProperty] private string subscriptionUrl = "";
-    [ObservableProperty] private string subscriptionName = "Нет подписки";
+    [ObservableProperty] private string subscriptionName = "";   // set in the constructor, see ApplyLanguageTexts
     [ObservableProperty] private bool useRouting = true;
     [ObservableProperty] private string subscriptionTraffic = "—";
     [ObservableProperty] private string subscriptionExpiry = "∞";
-    [ObservableProperty] private string geoStatus = "не загружены — скачаются один раз при подключении";
+    [ObservableProperty] private string geoStatus = "";          // ditto
 
     public ObservableCollection<RoutingProfile> AvailableRoutings { get; } = new();
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(RoutingName), nameof(DirectSites), nameof(ProxySites), nameof(BlockSites),
+    [NotifyPropertyChangedFor(nameof(RoutingName), nameof(RoutingSubtitle), nameof(DirectSites), nameof(ProxySites), nameof(BlockSites),
         nameof(DirectIps), nameof(ProxyIps), nameof(BlockIps), nameof(HasMultipleRoutings),
         nameof(IsRoutingIncy), nameof(IsRoutingHapp), nameof(IsRoutingCustom), nameof(GeoSources))]
     private RoutingProfile? selectedRouting;
     partial void OnSelectedRoutingChanged(RoutingProfile? value) => RebuildRuleChips();
 
-    public string RoutingName => SelectedRouting?.Name ?? "нет";
+    public string RoutingName => SelectedRouting?.Name ?? Localization.Loc.T("S_None");
+    /// <summary>StringFormat cannot take a DynamicResource, so the whole line is built here.</summary>
+    public string RoutingSubtitle => string.Format(Localization.Loc.T("S_Routing_Sub_Fmt"), RoutingName);
     public bool HasMultipleRoutings => AvailableRoutings.Count > 1;
     public bool HasRoutings => AvailableRoutings.Count > 0;
 
@@ -337,7 +339,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool showRuleDialog;
     [ObservableProperty][NotifyPropertyChangedFor(nameof(RuleBucketTitle))] private string ruleBucket = "direct";
     [ObservableProperty] private string ruleInput = "";
-    public string RuleBucketTitle => RuleBucket switch { "proxy" => "PROXY — через VPN", "block" => "BLOCK — заблокировать", _ => "DIRECT — напрямую" };
+    public string RuleBucketTitle => RuleBucket switch { "proxy" => Localization.Loc.T("S_VM_040"), "block" => Localization.Loc.T("S_VM_041"), _ => Localization.Loc.T("S_VM_042") };
     [RelayCommand] private void OpenAddRule(string bucket) { RuleBucket = bucket; RuleInput = ""; ShowRuleDialog = true; }
     [RelayCommand] private void CloseRuleDialog() => ShowRuleDialog = false;
     [RelayCommand] private void ConfirmAddRule() { if (!string.IsNullOrWhiteSpace(RuleInput)) AddToBucket(RuleBucket, RuleInput); ShowRuleDialog = false; }
@@ -371,7 +373,7 @@ public partial class MainViewModel : ObservableObject
             GeoTags.Add(t);
     }
     [ObservableProperty] private ServerItem? selectedServer;
-    [ObservableProperty] private string status = "Готово";
+    [ObservableProperty] private string status = "";             // ditto
     [ObservableProperty] private bool tunMode;
     [ObservableProperty] private bool launchMinimized;
     [ObservableProperty] private bool autostart;
@@ -460,14 +462,14 @@ public partial class MainViewModel : ObservableObject
     private static string FmtSpeed(long bytesPerSec)
     {
         double bits = bytesPerSec * 8.0;
-        return bits < 1000 ? $"{bits:0} бит/с"
-            : bits < 1_000_000 ? $"{bits / 1000.0:0.0} Кбит/с"
-            : bits < 1_000_000_000 ? $"{bits / 1_000_000.0:0.0} Мбит/с" : $"{bits / 1_000_000_000.0:0.00} Гбит/с";
+        return bits < 1000 ? string.Format(Localization.Loc.T("S_VM_050"), bits)
+            : bits < 1_000_000 ? string.Format(Localization.Loc.T("S_VM_051"), bits / 1000.0)
+            : bits < 1_000_000_000 ? string.Format(Localization.Loc.T("S_VM_052"), bits / 1_000_000.0) : string.Format(Localization.Loc.T("S_VM_053"), bits / 1_000_000_000.0);
     }
-    private static string FmtSize(long b) => b < 1024 ? $"{b} Б"
-        : b < 1024 * 1024 ? $"{b / 1024.0:0.0} КБ"
-        : b < 1024L * 1024 * 1024 ? $"{b / 1048576.0:0.0} МБ"
-        : b < 1024L * 1024 * 1024 * 1024 ? $"{b / 1073741824.0:0.00} ГБ" : $"{b / 1099511627776.0:0.00} ТБ";
+    private static string FmtSize(long b) => b < 1024 ? string.Format(Localization.Loc.T("S_VM_054"), b)
+        : b < 1024 * 1024 ? string.Format(Localization.Loc.T("S_VM_055"), b / 1024.0)
+        : b < 1024L * 1024 * 1024 ? string.Format(Localization.Loc.T("S_VM_056"), b / 1048576.0)
+        : b < 1024L * 1024 * 1024 * 1024 ? string.Format(Localization.Loc.T("S_VM_057"), b / 1073741824.0) : string.Format(Localization.Loc.T("S_VM_058"), b / 1099511627776.0);
 
     // ===== server sorting (default / ping / name) =====
     [ObservableProperty]
@@ -606,12 +608,12 @@ public partial class MainViewModel : ObservableObject
         var dlg = new OpenFileDialog
         {
             Filter = "Программы и ярлыки|*.exe;*.lnk;*.url|Все файлы|*.*",
-            Title = "Выберите приложение", DereferenceLinks = false,
+            Title = Localization.Loc.T("S_VM_238"), DereferenceLinks = false,
         };
         if (dlg.ShowDialog() != true) return;
         // Always resolve to a real .exe — never store the shortcut file itself (.lnk / .url / Steam link).
         var exe = ShortcutResolver.ToExe(dlg.FileName);
-        if (exe is null) { Status = "Не удалось найти .exe (выберите .exe или ярлык программы/игры)"; return; }
+        if (exe is null) { Status = Localization.Loc.T("S_VM_237"); return; }
         if (AppRouteApps.Any(a => a.Name.Equals(Path.GetFileName(exe), StringComparison.OrdinalIgnoreCase))) return;
         AppRouteApps.Add(new AppRouteItem(exe));
         PersistAppRouteApps();
@@ -672,7 +674,7 @@ public partial class MainViewModel : ObservableObject
         _netQuality.Reset();
         OnPropertyChanged(nameof(LearnedCapacity));
         OnPropertyChanged(nameof(LearnedBaseline));
-        Status = "Замеры канала сброшены";
+        Status = Localization.Loc.T("S_VM_200");
     }
 
     [ObservableProperty]
@@ -692,7 +694,7 @@ public partial class MainViewModel : ObservableObject
     public bool IsDnsCloudflare => VpnDns == "cloudflare";
     public bool IsDnsQuad9 => VpnDns == "quad9";
     public bool IsDnsCustom => VpnDns == "custom";
-    public string VpnDnsLabel => VpnDns switch { "cf_google" => "Cloudflare + Google", "cloudflare" => "Cloudflare", "quad9" => "Quad9", "custom" => "Свой DNS", _ => "Google DNS" };
+    public string VpnDnsLabel => VpnDns switch { "cf_google" => "Cloudflare + Google", "cloudflare" => "Cloudflare", "quad9" => "Quad9", "custom" => Localization.Loc.T("S_VM_043"), _ => "Google DNS" };
     [RelayCommand] private void SetVpnDns(string v) { VpnDns = v; _settings.VpnDns = v; _settings.Save(); ApplyTuning(); ReconnectIfConnected(); }
     [ObservableProperty] private string vpnDnsCustom = "";
     partial void OnVpnDnsCustomChanged(string value) { _settings.VpnDnsCustom = value ?? ""; _settings.Save(); if (VpnDns == "custom") { ApplyTuning(); ReconnectIfConnected(); } }
@@ -749,10 +751,10 @@ public partial class MainViewModel : ObservableObject
     public string ProxyUser => string.IsNullOrEmpty(_settings.ProxyUser) ? "—" : _settings.ProxyUser!;
     public string ProxyPassMasked => string.IsNullOrEmpty(_settings.ProxyPass) ? "—" : new string('•', Math.Min(12, _settings.ProxyPass!.Length));
     public string LocalProxyInfo => _conn.SocksPort > 0 ? $"Mixed (SOCKS5 + HTTP): {_conn.SocksPort}" : "Mixed (SOCKS5 + HTTP)";
-    [RelayCommand] private void CopyProxyUser() { try { System.Windows.Clipboard.SetText(_settings.ProxyUser ?? ""); Status = "Логин скопирован"; } catch { } }
-    [RelayCommand] private void CopyProxyPass() { try { System.Windows.Clipboard.SetText(_settings.ProxyPass ?? ""); Status = "Пароль скопирован"; } catch { } }
-    [RelayCommand] private void ResetProxyCreds() { GenProxyCreds(); ApplyTuning(); OnPropertyChanged(nameof(ProxyUser)); OnPropertyChanged(nameof(ProxyPassMasked)); ReconnectIfConnected(); Status = "Логин/пароль сброшены"; }
-    [RelayCommand] private void ResetKillSwitch() { Status = "Правила фаервола сброшены"; }
+    [RelayCommand] private void CopyProxyUser() { try { System.Windows.Clipboard.SetText(_settings.ProxyUser ?? ""); Status = Localization.Loc.T("S_VM_201"); } catch { } }
+    [RelayCommand] private void CopyProxyPass() { try { System.Windows.Clipboard.SetText(_settings.ProxyPass ?? ""); Status = Localization.Loc.T("S_VM_202"); } catch { } }
+    [RelayCommand] private void ResetProxyCreds() { GenProxyCreds(); ApplyTuning(); OnPropertyChanged(nameof(ProxyUser)); OnPropertyChanged(nameof(ProxyPassMasked)); ReconnectIfConnected(); Status = Localization.Loc.T("S_VM_203"); }
+    [RelayCommand] private void ResetKillSwitch() { Status = Localization.Loc.T("S_VM_204"); }
     private void GenProxyCreds() { _settings.ProxyUser = "moon_" + Guid.NewGuid().ToString("N")[..8]; _settings.ProxyPass = Guid.NewGuid().ToString("N")[..12]; _settings.Save(); }
 
     partial void OnTunModeChanged(bool value) { _settings.TunMode = value; _settings.Save(); ReconnectIfConnected(); }
@@ -776,22 +778,22 @@ public partial class MainViewModel : ObservableObject
     public bool CanClick => true; // clickable in every state — during "Connecting" a click cancels
     public string ConnectButtonText => ConnectionState switch
     {
-        ConnectionState.Connected => "ОТКЛЮЧИТЬ",
-        ConnectionState.Connecting => "ОТМЕНИТЬ",
-        _ => "ПОДКЛЮЧИТЬСЯ"
+        ConnectionState.Connected => Localization.Loc.T("S_VM_010"),
+        ConnectionState.Connecting => Localization.Loc.T("S_VM_011"),
+        _ => Localization.Loc.T("S_VM_012")
     };
     public string TrayToggleText => ConnectionState switch   // tray menu (mixed case)
     {
-        ConnectionState.Connected => "Отключиться",
-        ConnectionState.Connecting => "Отменить",
-        _ => "Подключиться"
+        ConnectionState.Connected => Localization.Loc.T("S_VM_013"),
+        ConnectionState.Connecting => Localization.Loc.T("S_VM_014"),
+        _ => Localization.Loc.T("S_VM_015")
     };
     // Staged status shown under the ring while connecting ("Загрузка гео-файлов…", "Запуск ядра…", "Проверка соединения…").
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StateText))]
     private string connectingStatus = "";
 
-    // While true, the ring shows "Отключение…" during the (brief) teardown after the user hits ОТКЛЮЧИТЬ.
+    // While true, the ring shows Localization.Loc.T("S_VM_228") during the (brief) teardown after the user hits ОТКЛЮЧИТЬ.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StateText))]
     private bool disconnecting;
@@ -803,11 +805,11 @@ public partial class MainViewModel : ObservableObject
     private bool reSleeping;
     public bool MoonAwake => IsConnected && !ReSleeping;   // full moon only when truly connected
 
-    public string StateText => ReSleeping ? "Луна засыпает…" : ConnectionState switch
+    public string StateText => ReSleeping ? Localization.Loc.T("S_VM_016") : ConnectionState switch
     {
-        ConnectionState.Connected => Disconnecting ? "Отключение…" : "Луна укрыла",
-        ConnectionState.Connecting => string.IsNullOrEmpty(ConnectingStatus) ? "Подключение…" : ConnectingStatus,
-        _ => SelectedServer is null ? "Нет активного соединения" : "Луна спит"
+        ConnectionState.Connected => Disconnecting ? Localization.Loc.T("S_VM_017") : Localization.Loc.T("S_VM_018"),
+        ConnectionState.Connecting => string.IsNullOrEmpty(ConnectingStatus) ? Localization.Loc.T("S_VM_019") : ConnectingStatus,
+        _ => SelectedServer is null ? Localization.Loc.T("S_VM_020") : Localization.Loc.T("S_VM_021")
     };
     partial void OnConnectionStateChanged(ConnectionState value)
     {
@@ -819,9 +821,9 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(TrayToggleText));
         // Only the two settled states are worth a popup; Connecting is on the way to both.
         if (value == ConnectionState.Connected)
-            Notifier.Connection("Moon Internet", $"Подключено · {SelectedServer?.Label}");
+            Notifier.Connection("Moon Internet", string.Format(Localization.Loc.T("S_VM_023"), SelectedServer?.Label));
         else if (value == ConnectionState.Disconnected)
-            Notifier.Connection("Moon Internet", "Отключено");
+            Notifier.Connection("Moon Internet", Localization.Loc.T("S_VM_024"));
     }
     // Frozen and shared, same reason as the ping brushes.
     private static readonly Brush RingConnected = ServerItem.Frozen(0x34, 0xD3, 0x99);
@@ -836,7 +838,7 @@ public partial class MainViewModel : ObservableObject
     };
 
     public bool HasSelectedServer => SelectedServer is not null;
-    public string SelectedServerLabel => SelectedServer?.Label ?? "Сервер не выбран";
+    public string SelectedServerLabel => SelectedServer?.Label ?? Localization.Loc.T("S_VM_022");
     public ImageSource? SelectedServerFlag => SelectedServer?.FlagImage;
     private bool _restoringServer;
     partial void OnSelectedServerChanged(ServerItem? value)
@@ -862,8 +864,23 @@ public partial class MainViewModel : ObservableObject
     partial void OnSearchChanged(string value) => RefreshFilters();
     private void RefreshFilters() { foreach (var s in Subscriptions) s.Refresh(); }
 
+    /// <summary>
+    /// Text that is a default rather than a reaction to something. It cannot live in a field
+    /// initializer (those run before Loc has a dictionary) and it has to be re-read when the
+    /// language changes, so both paths call this.
+    /// </summary>
+    private void ApplyLanguageTexts()
+    {
+        Status = Localization.Loc.T("S_VM_236");
+        GeoStatus = Localization.Loc.T("S_VM_064");
+        SubscriptionName = Localization.Loc.T("S_VM_031");
+        LogViewerTitle = Localization.Loc.T("S_VM_080");
+        DialogTitle = Localization.Loc.T("S_VM_100");
+    }
+
     public MainViewModel()
     {
+        ApplyLanguageTexts();
         _settings = AppSettings.Load();
         if (_settings.SubscriptionUrls.Count == 0 && !string.IsNullOrWhiteSpace(_settings.SubscriptionUrl))
             _settings.SubscriptionUrls.Add(_settings.SubscriptionUrl!); // migrate legacy single URL
@@ -922,7 +939,7 @@ public partial class MainViewModel : ObservableObject
         _timer.Tick += (_, _) => { if (IsConnected) { Elapsed = (DateTime.Now - _connectedAt).ToString(@"hh\:mm\:ss"); SampleTraffic(); } };
         _timer.Start();
 
-        if (!_conn.CoreAvailable) Status = "Ядро xray не найдено — проверьте папку cores";
+        if (!_conn.CoreAvailable) Status = Localization.Loc.T("S_VM_205");
         LoadCachedSubs();                                                     // offline-first: show last known servers immediately
         foreach (var u in _settings.SubscriptionUrls.ToList()) _ = ImportUrl(u);   // then refresh from the network
         _themeReady = true; // now theme edits (via UI) may apply+save
@@ -1017,17 +1034,17 @@ public partial class MainViewModel : ObservableObject
     };
 
     private static string UrlHost(string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : "не задан";
+        Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : Localization.Loc.T("S_VM_063");
 
     private static string FileInfoText(string path)
     {
-        try { var fi = new FileInfo(path); return fi.Exists ? $"{fi.Length / 1048576.0:0.0} МБ · {fi.LastWriteTime:dd.MM.yyyy HH:mm}" : "не загружен"; }
+        try { var fi = new FileInfo(path); return fi.Exists ? string.Format(Localization.Loc.T("S_VM_060"), fi.Length / 1048576.0, fi.LastWriteTime) : Localization.Loc.T("S_VM_061"); }
         catch { return "—"; }
     }
     [ObservableProperty] private bool geoRefreshing;
     [RelayCommand] private async Task RefreshGeo()
     {
-        if (SelectedRouting is null) { GeoStatus = "Нет активного профиля"; return; }
+        if (SelectedRouting is null) { GeoStatus = Localization.Loc.T("S_VM_062"); return; }
         GeoRefreshing = true;
         try
         {
@@ -1050,7 +1067,7 @@ public partial class MainViewModel : ObservableObject
 
     private string? _releasePage, _assetUrl;
 
-    public string UpdateButtonHint => UpdateAvailable ? "Доступно обновление" : "Обновления";
+    public string UpdateButtonHint => UpdateAvailable ? Localization.Loc.T("S_VM_070") : Localization.Loc.T("S_VM_071");
 
     [RelayCommand] private void OpenUpdateDialog() { ShowUpdateDialog = true; if (LatestVersion == "—") _ = CheckUpdate(); }
     [RelayCommand] private void CloseUpdateDialog() => ShowUpdateDialog = false;
@@ -1061,11 +1078,11 @@ public partial class MainViewModel : ObservableObject
     {
         if (UpdateChecking) return;
         UpdateChecking = true;
-        UpdateStatus = "Проверяю…";
+        UpdateStatus = Localization.Loc.T("S_VM_072");
         try
         {
             var rel = await UpdateService.LatestAsync();
-            if (rel is null) { UpdateStatus = "Не удалось проверить — нет связи с GitHub"; return; }
+            if (rel is null) { UpdateStatus = Localization.Loc.T("S_VM_073"); return; }
 
             LatestVersion = rel.Version;
             UpdateNotes = rel.Notes;
@@ -1073,10 +1090,10 @@ public partial class MainViewModel : ObservableObject
             _assetUrl = rel.AssetUrl;
             UpdateAvailable = UpdateService.IsNewer(rel.Version, AppVersion);
             UpdateStatus = UpdateAvailable
-                ? $"Доступна версия {rel.Version}"
-                : "У вас последняя версия";
+                ? string.Format(Localization.Loc.T("S_VM_074"), rel.Version)
+                : Localization.Loc.T("S_VM_075");
             // The badge on Home is easy to miss when the window starts minimised to the tray.
-            if (UpdateAvailable) Notifier.AppUpdate("Moon Internet", $"Доступна версия {rel.Version}");
+            if (UpdateAvailable) Notifier.AppUpdate("Moon Internet", string.Format(Localization.Loc.T("S_VM_074"), rel.Version));
         }
         finally { UpdateChecking = false; }
     }
@@ -1092,7 +1109,7 @@ public partial class MainViewModel : ObservableObject
         var url = _assetUrl ?? _releasePage;
         if (string.IsNullOrEmpty(url)) return;
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
-        catch { UpdateStatus = "Не удалось открыть ссылку"; }
+        catch { UpdateStatus = Localization.Loc.T("S_VM_076"); }
     }
 
     // ===== About =====
@@ -1108,7 +1125,7 @@ public partial class MainViewModel : ObservableObject
     public string HwidDisplay => string.IsNullOrEmpty(_settings.Hwid) ? "—" : _settings.Hwid!;
     [ObservableProperty] private string xrayVersion = "…";
     [ObservableProperty] private string singBoxVersion = "…";
-    [RelayCommand] private void CopyHwid() { try { System.Windows.Clipboard.SetText(_settings.Hwid ?? ""); Status = "HWID скопирован"; } catch { } }
+    [RelayCommand] private void CopyHwid() { try { System.Windows.Clipboard.SetText(_settings.Hwid ?? ""); Status = Localization.Loc.T("S_VM_206"); } catch { } }
 
     private bool _coreVersionsLoaded;
     private async void LoadCoreVersions()
@@ -1166,7 +1183,7 @@ public partial class MainViewModel : ObservableObject
     // ---- просмотр логов --------------------------------------------------
     [ObservableProperty] private bool showLogViewer;
     [ObservableProperty] private string logViewerText = "";
-    [ObservableProperty] private string logViewerTitle = "Логи";
+    [ObservableProperty] private string logViewerTitle = "";     // ditto
 
     /// <summary>How many lines the viewer keeps. A debug log runs to megabytes and the window
     /// would take seconds to lay out; the tail is the part anyone actually reads.</summary>
@@ -1183,13 +1200,13 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void ReloadLogViewer() => LoadLogTail();
     [RelayCommand] private void CopyLogViewer()
     {
-        try { System.Windows.Clipboard.SetText(LogViewerText); Status = "Лог скопирован"; } catch { }
+        try { System.Windows.Clipboard.SetText(LogViewerText); Status = Localization.Loc.T("S_VM_207"); } catch { }
     }
 
     private void LoadLogTail()
     {
         var files = LogFiles().ToList();
-        if (files.Count == 0) { LogViewerTitle = "Логи"; LogViewerText = "Логов пока нет."; return; }
+        if (files.Count == 0) { LogViewerTitle = Localization.Loc.T("S_VM_080"); LogViewerText = Localization.Loc.T("S_VM_081"); return; }
 
         // Newest file: with several cores writing their own, that is the one being appended to.
         var newest = files.OrderByDescending(f => { try { return new System.IO.FileInfo(f).LastWriteTimeUtc; } catch { return DateTime.MinValue; } }).First();
@@ -1199,16 +1216,16 @@ public partial class MainViewModel : ObservableObject
             var lines = System.IO.File.ReadLines(newest).ToList();
             var tail = lines.Count > LogTailLines ? lines.Skip(lines.Count - LogTailLines) : lines;
             LogViewerText = string.Join(Environment.NewLine, tail);
-            if (LogViewerText.Length == 0) LogViewerText = "Файл пуст.";
+            if (LogViewerText.Length == 0) LogViewerText = Localization.Loc.T("S_VM_082");
         }
-        catch (Exception ex) { LogViewerText = "Не удалось прочитать: " + ex.Message; }
+        catch (Exception ex) { LogViewerText = Localization.Loc.T("S_VM_083") + ex.Message; }
     }
 
     [RelayCommand] private void ClearLogs()
     {
         foreach (var f in LogFiles()) { try { System.IO.File.WriteAllText(f, ""); } catch { } }
         RefreshLogsInfo();
-        Status = "Логи очищены";
+        Status = Localization.Loc.T("S_VM_208");
     }
     private static IEnumerable<string> LogFiles()
     {
@@ -1219,7 +1236,7 @@ public partial class MainViewModel : ObservableObject
     {
         long total = 0; int n = 0;
         foreach (var f in LogFiles()) { try { total += new System.IO.FileInfo(f).Length; n++; } catch { } }
-        LogsSizeInfo = n == 0 ? "Логов нет" : $"{n} файл(ов) · {FmtSize(total)}";
+        LogsSizeInfo = n == 0 ? Localization.Loc.T("S_VM_084") : string.Format(Localization.Loc.T("S_VM_085"), n, FmtSize(total));
     }
     /// <summary>Delete/truncate logs older than the retention window, and cap the size of the live ones.</summary>
     private void PruneLogs()
@@ -1298,6 +1315,16 @@ public partial class MainViewModel : ObservableObject
         Localization.Loc.Apply(Language);
         OnPropertyChanged(nameof(LanguageLabel));
         OnPropertyChanged(nameof(SettingsPageTitle));
+        OnPropertyChanged(nameof(RoutingName));
+        OnPropertyChanged(nameof(RoutingSubtitle));
+        // computed strings that go through Loc.T have no other reason to re-read
+        foreach (var p in new[] { nameof(ConnectButtonText), nameof(TrayToggleText), nameof(StateText),
+                                  nameof(SelectedServerLabel), nameof(RuleBucketTitle), nameof(VpnDnsLabel),
+                                  nameof(UpdateButtonHint), nameof(SubUpdateHint), nameof(FilterChips),
+                                  nameof(CheckPingTrayText), nameof(GeoipInfo), nameof(GeositeInfo),
+                                  nameof(GeoSources), nameof(LogsSizeInfo) })
+            OnPropertyChanged(p);
+        RefreshLogsInfo();
     }
 
     [ObservableProperty] private bool showServerCount = true;
@@ -1385,6 +1412,7 @@ public partial class MainViewModel : ObservableObject
     public bool IsSubMeterText => SubMeter == "text";
     public bool IsSubMeterBar => SubMeter == "bar";
     public bool IsSubMeterDots => SubMeter == "dots";
+
     [RelayCommand] private void SetSubMeter(string d) { SubMeter = d; _settings.SubMeter = d; _settings.Save(); }
 
     [ObservableProperty] private string pingTestUrl = "https://www.gstatic.com/generate_204";
@@ -1416,9 +1444,9 @@ public partial class MainViewModel : ObservableObject
     private int _subUpdateMin;   // interval the subscription itself ships (minutes); 0 if none
     private int EffectiveUpdateMin => AutoUpdateSubsMinutes > 0 ? AutoUpdateSubsMinutes : (_subUpdateMin > 0 ? _subUpdateMin : 60);
     public string SubUpdateHint => AutoUpdateSubs
-        ? (IsSubIntAuto ? $"По подписке: раз в {FmtMin(EffectiveUpdateMin)}" : $"Раз в {FmtMin(EffectiveUpdateMin)}")
-        : "Автообновление выключено";
-    private static string FmtMin(int m) => m < 60 ? $"{m} мин" : m % 60 == 0 ? $"{m / 60} ч" : $"{m / 60} ч {m % 60} мин";
+        ? (IsSubIntAuto ? string.Format(Localization.Loc.T("S_VM_090"), FmtMin(EffectiveUpdateMin)) : string.Format(Localization.Loc.T("S_VM_091"), FmtMin(EffectiveUpdateMin)))
+        : Localization.Loc.T("S_VM_092");
+    private static string FmtMin(int m) => m < 60 ? string.Format(Localization.Loc.T("S_VM_093"), m) : m % 60 == 0 ? string.Format(Localization.Loc.T("S_VM_094"), m / 60) : string.Format(Localization.Loc.T("S_VM_095"), m / 60, m % 60);
 
     [ObservableProperty] private bool notifyOnUpdate;
     partial void OnNotifyOnUpdateChanged(bool value) { _settings.NotifyOnUpdate = value; _settings.Save(); }
@@ -1464,7 +1492,7 @@ public partial class MainViewModel : ObservableObject
         _autoUpdateTimer.Tick -= AutoUpdateTick; _autoUpdateTimer.Tick += AutoUpdateTick;
         _autoUpdateTimer.Start();
     }
-    private async void AutoUpdateTick(object? s, EventArgs e) { await RefreshAll(); if (NotifyOnUpdate) Status = "Подписки обновлены"; }
+    private async void AutoUpdateTick(object? s, EventArgs e) { await RefreshAll(); if (NotifyOnUpdate) Status = Localization.Loc.T("S_VM_209"); }
 
     private void ApplyHwid()
     {
@@ -1521,7 +1549,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string selectedFont = App.ActiveTheme.FontFamily;
     [ObservableProperty] private double bgOpacity = App.ActiveTheme.BackgroundOpacity;
     [ObservableProperty] private string backgroundInfo =
-        App.ActiveTheme.BackgroundImage is null ? "Фон-картинка не задана" : Path.GetFileName(App.ActiveTheme.BackgroundImage);
+        App.ActiveTheme.BackgroundImage is null ? Localization.Loc.T("S_VM_239") : Path.GetFileName(App.ActiveTheme.BackgroundImage);
 
     private void ApplyTheme() { ThemeService.Apply(App.ActiveTheme); ThemeStore.Save(App.ActiveTheme); }
     private void RefreshThemeFields()
@@ -1532,7 +1560,7 @@ public partial class MainViewModel : ObservableObject
         UiOpacity = App.ActiveTheme.WindowOpacity;
         SelectedFont = App.ActiveTheme.FontFamily;
         BgOpacity = App.ActiveTheme.BackgroundOpacity;
-        BackgroundInfo = App.ActiveTheme.BackgroundImage is null ? "Фон-картинка не задана" : Path.GetFileName(App.ActiveTheme.BackgroundImage);
+        BackgroundInfo = App.ActiveTheme.BackgroundImage is null ? Localization.Loc.T("S_VM_239") : Path.GetFileName(App.ActiveTheme.BackgroundImage);
     }
 
     private static bool IsHex(string? s) => System.Text.RegularExpressions.Regex.IsMatch(s ?? "", "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$");
@@ -1594,7 +1622,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ClearBackground() { App.ActiveTheme.BackgroundImage = null; BackgroundInfo = "Фон-картинка не задана"; ApplyTheme(); }
+    private void ClearBackground() { App.ActiveTheme.BackgroundImage = null; BackgroundInfo = Localization.Loc.T("S_VM_239"); ApplyTheme(); }
 
     // ===== Custom connect-button / nav moon images (overlay the built-in vector when set) =====
     public ImageSource? MoonOffImage => LoadImg(App.ActiveTheme.MoonOffImage) ?? LoadImg("pack://application:,,,/Assets/btn_off.png");
@@ -1604,7 +1632,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string moonOffInfo = ImgName(App.ActiveTheme.MoonOffImage);
     [ObservableProperty] private string navMoonInfo = ImgName(App.ActiveTheme.NavMoonImage);
 
-    private static string ImgName(string? p) => string.IsNullOrEmpty(p) ? "по умолчанию (луна)" : Path.GetFileName(p);
+    private static string ImgName(string? p) => string.IsNullOrEmpty(p) ? Localization.Loc.T("S_VM_240") : Path.GetFileName(p);
     private static ImageSource? LoadImg(string? path)
     {
         if (string.IsNullOrEmpty(path)) return null;
@@ -1668,7 +1696,7 @@ public partial class MainViewModel : ObservableObject
         ConfigDialogTitle = s.Label; ConfigDialogJson = s.ConfigJson; ShowConfigDialog = true;
     }
     [RelayCommand] private void CloseConfigDialog() => ShowConfigDialog = false;
-    [RelayCommand] private void CopyConfigJson() { try { System.Windows.Clipboard.SetText(ConfigDialogJson); Status = "Конфигурация скопирована"; } catch { } }
+    [RelayCommand] private void CopyConfigJson() { try { System.Windows.Clipboard.SetText(ConfigDialogJson); Status = Localization.Loc.T("S_VM_210"); } catch { } }
 
     // ===== QR-code dialog (server share link / subscription URL) =====
     [ObservableProperty] private bool showQrDialog;
@@ -1678,16 +1706,16 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void CloseQrDialog() => ShowQrDialog = false;
     private void ShowQr(string title, string? url)
     {
-        if (string.IsNullOrWhiteSpace(url)) { Status = "Нет ссылки для QR"; return; }
-        if (Qr.Make(url) is not { } img) { Status = "Не удалось создать QR"; return; }
+        if (string.IsNullOrWhiteSpace(url)) { Status = Localization.Loc.T("S_VM_211"); return; }
+        if (Qr.Make(url) is not { } img) { Status = Localization.Loc.T("S_VM_212"); return; }
         QrTitle = title; QrSubtitle = url!; QrImage = img; ShowQrDialog = true;
     }
 
     // ===== per-server "⋯" actions =====
     [RelayCommand] private void CopyServerUrl(ServerItem? s)
     {
-        if (s?.ShareUrl is not { } u) { Status = "Нет ссылки"; return; }
-        try { System.Windows.Clipboard.SetText(u); Status = "Ссылка скопирована"; } catch { }
+        if (s?.ShareUrl is not { } u) { Status = Localization.Loc.T("S_VM_213"); return; }
+        try { System.Windows.Clipboard.SetText(u); Status = Localization.Loc.T("S_VM_214"); } catch { }
     }
     [RelayCommand] private void ShowServerQr(ServerItem? s) { if (s is not null) ShowQr(s.Label, s.ShareUrl); }
     [RelayCommand] private void ToggleFavorite(ServerItem? s)
@@ -1760,7 +1788,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void CopySubUrl(SubscriptionVM? sub)
     {
         if (sub is null) return;
-        try { System.Windows.Clipboard.SetText(sub.Url); Status = "URL подписки скопирован"; } catch { }
+        try { System.Windows.Clipboard.SetText(sub.Url); Status = Localization.Loc.T("S_VM_215"); } catch { }
     }
     [RelayCommand] private void ShowSubQr(SubscriptionVM? sub) { if (sub is not null) ShowQr(sub.Name, sub.Url); }
 
@@ -1819,19 +1847,19 @@ public partial class MainViewModel : ObservableObject
         _settings.Save();
         if (SelectedServer is { } sel && sub.Servers.Contains(sel)) SelectedServer = AllServers.FirstOrDefault();
         RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
-        Status = "Подписка удалена";
+        Status = Localization.Loc.T("S_VM_216");
     }
 
     // ===== Add / edit subscription mini-dialog (Name + URL) =====
     [ObservableProperty] private bool showAddDialog;
     [ObservableProperty] private string newSubName = "";
-    [ObservableProperty] private string dialogTitle = "Добавить";
+    [ObservableProperty] private string dialogTitle = "";        // ditto
     private SubscriptionVM? _editingSub;
 
-    [RelayCommand] private void OpenAddDialog() { _editingSub = null; DialogTitle = "Добавить"; NewSubName = ""; SubscriptionUrl = ""; ShowAddDialog = true; }
+    [RelayCommand] private void OpenAddDialog() { _editingSub = null; DialogTitle = Localization.Loc.T("S_VM_100"); NewSubName = ""; SubscriptionUrl = ""; ShowAddDialog = true; }
     [RelayCommand] private void OpenEditDialog(SubscriptionVM sub)
     {
-        _editingSub = sub; DialogTitle = "Изменить подписку"; NewSubName = sub.Name; SubscriptionUrl = sub.Url; ShowAddDialog = true;
+        _editingSub = sub; DialogTitle = Localization.Loc.T("S_VM_101"); NewSubName = sub.Name; SubscriptionUrl = sub.Url; ShowAddDialog = true;
     }
     [RelayCommand] private void CloseAddDialog() { ShowAddDialog = false; _editingSub = null; }
 
@@ -1839,7 +1867,7 @@ public partial class MainViewModel : ObservableObject
     private async Task ConfirmAdd()
     {
         var url = SubscriptionUrl.Trim();
-        if (string.IsNullOrWhiteSpace(url)) { Status = "Укажите ссылку"; return; }
+        if (string.IsNullOrWhiteSpace(url)) { Status = Localization.Loc.T("S_VM_217"); return; }
         ShowAddDialog = false;
         if (_editingSub is { } es)                       // edit mode
         {
@@ -1862,7 +1890,7 @@ public partial class MainViewModel : ObservableObject
     private async Task Import()
     {
         var url = SubscriptionUrl.Trim();
-        if (string.IsNullOrWhiteSpace(url)) { Status = "Укажите ссылку на подписку"; return; }
+        if (string.IsNullOrWhiteSpace(url)) { Status = Localization.Loc.T("S_VM_218"); return; }
         await ImportUrl(url);
         if (!_settings.SubscriptionUrls.Contains(url)) { _settings.SubscriptionUrls.Add(url); _settings.Save(); }
         SubscriptionUrl = ""; NewSubName = "";
@@ -1872,7 +1900,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            Status = "Загрузка подписки…";
+            Status = Localization.Loc.T("S_VM_219");
             var (content, info, title, announce, subUpdateMin) = await SubscriptionService.FetchFullAsync(url);
             if (subUpdateMin > 0) { _subUpdateMin = subUpdateMin; OnPropertyChanged(nameof(SubUpdateHint)); }
             // dialog name wins, else the panel's profile-title, else the host
@@ -1897,7 +1925,7 @@ public partial class MainViewModel : ObservableObject
             SelectedServer ??= sub.Servers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? sub.Servers.FirstOrDefault();
             Status = TotalServers > 0
                 ? $"Загружено серверов: {TotalServers}" + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
-                : "В подписке нет серверов";
+                : Localization.Loc.T("S_VM_220");
             await MaybeAutoConnect(sub);
         }
         catch (Exception ex) { Status = "Ошибка загрузки: " + ex.Message; }
@@ -1911,7 +1939,7 @@ public partial class MainViewModel : ObservableObject
             _autoConnectTried = true;
             await PingSub(sub);
             if (PickAutoServer() is { } target) { SelectedServer = target; await Connect(); }
-            else Status = "Ни один сервер не отвечает — подключение не начато";
+            else Status = Localization.Loc.T("S_VM_221");
         }
         else if (PingOnStart) _ = PingSub(sub);
     }
@@ -1933,7 +1961,7 @@ public partial class MainViewModel : ObservableObject
     {
         string text = "";
         try { text = (System.Windows.Clipboard.GetText() ?? "").Trim(); } catch { /* clipboard busy/empty */ }
-        if (string.IsNullOrWhiteSpace(text)) { Status = "Буфер обмена пуст"; return; }
+        if (string.IsNullOrWhiteSpace(text)) { Status = Localization.Loc.T("S_VM_222"); return; }
         await ImportFromText(text);
     }
 
@@ -1950,7 +1978,7 @@ public partial class MainViewModel : ObservableObject
         if (WireGuardParser.TryParseProfile(text, out var wgp) && wgp is not null)
         {
             if (wgp.Wireguard is { IsAmnezia: true })
-            { Status = "AmneziaWG не поддерживается — нужен обычный WireGuard"; return; }
+            { Status = Localization.Loc.T("S_VM_223"); return; }
             var wsub = new SubscriptionVM("clipboard:" + Guid.NewGuid().ToString("N"), "AmneziaWG", FilterServer);
             Subscriptions.Add(wsub);
             wsub.SetServers(new[] { wgp });
@@ -1958,12 +1986,12 @@ public partial class MainViewModel : ObservableObject
             SaveSubCache(wsub);                     // persist it — pasted servers must survive a restart too
             RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
             SelectedServer ??= wsub.Servers.FirstOrDefault();
-            Status = "Импортирован сервер AmneziaWG";
+            Status = Localization.Loc.T("S_VM_224");
             _ = PingSub(wsub);
             return;
         }
         var content = SubscriptionParser.ParseFull(text);
-        if (content.Servers.Count == 0) { Status = "В буфере нет ссылки на подписку или серверов"; return; }
+        if (content.Servers.Count == 0) { Status = Localization.Loc.T("S_VM_225"); return; }
 
         var sub = new SubscriptionVM("clipboard:" + Guid.NewGuid().ToString("N"), "Из буфера обмена", FilterServer);
         Subscriptions.Add(sub);
@@ -1981,7 +2009,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ScanQr() =>
         // ponytail: QR-image decoding needs a decoder library that can't be fetched in this offline build.
-        Status = "Сканирование QR добавим в обновлении — пока используйте «Вставить из буфера»";
+        Status = Localization.Loc.T("S_VM_226");
 
     private void RebuildRouting()
     {
@@ -2009,7 +2037,7 @@ public partial class MainViewModel : ObservableObject
     private void RefreshHomeSummary()
     {
         var primary = Subscriptions.FirstOrDefault();
-        SubscriptionName = primary?.Name ?? "Нет подписки";
+        SubscriptionName = primary?.Name ?? Localization.Loc.T("S_VM_031");
         SubscriptionTraffic = primary?.TrafficText ?? "—";
         SubscriptionExpiry = primary?.ExpiryText ?? "∞";
     }
@@ -2021,20 +2049,20 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task Connect()
     {
-        if (ConnectionState == ConnectionState.Connecting) { ConnectingStatus = "Отмена…"; Elapsed = "00:00"; _conn.CancelConnect(); return; }
+        if (ConnectionState == ConnectionState.Connecting) { ConnectingStatus = Localization.Loc.T("S_VM_227"); Elapsed = "00:00"; _conn.CancelConnect(); return; }
         if (ConnectionState == ConnectionState.Connected)
         {
             if (Disconnecting) return;
             Disconnecting = true;
-            Status = "Отключение…";
-            await Task.Delay(500);                        // let "Отключение…" show before/while we tear down
+            Status = Localization.Loc.T("S_VM_228");
+            await Task.Delay(500);                        // let Localization.Loc.T("S_VM_228") show before/while we tear down
             await Task.Run(() => _conn.Disconnect());     // teardown off the UI thread so the ring stays live
             Disconnecting = false;
-            Status = "Отключено"; Elapsed = "00:00";
+            Status = Localization.Loc.T("S_VM_229"); Elapsed = "00:00";
             return;
         }
-        if (SelectedServer is null) { Status = "Выберите сервер"; CurrentPage = AppPage.Servers; return; }
-        if (!_conn.CoreAvailable) { Status = "Ядро xray не найдено (папка cores)"; return; }
+        if (SelectedServer is null) { Status = Localization.Loc.T("S_VM_230"); CurrentPage = AppPage.Servers; return; }
+        if (!_conn.CoreAvailable) { Status = Localization.Loc.T("S_VM_231"); return; }
         try
         {
             var routing = UseRouting ? SelectedRouting : null;
@@ -2044,7 +2072,7 @@ public partial class MainViewModel : ObservableObject
             Status = deferRouting || routing is null ? $"Подключение к {SelectedServer.Label}…"
                                                      : $"Подключение к {SelectedServer.Label}… (загрузка geo)";
             await _conn.ConnectAsync(SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, deferRouting ? null : routing);
-            if (ConnectionState != ConnectionState.Connected) { if (Status == $"Подключение к {SelectedServer.Label}…" || Status.StartsWith("Подключение")) Status = "Отменено"; return; } // cancelled/aborted
+            if (ConnectionState != ConnectionState.Connected) { if (Status == $"Подключение к {SelectedServer.Label}…" || Status.StartsWith("Подключение")) Status = Localization.Loc.T("S_VM_232"); return; } // cancelled/aborted
             _connectedAt = DateTime.Now; ResetTraffic();
             string modeLabel = _conn.ActiveMode == TunnelMode.Tun ? "TUN" : "системный прокси";
             string routingLabel = _conn.RoutingNote is not null ? " · " + _conn.RoutingNote : "";
@@ -2067,7 +2095,7 @@ public partial class MainViewModel : ObservableObject
         if (dir is null) return;                                                   // download failed — no routing
         if (ConnectionState == ConnectionState.Connected && UseRouting && SelectedRouting == routing)
         {
-            Status = "Маршрутизация загружена — применяю…";
+            Status = Localization.Loc.T("S_VM_233");
             ReconnectIfConnected();
         }
     }
@@ -2100,15 +2128,15 @@ public partial class MainViewModel : ObservableObject
         _reconnecting = true;
         try
         {
-            ReSleeping = true;                     // graceful "Луна засыпает…" beat so the switch isn't abrupt
-            Status = "Луна засыпает…";
+            ReSleeping = true;                     // graceful Localization.Loc.T("S_VM_234") beat so the switch isn't abrupt
+            Status = Localization.Loc.T("S_VM_234");
             await Task.Delay(900);
             ReSleeping = false;
 
             var routing = UseRouting ? SelectedRouting : null;
             Status = $"Переподключение к {SelectedServer.Label}…";
             await _conn.ConnectAsync(SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, routing);
-            if (ConnectionState != ConnectionState.Connected) { Status = "Отключено"; return; }
+            if (ConnectionState != ConnectionState.Connected) { Status = Localization.Loc.T("S_VM_229"); return; }
             _connectedAt = DateTime.Now; ResetTraffic();
             string modeLabel = _conn.ActiveMode == TunnelMode.Tun ? "TUN" : "системный прокси";
             string routingLabel = _conn.RoutingNote is not null ? " · " + _conn.RoutingNote : "";
@@ -2131,7 +2159,7 @@ public partial class MainViewModel : ObservableObject
     private string checkPingText = "";
     public bool HasCheckPing => !string.IsNullOrEmpty(CheckPingText);
     /// <summary>Tray label for the connection check — carries the measured ping once we have it.</summary>
-    public string CheckPingTrayText => string.IsNullOrEmpty(CheckPingText) ? "Проверить соединение" : $"Проверить соединение · {CheckPingText}";
+    public string CheckPingTrayText => string.IsNullOrEmpty(CheckPingText) ? Localization.Loc.T("S_VM_110") : string.Format(Localization.Loc.T("S_VM_111"), CheckPingText);
     [RelayCommand]
     private async Task CheckConnection()
     {
@@ -2190,7 +2218,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var pinger = new StabilityPinger(CoreLocator.CoresDir());
-            if (!pinger.CoreAvailable) { Status = "Ядро xray не найдено"; return; }
+            if (!pinger.CoreAvailable) { Status = Localization.Loc.T("S_VM_235"); return; }
 
             var results = await pinger.MeasureAsync(
                 servers.Select(s => (s.Profile.Name ?? "", s.Profile)).ToList(),

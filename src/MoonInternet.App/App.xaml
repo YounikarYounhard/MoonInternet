@@ -671,15 +671,20 @@
                         </Grid>
                     </Grid>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <TextBlock Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}"/>
-                        <TextBlock Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="10,0,0,0"/>
+                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="9.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="4,0,0,0"/>
+                        <!-- an ∞ on its own next to another ∞ reads as a typo; hide it when there is no date -->
+                        <StackPanel Orientation="Horizontal" Margin="10,0,0,0" Visibility="{Binding HasExpiryMeter, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="9.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="4,0,0,0"/>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Точки: ten of them, lit = what is left -->
                 <StackPanel Margin="0,5,0,0"
                             Visibility="{Binding DataContext.IsSubMeterDots, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding HasTrafficMeter, Converter={StaticResource BoolVis}}">
                         <ItemsControl ItemsSource="{Binding TrafficDots}" VerticalAlignment="Center">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
@@ -695,7 +700,7 @@
                         </ItemsControl>
                         <TextBlock Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding HasExpiryMeter, Converter={StaticResource BoolVis}}">
                         <ItemsControl ItemsSource="{Binding ExpiryDots}" VerticalAlignment="Center">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>

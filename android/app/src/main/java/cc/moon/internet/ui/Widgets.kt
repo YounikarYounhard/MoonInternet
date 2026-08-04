@@ -96,22 +96,30 @@ fun SubMeter(
     expiryFraction: Double,
     style: String,
 ) {
-    when (style) {
+    // Nothing to meter on an unlimited plan with no expiry — a bar of nothing and ten dots that
+    // never move say less than the plain "458 ГБ / ∞" the text style already gives.
+    val meterable = trafficFraction >= 0 || expiryFraction >= 0
+    when (if (meterable) style else "text") {
         "bar" -> Column(Modifier.padding(top = 6.dp, end = 14.dp)) {
             if (trafficFraction >= 0) MeterBar(trafficFraction, meterColor(trafficFraction), 5.dp)
             if (expiryFraction >= 0) {
                 Spacer(Modifier.height(4.dp))
                 MeterBar(expiryFraction, Moon.Accent, 3.dp)
             }
-            Row(Modifier.padding(top = 4.dp)) {
-                Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp)
-                Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp, modifier = Modifier.padding(start = 10.dp))
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Download, null, tint = Moon.TextMuted, modifier = Modifier.size(10.dp))
+                Text(" $trafficText", color = Moon.TextMuted, fontSize = 10.5.sp)
+                Spacer(Modifier.width(10.dp))
+                Icon(Icons.Filled.Event, null, tint = Moon.TextMuted, modifier = Modifier.size(10.dp))
+                Text(" $expiryText", color = Moon.TextMuted, fontSize = 10.5.sp)
             }
         }
         "dots" -> Column(Modifier.padding(top = 5.dp)) {
-            MeterDots(trafficFraction, Moon.Accent, trafficText)
-            Spacer(Modifier.height(4.dp))
-            MeterDots(expiryFraction, Moon.AccentText, expiryText)
+            if (trafficFraction >= 0) MeterDots(trafficFraction, Moon.Accent, trafficText)
+            if (expiryFraction >= 0) {
+                if (trafficFraction >= 0) Spacer(Modifier.height(4.dp))
+                MeterDots(expiryFraction, Moon.AccentText, expiryText)
+            }
         }
         else -> Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
