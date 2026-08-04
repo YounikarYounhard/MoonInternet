@@ -343,7 +343,6 @@
     <string name="fmt_sub_meta_noexp">"%1$d servers · %2$s"</string>
     <string name="section_protocol">"PROTOCOL"</string>
     <string name="ping_use_stability">"Use “Stability”"</string>
-    <string name="proxy_mode_hint">"Android has no system-wide proxy — put this address into the app that should use it. Everything else goes direct."</string>
     <string name="auto_delay">"Wait before trying to reconnect"</string>
     <string name="auto_failover">"Fall over to a live server"</string>
     <string name="auto_failover_sub">"When the chosen server does not answer, connect to the fastest one that does. Your choice is kept either way"</string>
@@ -360,4 +359,9 @@
     <string name="notif_disconnect">"Disconnect"</string>
     <string name="notif_server">"Server"</string>
     <string name="notif_ping_action">"Ping"</string>
+    <string name="welcome_sub">"The internet, without the walls"</string>
+    <string name="welcome_body">"The app needs a subscription link from your provider — the server list arrives with it. Everything else is already set up."</string>
+    <string name="welcome_scan">"Scan a QR code"</string>
+    <string name="welcome_paste">"Paste from the clipboard"</string>
+    <string name="welcome_skip">"Later"</string>
 </resources>

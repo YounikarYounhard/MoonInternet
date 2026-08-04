@@ -179,8 +179,9 @@ class MoonVpnService : VpnService() {
                     return@launch
                 }
 
-                // Proxy mode runs the core with no TUN: only the local SOCKS/HTTP listeners,
-                // so nothing is captured system-wide. fd 0 tells xray there is no tun device.
+                // Proxy mode runs the core with no TUN: only the local SOCKS/HTTP listeners, and
+                // no VPN interface — the same shape INCY's ProxyOnlyService has, which is an
+                // ordinary foreground service rather than a VpnService.
                 val fd = if (tun) {
                     establish(profileName, mtu, appMode, apps)
                         ?: run { askForVpnSlot(); return@launch }

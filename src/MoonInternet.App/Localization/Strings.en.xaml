@@ -450,4 +450,8 @@
     <s:String x:Key="S_VM_131">{0}: {1}% of the traffic is left</s:String>
     <s:String x:Key="S_Notify_Traffic">Traffic running out</s:String>
     <s:String x:Key="S_Notify_Traffic_Sub">Warn when under 10% of the subscription traffic is left</s:String>
+    <s:String x:Key="S_Welcome_Sub">The internet, without the walls</s:String>
+    <s:String x:Key="S_Welcome_Body">The app needs a subscription link from your provider — the server list arrives with it. Everything else is already set up; nothing to change.</s:String>
+    <s:String x:Key="S_Welcome_Add">Add a subscription</s:String>
+    <s:String x:Key="S_Welcome_Skip">Later</s:String>
 </ResourceDictionary>

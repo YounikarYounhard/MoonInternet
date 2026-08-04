@@ -319,6 +319,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setSort(mode: String) = viewModelScope.launch { store.update { it.copy(sort = mode) } }
 
+    fun dismissWelcome() = viewModelScope.launch { store.update { it.copy(welcomeShown = true) } }
+
     fun setTunMode(on: Boolean) = viewModelScope.launch { store.update { it.copy(tunMode = on) } }
 
     fun sortedServers(): List<ServerProfile> = store.sortedServers(_pings.value)
@@ -515,8 +517,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 logLevel = if (st.logsEnabled) st.logLevel else "none",
                 logFile = if (st.logsEnabled) cc.moon.internet.data.LogStore.file(getApplication()).absolutePath else null,
                 socksPort = socks,
-                httpPort = http,
-                proxyUser = st.proxyUser,
+                    proxyUser = st.proxyUser,
                 proxyPass = st.proxyPass,
                 socksAuth = st.socks5Auth,
                 httpAuth = st.httpProxyAuth,

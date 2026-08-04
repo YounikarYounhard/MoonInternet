@@ -91,6 +91,7 @@ data class AppState(
     val logKeepDays: Int = 7,
     val subIntervalMinutes: Int = 0,    // 0 = follow the subscription's own interval
     val hwid: String = "",
+    val welcomeShown: Boolean = false,   // экран первого запуска уже закрыли
     /**
      * Bumped when a default changes in a way an existing install should pick up. Without it a
      * saved value from the old default wins forever and the change only reaches new installs.
@@ -110,7 +111,7 @@ class Store(private val ctx: Context) {
     private val _state = MutableStateFlow(AppState())
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 3 }
+    private companion object { const val CURRENT_VERSION = 4 }
 
     suspend fun load() = withContext(Dispatchers.IO) {
         val loaded = runCatching {
@@ -119,8 +120,14 @@ class Store(private val ctx: Context) {
         // v2: probes are spaced out by default now, so a batch fills the list one row at a time
         // instead of snapping to thirty numbers at once.
         // v3: the plate shows plain numbers unless asked otherwise.
+        // v4: anybody who already has a subscription has clearly been past the first launch.
         _state.value = if (loaded.settingsVersion < CURRENT_VERSION)
-            loaded.copy(pingStagger = true, subMeter = "text", settingsVersion = CURRENT_VERSION).also { save(it) }
+            loaded.copy(
+                pingStagger = true,
+                subMeter = "text",
+                welcomeShown = loaded.welcomeShown || loaded.subscriptions.isNotEmpty(),
+                settingsVersion = CURRENT_VERSION,
+            ).also { save(it) }
         else loaded
     }
 

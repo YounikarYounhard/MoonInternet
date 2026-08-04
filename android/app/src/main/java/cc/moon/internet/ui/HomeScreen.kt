@@ -38,8 +38,6 @@ import androidx.compose.ui.res.stringResource
 fun HomeScreen(
     state: State,
     tunMode: Boolean,
-    socksPort: Int,
-    httpPort: Int,
     onTunMode: (Boolean) -> Unit,
     server: ServerProfile?,
     subscriptions: List<Subscription>,
@@ -144,24 +142,6 @@ fun HomeScreen(
             } else {
                 Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.homescreen_007), color = Moon.TextSecondary, fontSize = 13.sp)
-            }
-        }
-
-        // ---- proxy mode: say where the listeners are --------------------------
-        // Android has no system-wide proxy a normal app can set, so in this mode nothing is
-        // captured automatically — the address has to go into whatever app should use it.
-        item {
-            if (!tunMode && state == State.Connected) {
-                Spacer(Modifier.height(10.dp))
-                Surface(shape = RoundedCornerShape(11.dp), color = Moon.Card,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft)) {
-                    Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                        Text("SOCKS5 127.0.0.1:$socksPort · HTTP 127.0.0.1:$httpPort",
-                             color = Moon.AccentText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        Text(stringResource(R.string.proxy_mode_hint), color = Moon.TextSecondary,
-                             fontSize = 11.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 3.dp))
-                    }
-                }
             }
         }
 

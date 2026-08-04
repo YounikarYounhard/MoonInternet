@@ -420,4 +420,8 @@
     <s:String x:Key="S_VM_131">{0}: осталось {1}% трафика</s:String>
     <s:String x:Key="S_Notify_Traffic">Трафик на исходе</s:String>
     <s:String x:Key="S_Notify_Traffic_Sub">Предупредить, когда останется меньше 10% трафика подписки</s:String>
+    <s:String x:Key="S_Welcome_Sub">Доступ к интернету без границ</s:String>
+    <s:String x:Key="S_Welcome_Body">Приложению нужна ссылка-подписка от вашего провайдера — из неё приедет список серверов. Всё остальное уже настроено, менять ничего не нужно.</s:String>
+    <s:String x:Key="S_Welcome_Add">Добавить подписку</s:String>
+    <s:String x:Key="S_Welcome_Skip">Позже</s:String>
 </ResourceDictionary>

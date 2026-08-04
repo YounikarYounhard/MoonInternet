@@ -345,7 +345,6 @@
     <string name="fmt_sub_meta_noexp">"%1$d серверов · %2$s"</string>
     <string name="section_protocol">"ПРОТОКОЛ"</string>
     <string name="ping_use_stability">"Использовать «Стабильность»"</string>
-    <string name="proxy_mode_hint">"Android не умеет системный прокси — впишите этот адрес в приложение, которое должно ходить через него. Остальной трафик идёт напрямую."</string>
     <string name="auto_delay">"Пауза перед попыткой переподключиться"</string>
     <string name="auto_failover">"Переключаться на живой сервер"</string>
     <string name="auto_failover_sub">"Если выбранный сервер не отвечает — подключиться к самому быстрому из живых. Ваш выбор при этом сохраняется"</string>
@@ -362,4 +361,9 @@
     <string name="notif_disconnect">"Отключить"</string>
     <string name="notif_server">"Сервер"</string>
     <string name="notif_ping_action">"Пинг"</string>
+    <string name="welcome_sub">"Доступ к интернету без границ"</string>
+    <string name="welcome_body">"Приложению нужна ссылка-подписка от вашего провайдера — из неё приедет список серверов. Всё остальное уже настроено."</string>
+    <string name="welcome_scan">"Сканировать QR-код"</string>
+    <string name="welcome_paste">"Вставить из буфера"</string>
+    <string name="welcome_skip">"Позже"</string>
 </resources>

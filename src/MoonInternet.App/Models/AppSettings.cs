@@ -59,6 +59,7 @@ public sealed class AppSettings
     public bool NotifyTrafficLow { get; set; } = true;         // warn when under 10% of the quota is left
     public int ExpiryNotifyDays { get; set; } = 3;             // 1 | 3 | 5 | 7
     public string? Hwid { get; set; }                          // stable per-install device id (generated once)
+    public bool WelcomeShown { get; set; }                      // the first-launch screen has been dismissed
     public string? Language { get; set; }                      // "ru" | "en"; null = follow the system
     // Notifications
     public bool NotificationsEnabled { get; set; } = true;     // master switch for everything below
@@ -97,7 +98,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 3;
+    private const int CurrentVersion = 4;
 
     private void Migrate()
     {
@@ -106,6 +107,8 @@ public sealed class AppSettings
         if (SettingsVersion < 2) PingStagger = true;
         // v3: the plate shows plain numbers unless asked otherwise.
         if (SettingsVersion < 3) SubMeter = "text";
+        // v4: anybody who already has a subscription has clearly been past the first launch.
+        if (SettingsVersion < 4 && SubscriptionUrls.Count > 0) WelcomeShown = true;
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }
 

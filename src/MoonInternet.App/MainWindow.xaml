@@ -151,6 +151,23 @@
             </Grid>
         </Border>
 
+        <!-- ===== First launch (overlay) ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="60" Background="#E6060410"
+                Visibility="{Binding ShowWelcome, Converter={StaticResource BoolVis}}">
+            <StackPanel VerticalAlignment="Center" Margin="34,0">
+                <Image Source="Assets/moon.png" Width="86" Height="86" HorizontalAlignment="Center"/>
+                <TextBlock Text="Moon Internet" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                <TextBlock Text="{DynamicResource S_Welcome_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="13"
+                           TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                <TextBlock Text="{DynamicResource S_Welcome_Body}" Foreground="{StaticResource TextMuted}" FontSize="12"
+                           TextAlignment="Center" TextWrapping="Wrap" LineHeight="18" Margin="0,18,0,0"/>
+                <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_Welcome_Add}" Padding="0,11"
+                        Margin="0,24,0,0" Command="{Binding WelcomeAddSubscriptionCommand}"/>
+                <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_Welcome_Skip}" Padding="0,10"
+                        Margin="0,8,0,0" Command="{Binding CloseWelcomeCommand}"/>
+            </StackPanel>
+        </Border>
+
         <!-- ===== Add server / subscription dialog (overlay) ===== -->
         <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="50" Background="#B3060410"
                 Visibility="{Binding ShowAddDialog, Converter={StaticResource BoolVis}}">

@@ -95,6 +95,16 @@ class MainActivity : ComponentActivity() {
                 applyTheme(state.accentHex, state.bgHex, state.textHex)
             }
             MoonTheme(fontName = state.fontName) {
+                // First launch takes the whole window: there is nothing behind it worth seeing
+                // until a subscription exists.
+                if (!state.welcomeShown) {
+                    WelcomeScreen(
+                        onScan = { vm.dismissWelcome(); scanQr.launch(Unit) },
+                        onPaste = { vm.dismissWelcome(); pasteImport() },
+                        onSkip = { vm.dismissWelcome() },
+                    )
+                    return@MoonTheme
+                }
                 val vpn by vm.vpnState.collectAsState()
                 val pings by vm.pings.collectAsState()
                 val pinging by vm.pinging.collectAsState()
@@ -221,8 +231,6 @@ class MainActivity : ComponentActivity() {
                             Page.Home -> HomeScreen(
                                 state = vpn,
                                 tunMode = state.tunMode,
-                                socksPort = state.socksPort,
-                                httpPort = state.httpPort,
                                 onTunMode = vm::setProxyMode,
                                 server = selected,
                                 subscriptions = state.subscriptions,

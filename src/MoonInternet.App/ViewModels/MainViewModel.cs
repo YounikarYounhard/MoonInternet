@@ -919,6 +919,7 @@ public partial class MainViewModel : ObservableObject
         PingOnStart = _settings.PingOnStart; SendHwid = _settings.SendHwid;
         ShowSubHeader = _settings.ShowSubHeader; SubMeter = _settings.SubMeter; NotifyExpiry = _settings.NotifyExpiry; ExpiryNotifyDays = _settings.ExpiryNotifyDays;
         NotifyTrafficLow = _settings.NotifyTrafficLow;
+        ShowWelcome = !_settings.WelcomeShown;
         AutoFailover = _settings.AutoFailover; ReconnectDelaySec = _settings.ReconnectDelaySec;
         NotificationsEnabled = _settings.NotificationsEnabled; TrayBalloons = _settings.TrayBalloons;
         NotifyConnection = _settings.NotifyConnection; NotifyAppUpdate = _settings.NotifyAppUpdate;
@@ -1472,6 +1473,15 @@ public partial class MainViewModel : ObservableObject
         ? (IsSubIntAuto ? string.Format(Localization.Loc.T("S_VM_090"), FmtMin(EffectiveUpdateMin)) : string.Format(Localization.Loc.T("S_VM_091"), FmtMin(EffectiveUpdateMin)))
         : Localization.Loc.T("S_VM_092");
     private static string FmtMin(int m) => m < 60 ? string.Format(Localization.Loc.T("S_VM_093"), m) : m % 60 == 0 ? string.Format(Localization.Loc.T("S_VM_094"), m / 60) : string.Format(Localization.Loc.T("S_VM_095"), m / 60, m % 60);
+
+    /// <summary>
+    /// First launch. Deliberately one screen and not a tour: the only thing the app cannot do
+    /// without is a subscription, so that is what it asks for, and everything else stays out of
+    /// the way until it is needed.
+    /// </summary>
+    [ObservableProperty] private bool showWelcome;
+    [RelayCommand] private void CloseWelcome() { ShowWelcome = false; _settings.WelcomeShown = true; _settings.Save(); }
+    [RelayCommand] private void WelcomeAddSubscription() { CloseWelcome(); OpenAddDialog(); }
 
     [ObservableProperty] private bool autoFailover = true;
     partial void OnAutoFailoverChanged(bool v) { _settings.AutoFailover = v; _settings.Save(); }
