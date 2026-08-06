@@ -25,6 +25,9 @@ object Lang {
         // The activity is recreated right after this and re-wraps itself, but the long-lived
         // application context is not — and the VPN notification is built from that one.
         if (tag.isNotEmpty()) applyTo(ctx.applicationContext, Locale.forLanguageTag(tag))
+        // The unit suffixes were read once at process start; the activity is recreated after this
+        // but the application is not, so speed and size would keep the old language.
+        SubscriptionService.loadUnits(ctx.applicationContext)
     }
 
     @Suppress("DEPRECATION")
