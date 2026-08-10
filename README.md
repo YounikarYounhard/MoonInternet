@@ -10,7 +10,10 @@ Windows и Android.
 [![Версия](https://img.shields.io/github/v/release/YounikarYounhard/MoonInternet?include_prereleases&label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F&color=9D7BFF)](../../releases/latest)
 [![MIT](https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-blue)](LICENSE)
 
-**[Скачать](../../releases/latest)** · [English](README-EN.md)
+[![Скачать для Windows](https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C_%D0%B4%D0%BB%D1%8F-Windows-9D7BFF?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/YounikarYounhard/MoonInternet/releases/latest/download/MoonInternet-Setup.exe)
+[![Скачать для Android](https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C_%D0%B4%D0%BB%D1%8F-Android-9D7BFF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/YounikarYounhard/MoonInternet/releases/latest/download/MoonInternet.apk)
+
+[Все выпуски](../../releases) · [English](README-EN.md)
 
 </div>
 
@@ -19,13 +22,13 @@ Windows и Android.
 Обычный клиент: вставляете ссылку-подписку, получаете список серверов, жмёте на луну.
 Аккаунтов нет, регистрации нет, серверов у нас тоже нет — они ваши.
 
-Версия **0.9.1 beta**. Пользоваться можно каждый день, но шероховатости попадаются.
+Версия **0.9.2 beta**. Пользоваться можно каждый день, но шероховатости попадаются.
 Интерфейс на русском и английском, переключается на лету.
 
 | | | |
 |---|---|---|
-| **Windows** | 10/11, x64 | `MoonInternet-Setup-*.exe` |
-| **Android** | 7.0+, arm64 | `MoonInternet-*.apk` |
+| **Windows** | 10/11, x64 | `MoonInternet-Setup.exe` |
+| **Android** | 7.0+, arm64 | `MoonInternet.apk` |
 
 ## Что умеет
 

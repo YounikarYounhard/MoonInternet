@@ -169,6 +169,16 @@ jobs:
         with:
           path: files
 
+      # Fixed names, so the README's two download buttons can point at
+      # releases/latest/download/<name> and keep working for every release to come. Which build
+      # it is stays readable from the tag, the installer and the app's About page.
+      - name: Name the files the way the buttons expect
+        run: |
+          mkdir -p rel
+          cp files/android-apk/*.apk   rel/MoonInternet.apk
+          cp files/windows-setup/*.exe rel/MoonInternet-Setup.exe
+          ls -lh rel
+
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -177,4 +187,4 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "Moon Internet ${{ github.ref_name }}" \
             --generate-notes \
-            files/*/*
+            rel/MoonInternet-Setup.exe rel/MoonInternet.apk

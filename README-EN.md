@@ -5,12 +5,15 @@
 # Moon Internet
 
 A client for VLESS, VMess, Trojan, Shadowsocks, Hysteria2 and WireGuard.
-Windows and Android, the same interface on both.
+Windows and Android.
 
 [![Release](https://img.shields.io/github/v/release/YounikarYounhard/MoonInternet?include_prereleases&label=release&color=9D7BFF)](../../releases/latest)
 [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**[Download](../../releases/latest)** · [Русский](README.md)
+[![Download for Windows](https://img.shields.io/badge/Download_for-Windows-9D7BFF?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/YounikarYounhard/MoonInternet/releases/latest/download/MoonInternet-Setup.exe)
+[![Download for Android](https://img.shields.io/badge/Download_for-Android-9D7BFF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/YounikarYounhard/MoonInternet/releases/latest/download/MoonInternet.apk)
+
+[All releases](../../releases) · [Русский](README.md)
 
 </div>
 
@@ -19,13 +22,13 @@ Windows and Android, the same interface on both.
 An ordinary client: paste a subscription link, get a server list, tap the moon.
 No accounts, no sign-up, and no servers of ours — they are yours.
 
-Version **0.9.1 beta**. Usable every day, with rough edges left.
+Version **0.9.2 beta**. Usable every day, with rough edges left.
 The interface is in Russian and English and switches on the fly.
 
 | | | |
 |---|---|---|
-| **Windows** | 10/11, x64 | `MoonInternet-Setup-*.exe` |
-| **Android** | 7.0+, arm64 | `MoonInternet-*.apk` |
+| **Windows** | 10/11, x64 | `MoonInternet-Setup.exe` |
+| **Android** | 7.0+, arm64 | `MoonInternet.apk` |
 
 ## What it does
 

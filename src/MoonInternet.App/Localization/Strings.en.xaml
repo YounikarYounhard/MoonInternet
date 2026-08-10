@@ -462,7 +462,7 @@
     <s:String x:Key="S_Notify_After">After an update</s:String>
     <s:String x:Key="S_Notify_After_Sub">Say once what changed, when the version has moved</s:String>
     <s:String x:Key="S_Upd_Installed">Updated to {0}. {1}</s:String>
-    <s:String x:Key="S_Upd_WhatsNew">Routing is a list of profiles now: the shipped ones, a subscription’s INCY/HAPP pair, and your own copies.</s:String>
+    <s:String x:Key="S_Upd_WhatsNew">Routing is a list of profiles now: the shipped ones, a subscription’s INCY/HAPP pair, and your own copies. Stability no longer hands a reading to protocols that do not work.</s:String>
     <s:String x:Key="S_Routing_Profiles">PROFILES</s:String>
     <s:String x:Key="S_Routing_New">New</s:String>
     <s:String x:Key="S_Routing_Builtin">Built-in</s:String>
