@@ -150,7 +150,7 @@ fun QrDialog(title: String, url: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SheetHeader(title: String, subtitle: String) {
+internal fun SheetHeader(title: String, subtitle: String) {
     Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 10.dp)) {
         Text(title, color = Moon.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
              maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -159,7 +159,7 @@ private fun SheetHeader(title: String, subtitle: String) {
 }
 
 @Composable
-private fun SheetItem(icon: ImageVector, text: String, onClick: () -> Unit, tint: Color = Moon.TextPrimary) {
+internal fun SheetItem(icon: ImageVector, text: String, onClick: () -> Unit, tint: Color = Moon.TextPrimary) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(20.dp, 14.dp),
         verticalAlignment = Alignment.CenterVertically,

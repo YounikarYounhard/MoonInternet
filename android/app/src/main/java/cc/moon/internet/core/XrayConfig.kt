@@ -351,7 +351,10 @@ object XrayConfig {
         val servers = JSONArray()
         dnsList.filter { it.isNotBlank() }.forEach(servers::put)
         if (servers.length() == 0) {
-            servers.put(routing?.remoteDns?.takeIf { it.isNotBlank() } ?: fallback)
+            // The profile's resolver, written the way its type says to reach it — a DoH pick that
+            // still went out as plain UDP would be a setting that only looks like it does something.
+            val remote = routing?.let { dnsUri(it.remoteDnsType, it.remoteDns) }.orEmpty()
+            servers.put(remote.ifBlank { fallback })
         }
         servers.put("localhost")
         val dns = JSONObject().put("servers", servers)

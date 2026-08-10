@@ -10,6 +10,7 @@ import cc.moon.internet.data.Store
 import cc.moon.internet.data.SubscriptionService
 import cc.moon.internet.vpn.MoonVpnService
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Semaphore
@@ -330,14 +331,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 })
             }
-            importRoutings(f.routingLinks)
+            importRoutings(u, f.routingLinks)
         }.isSuccess
 
-    /** Subscriptions carry incy://routing/add/… payloads; that is where the rule set comes from. */
-    private suspend fun importRoutings(links: List<String>) {
+    /**
+     * Subscriptions carry incy://routing/add/… payloads; that is where the rule set comes from.
+     *
+     * The id is the subscription plus the source rather than random, so refetching updates the
+     * profile it already imported instead of stacking another copy on every refresh.
+     */
+    private suspend fun importRoutings(subUrl: String, links: List<String>) {
         links.filter(RoutingParser::isRoutingLink)
             .mapNotNull(RoutingParser::parse)
-            .forEach { store.putRouting(it) }
+            .forEach { store.putRouting(it.copy(id = store.importedId(subUrl, it.source), subUrl = subUrl)) }
     }
 
     fun removeSubscription(url: String) = viewModelScope.launch {
@@ -510,12 +516,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun stabilityPing(s: ServerProfile, url: String): Int {
         if (!XrayConfig.supports(s.protocol)) return -2   // unknown, not down
-        // Not while our own tunnel is up. The probe raises a second core in this same process,
-        // and doing that beside a running one is what made every Hysteria server read as dead and
-        // occasionally took the live connection down with it. A plain handshake is a worse answer
-        // than stability gives, but it is an answer that does not lie about the tunnel.
-        if (vpnState.value != MoonVpnService.Companion.State.Disconnected)
-            return tcpPing(s.address, s.port, store.state.value.pingTimeoutMs)
+        // Deliberately the same probe whether or not our tunnel is up. Falling back to a plain
+        // handshake while connected handed a number to every server with an open port, including
+        // the protocols that do not actually carry traffic — the probe is the only thing here
+        // that can tell those apart. The probe instance binds no inbound, so it does not collide
+        // with the running core, and pingServers already runs stability one server at a time.
         val cfg = runCatching {
             XrayConfig.buildProxyOnly(
                 XrayConfig.build(server = s, routing = null, hasGeoFiles = false, logLevel = "none")
@@ -652,6 +657,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun activeRouting(): RoutingProfile? = store.activeRouting()
 
+    /** Categories present in the downloaded geo files, for the rule picker. Off the main thread. */
+    suspend fun geoTags(): List<String> = withContext(Dispatchers.IO) {
+        val ctx = getApplication<android.app.Application>()
+        GeoService.tags(GeoService.geosite(ctx), "geosite") + GeoService.tags(GeoService.geoip(ctx), "geoip")
+    }
+
     fun geoipInfo() = GeoService.info(GeoService.geoip(getApplication()))
     fun geositeInfo() = GeoService.info(GeoService.geosite(getApplication()))
 
@@ -668,11 +679,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (imported.isEmpty()) return listOf(GeoSource("", geoipInfo(), geositeInfo(), false))
         val groups = imported.groupBy { it.geoipUrl to it.geositeUrl }
         val split = groups.size > 1
-        val active = store.state.value.routingSource
+        val active = store.activeRouting()?.id
         return groups.map { (urls, profiles) ->
             // Only the selected profile's lists are the ones actually on disk; for the other set we
             // show where it would come from rather than a size we never fetched.
-            val onDisk = !split || profiles.any { it.source == active }
+            val onDisk = !split || profiles.any { it.id == active }
             GeoSource(
                 profiles.map { it.source.uppercase() }.distinct().joinToString(" · "),
                 if (onDisk) geoipInfo() else host(urls.first),
@@ -685,10 +696,39 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun host(url: String) =
         runCatching { java.net.URI(url).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: s(R.string.geo_no_url)
 
-    fun setRoutingSource(src: String) = viewModelScope.launch {
-        store.update { it.copy(routingSource = src) }
+    fun selectRouting(id: String) = viewModelScope.launch {
+        store.selectRouting(id)
         reconnectIfConnected()
     }
+
+    /** Save from the editor: an existing id updates in place, a blank one appends. */
+    fun saveRouting(profile: RoutingProfile) = viewModelScope.launch {
+        store.putRouting(profile)
+        reconnectIfConnected()
+    }
+
+    fun deleteRouting(id: String) = viewModelScope.launch {
+        store.deleteRouting(id)
+        reconnectIfConnected()
+    }
+
+    fun duplicateRouting(id: String) = viewModelScope.launch {
+        store.duplicateRouting(id, s(R.string.routing_copy_suffix))
+    }
+
+    /** Puts the profile on the clipboard as an incy://routing/add/… link. */
+    fun exportRouting(id: String) = viewModelScope.launch {
+        val p = store.state.value.routings.firstOrNull { it.id == id } ?: return@launch
+        val link = RoutingParser.toLink(p)
+        val cm = getApplication<android.app.Application>()
+            .getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        cm.setPrimaryClip(android.content.ClipData.newPlainText("routing", link))
+        _status.value = s(R.string.routing_exported)
+    }
+
+    /** A blank profile for the "+" button. */
+    fun blankRouting() = RoutingProfile(name = s(R.string.routing_new_name), source = "custom",
+                                        domainStrategy = "AsIs")
 
     fun refreshGeo(force: Boolean = true) = viewModelScope.launch {
         if (_geoBusy.value) return@launch
@@ -699,40 +739,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             getApplication(), r?.geoipUrl.orEmpty(), r?.geositeUrl.orEmpty(), force,
         )
         _geoBusy.value = false
-    }
-
-    fun addRule(bucket: String, value: String) = viewModelScope.launch {
-        if (value.isBlank()) return@launch
-        editCustom { p ->
-            // an IP/CIDR belongs in the ip list, everything else is a domain or geo tag
-            val isIp = value.contains('/') || value.startsWith("geoip:", true) ||
-                       value.all { it.isDigit() || it == '.' || it == ':' }
-            when (bucket) {
-                "proxy" -> if (isIp) p.copy(proxyIp = p.proxyIp + value) else p.copy(proxySites = p.proxySites + value)
-                "block" -> if (isIp) p.copy(blockIp = p.blockIp + value) else p.copy(blockSites = p.blockSites + value)
-                else -> if (isIp) p.copy(directIp = p.directIp + value) else p.copy(directSites = p.directSites + value)
-            }
-        }
-    }
-
-    fun removeRule(bucket: String, value: String) = viewModelScope.launch {
-        editCustom { p ->
-            when (bucket) {
-                "proxy" -> p.copy(proxySites = p.proxySites - value, proxyIp = p.proxyIp - value)
-                "block" -> p.copy(blockSites = p.blockSites - value, blockIp = p.blockIp - value)
-                else -> p.copy(directSites = p.directSites - value, directIp = p.directIp - value)
-            }
-        }
-    }
-
-    /** Rules are only editable on the "Свой" profile — imported ones are replaced on every fetch. */
-    private suspend fun editCustom(block: (RoutingProfile) -> RoutingProfile) {
-        val st = store.state.value
-        if (st.routingSource != "custom") { _status.value = s(R.string.vm_rules_custom_only); return }
-        val current = st.routings.firstOrNull { it.source == "custom" }
-            ?: RoutingProfile(name = "Свой", source = "custom")
-        store.putRouting(block(current))
-        reconnectIfConnected()
     }
 
     private fun reconnectIfConnected() {

@@ -62,6 +62,8 @@ object RoutingParser {
             globalProxy = bool("GlobalProxy", "globalProxy"),
             remoteDns = str("RemoteDNSIP", "remoteDnsIp", "RemoteDns", "remoteDns").ifBlank { "1.1.1.1" },
             domesticDns = str("DomesticDNSIP", "domesticDnsIp", "DomesticDns", "domesticDns").ifBlank { "8.8.8.8" },
+            remoteDnsType = str("RemoteDNSType", "remoteDnsType").ifBlank { "dou" }.lowercase(),
+            domesticDnsType = str("DomesticDNSType", "domesticDnsType").ifBlank { "dou" }.lowercase(),
             domainStrategy = str("DomainStrategy", "domainStrategy").ifBlank { "IPIfNonMatch" },
             geoipUrl = str("Geoipurl", "geoIpUrl", "geoipUrl", "GeoipUrl"),
             geositeUrl = str("Geositeurl", "geoSiteUrl", "geositeUrl", "GeositeUrl"),
@@ -81,6 +83,8 @@ object RoutingParser {
         .put("GlobalProxy", p.globalProxy)
         .put("RemoteDNSIP", p.remoteDns)
         .put("DomesticDNSIP", p.domesticDns)
+        .put("RemoteDNSType", p.remoteDnsType)
+        .put("DomesticDNSType", p.domesticDnsType)
         .put("DomainStrategy", p.domainStrategy)
         .put("Geoipurl", p.geoipUrl)
         .put("Geositeurl", p.geositeUrl)
@@ -91,4 +95,12 @@ object RoutingParser {
         .put("ProxyIp", JSONArray(p.proxyIp))
         .put("BlockIp", JSONArray(p.blockIp))
         .toString(2)
+
+    /** The shareable form: what "Экспорт в буфер" puts on the clipboard. */
+    fun toLink(p: RoutingProfile): String {
+        val b64 = Base64.encodeToString(
+            toJson(p).toByteArray(), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+        )
+        return "incy://routing/add/$b64"
+    }
 }

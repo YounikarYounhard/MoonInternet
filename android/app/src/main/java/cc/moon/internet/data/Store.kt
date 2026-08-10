@@ -41,7 +41,10 @@ data class AppState(
     val subMeter: String = "text",   // text | bar | dots — как плашка подписки показывает остаток
     /** Routing profiles imported from subscriptions (incy/happ) plus the user's own. */
     val routings: List<RoutingProfile> = emptyList(),
-    val routingSource: String = "incy",
+    /** Which profile is in effect. Empty falls back to the first in the list. */
+    val selectedRoutingId: String = "",
+    /** Pre-v6 selection: one profile per source. Read once by the migration, never written. */
+    val routingSource: String = "",
     // connection tuning, same switches as the desktop settings page
     val tlsFragment: Boolean = false,
     val mux: Boolean = false,
@@ -124,7 +127,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 5 }
+    private companion object { const val CURRENT_VERSION = 6 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -148,15 +151,22 @@ class Store(private val ctx: Context) {
         // instead of snapping to thirty numbers at once.
         // v3: the plate shows plain numbers unless asked otherwise.
         // v4: anybody who already has a subscription has clearly been past the first launch.
+        // v6: routing became a list of profiles instead of one-per-source, so imported profiles
+        // need ids and the built-in three need to exist. Computed once and reused — ids are
+        // random, so migrating twice would hand the selection an id nothing in the list has.
+        val routings = migrateRoutings(loaded.routings, loaded.subscriptions.map { it.url })
         _state.value = if (loaded.settingsVersion < CURRENT_VERSION)
             loaded.copy(
                 tunMode = true,   // v5: proxy-only is gone; anybody stuck in it gets the tunnel back
                 pingStagger = true,
                 subMeter = "text",
                 welcomeShown = loaded.welcomeShown || loaded.subscriptions.isNotEmpty(),
+                routings = routings,
+                selectedRoutingId = migratedSelection(loaded, routings),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
-        else loaded
+        // Ids handed out here must survive the next launch, or the selection points at nothing.
+        else loaded.copy(routings = routings).also { if (routings != loaded.routings) save(it) }
         _ready.value = true
     }
 
@@ -191,13 +201,99 @@ class Store(private val ctx: Context) {
     suspend fun removeSubscription(url: String) =
         update { it.copy(subscriptions = it.subscriptions.filterNot { s -> s.url == url }) }
 
-    /** The routing profile currently in effect, picked by source the way the desktop does. */
+    /** The routing profile currently in effect. */
     fun activeRouting(): RoutingProfile? = _state.value.let { st ->
-        st.routings.firstOrNull { it.source == st.routingSource } ?: st.routings.firstOrNull()
+        st.routings.firstOrNull { it.id == st.selectedRoutingId } ?: st.routings.firstOrNull()
     }
 
+    /** Saves an edited profile in place, or appends it when the id is new. */
     suspend fun putRouting(profile: RoutingProfile) = update { st ->
-        st.copy(routings = st.routings.filterNot { it.source == profile.source } + profile)
+        val p = if (profile.id.isBlank()) profile.copy(id = newRoutingId()) else profile
+        val list = if (st.routings.any { it.id == p.id })
+            st.routings.map { if (it.id == p.id) p else it }
+        else st.routings + p
+        st.copy(routings = list, selectedRoutingId = st.selectedRoutingId.ifBlank { p.id })
+    }
+
+    suspend fun selectRouting(id: String) = update { it.copy(selectedRoutingId = id) }
+
+    /** Built-ins are the floor: deleting the last profile would leave nothing to route with. */
+    suspend fun deleteRouting(id: String) = update { st ->
+        val left = st.routings.filterNot { it.id == id && !it.builtin }
+        st.copy(
+            routings = left,
+            selectedRoutingId = if (st.selectedRoutingId == id) left.firstOrNull()?.id.orEmpty()
+                                else st.selectedRoutingId,
+        )
+    }
+
+    /** "(копия)" the way INCY does it — a duplicate is a plain editable profile. */
+    suspend fun duplicateRouting(id: String, copySuffix: String) = update { st ->
+        val src = st.routings.firstOrNull { it.id == id } ?: return@update st
+        // A copy leaves the subscription behind: that is the whole point of copying one, and it
+        // is what makes it editable when the original is not.
+        val copy = src.copy(
+            id = newRoutingId(), builtin = false, source = "custom", subUrl = "",
+            name = "${src.name} $copySuffix",
+        )
+        st.copy(routings = st.routings + copy)
+    }
+
+    private fun newRoutingId() = java.util.UUID.randomUUID().toString().take(8)
+
+    /**
+     * The three profiles that ship with the app. Fixed ids, so an update recognises the ones it
+     * already installed instead of adding a second copy of each.
+     *
+     * Names are not localised on purpose: they are data the user can duplicate and rename, and a
+     * profile that renamed itself when the language changed would be a profile you cannot refer to.
+     */
+    private fun builtinRoutings() = listOf(
+        RoutingProfile(
+            id = "builtin-global", builtin = true, source = "custom",
+            name = "Глобальный", globalProxy = true, domainStrategy = "AsIs",
+        ),
+        RoutingProfile(
+            id = "builtin-lan", builtin = true, source = "custom",
+            name = "Обход LAN", globalProxy = true, domainStrategy = "AsIs",
+            directIp = listOf("geoip:private"),
+        ),
+    )
+
+    /** A subscription carries at most one profile per source, so that pair is the identity. */
+    fun importedId(subUrl: String, source: String) = "sub:$subUrl:$source"
+
+    private fun migrateRoutings(list: List<RoutingProfile>, subs: List<String>): List<RoutingProfile> {
+        val withIds = list.map {
+            when {
+                // An imported profile is identified by its subscription and its source. Anything
+                // else and every refresh adds another copy of a profile the list already holds.
+                it.source == "incy" || it.source == "happ" -> {
+                    // Profiles stored before subscriptions were tracked have nothing to group
+                    // under; park them on the first subscription and let the next fetch correct it.
+                    val url = it.subUrl.ifBlank { subs.firstOrNull().orEmpty() }
+                    it.copy(id = importedId(url, it.source), subUrl = url)
+                }
+                it.id.isBlank() -> it.copy(id = newRoutingId())
+                else -> it
+            }
+        }
+        // Last one wins: a refetched profile is fresher than the copy already on disk.
+        val builtins = builtinRoutings()
+        val unique = withIds.associateBy { it.id }.values
+            // A built-in this version no longer ships stays on disk forever otherwise: it is
+            // marked builtin, so the list offers no way to delete it either.
+            .filterNot { it.builtin && builtins.none { b -> b.id == it.id } }
+        val missing = builtins.filterNot { b -> unique.any { it.id == b.id } }
+        return missing + unique
+    }
+
+    private fun migratedSelection(old: AppState, migrated: List<RoutingProfile>): String {
+        // The old model kept one profile per source and remembered the source name; carry that
+        // choice over instead of dropping everyone onto the first built-in.
+        val src = old.routingSource.ifBlank { "incy" }
+        val kept = migrated.firstOrNull { it.source == src && !it.builtin }
+        return kept?.id ?: builtinRoutings().first().id
     }
 
     /** One subscription's servers, ordered by the current sort — used by Home and Servers alike. */

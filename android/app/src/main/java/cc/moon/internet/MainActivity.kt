@@ -48,6 +48,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import cc.moon.internet.core.RoutingProfile
 import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.core.Subscription
 import cc.moon.internet.ui.*
@@ -163,7 +164,10 @@ class MainActivity : ComponentActivity() {
                 var qrOf by remember { mutableStateOf<Pair<String, String>?>(null) }
                 var showUpdate by remember { mutableStateOf(false) }
                 var logView by remember { mutableStateOf<String?>(null) }
-                var addRuleTo by remember { mutableStateOf<String?>(null) }
+                // The routing page has three levels: the list, one subscription's profiles,
+                // and the editor. Null at both means the top level.
+                var editingRouting by remember { mutableStateOf<RoutingProfile?>(null) }
+                var routingSub by remember { mutableStateOf<String?>(null) }
                 val snackbar = remember { SnackbarHostState() }
 
                 // callbacks below are plain lambdas, so their toasts are resolved in composition
@@ -177,7 +181,8 @@ class MainActivity : ComponentActivity() {
                     when {
                         qrOf != null -> qrOf = null
                         jsonOf != null -> jsonOf = null
-                        addRuleTo != null -> addRuleTo = null
+                        editingRouting != null -> editingRouting = null
+                        routingSub != null -> routingSub = null
                         showAdd -> showAdd = false
                         subMenu != null -> subMenu = null
                         serverMenu != null -> serverMenu = null
@@ -322,18 +327,42 @@ class MainActivity : ComponentActivity() {
                                 listState = serversScroll,
                             )
 
-                            Page.Routing -> RoutingScreen(
-                                profile = vm.activeRouting(),
-                                source = state.routingSource,
-                                geoSources = vm.geoSources(),
-                                geoBusy = geoBusy,
-                                geoStatus = geoStatus,
-                                onBack = { page = Page.Settings; settingsPage = SettingsPage.Routing },
-                                onSource = vm::setRoutingSource,
-                                onRefreshGeo = { vm.refreshGeo() },
-                                onAddRule = { addRuleTo = it },
-                                onRemoveRule = vm::removeRule,
-                            )
+                            Page.Routing -> when {
+                                editingRouting != null -> RoutingEditorScreen(
+                                    original = editingRouting!!,
+                                    geoSources = vm.geoSources(),
+                                    geoBusy = geoBusy,
+                                    geoStatus = geoStatus,
+                                    geoTags = vm::geoTags,
+                                    onCancel = { editingRouting = null },
+                                    onSave = { vm.saveRouting(it); editingRouting = null },
+                                    onRefreshGeo = { vm.refreshGeo() },
+                                )
+
+                                routingSub != null -> RoutingSubScreen(
+                                    subName = state.subscriptions.firstOrNull { it.url == routingSub }?.name.orEmpty(),
+                                    profiles = state.routings.filter { it.subUrl == routingSub },
+                                    selectedId = vm.activeRouting()?.id.orEmpty(),
+                                    onBack = { routingSub = null },
+                                    onSelect = vm::selectRouting,
+                                    onDuplicate = vm::duplicateRouting,
+                                    onExport = vm::exportRouting,
+                                )
+
+                                else -> RoutingScreen(
+                                    profiles = state.routings,
+                                    subscriptions = state.subscriptions,
+                                    selectedId = vm.activeRouting()?.id.orEmpty(),
+                                    onBack = { page = Page.Settings; settingsPage = SettingsPage.Routing },
+                                    onSelect = vm::selectRouting,
+                                    onOpenSub = { routingSub = it },
+                                    onEdit = { editingRouting = it },
+                                    onDuplicate = vm::duplicateRouting,
+                                    onExport = vm::exportRouting,
+                                    onDelete = vm::deleteRouting,
+                                    onAdd = { editingRouting = vm.blankRouting() },
+                                )
+                            }
 
                             Page.Settings -> settingsPage?.let { sp ->
                                 SettingsDetail(
@@ -365,14 +394,6 @@ class MainActivity : ComponentActivity() {
                             onConfirm = { url -> vm.addSubscription(url); showAdd = false },
                             onScan = { showAdd = false; scanQr.launch(Unit) },
                         )
-
-                        addRuleTo?.let { bucket ->
-                            AddRuleDialog(
-                                bucket = bucket,
-                                onDismiss = { addRuleTo = null },
-                                onConfirm = { v -> vm.addRule(bucket, v); addRuleTo = null },
-                            )
-                        }
 
                         subMenu?.let { sub ->
                             SubscriptionSheet(

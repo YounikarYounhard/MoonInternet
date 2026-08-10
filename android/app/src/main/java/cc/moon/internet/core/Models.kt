@@ -93,6 +93,10 @@ data class WireGuardConfig(
 /** Direct / Proxy / Block rules — the same shape the desktop app imports from HAPP/INCY. */
 @Serializable
 data class RoutingProfile(
+    /** Stable key. Profiles are a list now, so "which one is selected" needs something to point at. */
+    val id: String = "",
+    /** Shipped with the app: can be duplicated and exported, not edited or deleted. */
+    val builtin: Boolean = false,
     val name: String = "",
     val directSites: List<String> = emptyList(),
     val proxySites: List<String> = emptyList(),
@@ -103,14 +107,40 @@ data class RoutingProfile(
     val globalProxy: Boolean = true,
     val remoteDns: String = "1.1.1.1",
     val domesticDns: String = "8.8.8.8",
+    /** doh | dot | dou | tcp — how to reach the resolver above. */
+    val remoteDnsType: String = "dou",
+    val domesticDnsType: String = "dou",
     val domainStrategy: String = "IPIfNonMatch",
     val geoipUrl: String = "",
     val geositeUrl: String = "",
     val source: String = "incy",     // incy | happ | custom
+    /**
+     * The subscription this profile arrived in, empty for built-ins and for your own copies.
+     * Profiles from a subscription are grouped under it and are read-only: the next fetch
+     * overwrites them, so an edit here would quietly disappear.
+     */
+    val subUrl: String = "",
 ) {
     val ruleCount: Int
         get() = directSites.size + proxySites.size + blockSites.size +
                 directIp.size + proxyIp.size + blockIp.size
+
+    val siteCount: Int get() = directSites.size + proxySites.size + blockSites.size
+    val ipCount: Int get() = directIp.size + proxyIp.size + blockIp.size
+}
+
+/** The four ways xray can be told to reach a resolver, as it writes them. */
+fun dnsUri(type: String, address: String): String {
+    val a = address.trim()
+    if (a.isEmpty()) return ""
+    // Already a URI (INCY exports "https://..." for DoH) — leave it be.
+    if (a.contains("://")) return a
+    return when (type.lowercase()) {
+        "doh" -> "https://$a/dns-query"
+        "dot" -> "tls://$a"
+        "tcp" -> "tcp://$a"
+        else -> a          // plain UDP, xray's default form
+    }
 }
 
 /** A subscription plus everything we cached from its last fetch. */
