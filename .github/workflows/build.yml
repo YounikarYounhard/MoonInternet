@@ -115,18 +115,18 @@ jobs:
           dotnet publish src\MoonInternet.TunService -c Release -r win-x64 --self-contained true -o dist\app
 
       - name: Build the installer
-        id: setup
         run: |
           $v = ([xml](Get-Content src\MoonInternet.App\MoonInternet.App.csproj)).Project.PropertyGroup.Version |
                Where-Object { $_ } | Select-Object -First 1
           $appver = ($v -split '\.')[0..2] -join '.'
+          # NSIS does not create the OutFile directory — it just says "Can't open output file"
+          New-Item -ItemType Directory -Force -Path dist\setup | Out-Null
           if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
             choco install nsis -y --no-progress
             $env:PATH += ";${env:ProgramFiles(x86)}\NSIS"
           }
           makensis /DAPPVER=$appver build\installer.nsi
           if ($LASTEXITCODE -ne 0) { throw "makensis failed" }
-          "ver=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - uses: actions/upload-artifact@v4
         with:
