@@ -62,7 +62,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private var lastUp = 0L
     private var lastDown = 0L
-    private var connectedAt = 0L
 
     private val _speed = MutableStateFlow("—" to "—")
     val speed = _speed.asStateFlow()
@@ -186,7 +185,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             vpnState.collect { s ->
                 if (s == MoonVpnService.Companion.State.Connected) {
-                    connectedAt = System.currentTimeMillis()
                     notifyConnection(s(R.string.homescreen_003))
                     // the desktop measures the tunnel as soon as it is up; do the same here
                     checkConnection()
@@ -634,7 +632,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
             _speed.value = SubscriptionService.speed(dUp) to SubscriptionService.speed(dDown)
             _sessionTraffic.value = SubscriptionService.size(up + down)
-            val secs = (System.currentTimeMillis() - connectedAt) / 1000
+            // the service owns the clock; keeping a second one here is what made the
+            // notification and the screen disagree
+            val start = MoonVpnService.connectedAt
+            val secs = if (start <= 0L) 0L else (System.currentTimeMillis() - start) / 1000
             _elapsed.value = String.format("%02d:%02d:%02d", secs / 3600, (secs % 3600) / 60, secs % 60)
         }
     }

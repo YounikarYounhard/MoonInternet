@@ -46,6 +46,9 @@ class MoonVpnService : VpnService() {
         /** Latency through the tunnel, refreshed on connect and by the notification button. */
         val livePing = MutableStateFlow<String?>(null)
 
+        /** When the current tunnel came up, so the UI and the notification agree. */
+        @Volatile var connectedAt = 0L
+
         private const val CHANNEL_ID = "moon_vpn"
         private const val CHANNEL_ID_HEADSUP = "moon_vpn_headsup"
         private const val NOTIFICATION_ID = 1
@@ -102,7 +105,7 @@ class MoonVpnService : VpnService() {
     }
 
     private var tunFd: ParcelFileDescriptor? = null
-    @Volatile private var connectedAt = 0L
+    // see the companion: one clock, shared with the UI
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {

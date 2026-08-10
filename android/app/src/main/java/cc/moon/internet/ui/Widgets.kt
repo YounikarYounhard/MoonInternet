@@ -13,6 +13,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.composed
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -228,6 +233,17 @@ fun BusyIconButton(
         if (busy) SpinnerRing()
         else Icon(icon, contentDescription, tint = Moon.TextSecondary, modifier = Modifier.size(15.dp))
     }
+}
+
+/**
+ * A press that answers. The desktop buttons dip and lighten under the pointer; a phone has no
+ * hover, so the dip is all there is — without it a tap on a card feels like nothing happened.
+ */
+fun Modifier.pressScale(scale: Float = 0.97f): Modifier = composed {
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val s by animateFloatAsState(if (pressed) scale else 1f, spring(stiffness = Spring.StiffnessMediumLow), label = "press")
+    this.graphicsLayer { scaleX = s; scaleY = s }.hoverable(source)
 }
 
 /** HubCard: 38dp rounded icon tile + title + subtitle + chevron. */

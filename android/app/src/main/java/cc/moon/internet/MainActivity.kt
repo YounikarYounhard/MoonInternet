@@ -229,7 +229,14 @@ class MainActivity : ComponentActivity() {
                     // empty, which reads worse than a stretched row — the rows that actually
                     // misbehaved are fixed where they are, in the layouts themselves.
                     Box(Modifier.padding(pad).fillMaxSize()) {
-                        when (page) {
+                        // Crossfade, the way the desktop swaps its pages. Snapping between four
+                        // full-screen layouts reads as a flicker on a phone.
+                        androidx.compose.animation.Crossfade(
+                            targetState = page,
+                            animationSpec = androidx.compose.animation.core.tween(180),
+                            label = "page",
+                        ) { shown ->
+                        when (shown) {
                             Page.Home -> HomeScreen(
                                 state = vpn,
                                 server = selected,
@@ -325,6 +332,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             } ?: SettingsScreen(state = state, onOpen = { settingsPage = it })
                         }
+                        }   // Crossfade
 
                         if (showAdd) AddDialog(
                             onDismiss = { showAdd = false },
