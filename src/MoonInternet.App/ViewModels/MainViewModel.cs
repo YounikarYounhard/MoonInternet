@@ -818,7 +818,8 @@ public partial class MainViewModel : ObservableObject
     partial void OnConnectionStateChanged(ConnectionState value)
     {
         if (value != ConnectionState.Connecting) ConnectingStatus = "";
-        if (value != ConnectionState.Connected) { CheckPingText = ""; UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
+        OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
+        if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
         else _ = CheckConnection();                                   // auto-measure ping the moment we connect
         OnPropertyChanged(nameof(ElapsedDisplay));
         OnPropertyChanged(nameof(MoonAwake));
@@ -1829,6 +1830,7 @@ public partial class MainViewModel : ObservableObject
         if (s is null) return;
         int? outIf = _conn.State == ConnectionState.Connected && _conn.ActiveMode == TunnelMode.Tun ? Pinger.PhysicalIfIndex() : null;
         s.Ping = await ProbeAsync(s, outIf);
+        OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
     }
 
     // ===== action sheets: in-window menus (a WPF ContextMenu is its own window and spills outside the app) =====
@@ -2252,23 +2254,44 @@ public partial class MainViewModel : ObservableObject
     }
 
     // "Проверить соединение" (shown only while connected): ping the active server, show its latency next to the button.
+    /// <summary>
+    /// The pill next to the connect button. Derived from the selected server's own reading rather
+    /// than stored separately — two copies of the same number drifted apart the moment a batch
+    /// ping refreshed the list and left the pill on its old value.
+    /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasCheckPing), nameof(CheckPingTrayText))]
-    private string checkPingText = "";
+    [NotifyPropertyChangedFor(nameof(CheckPingText), nameof(HasCheckPing), nameof(CheckPingTrayText))]
+    private bool checkPinging;
+
+    public string CheckPingText => ConnectionState != ConnectionState.Connected ? ""
+        : CheckPinging ? "…"
+        : SelectedServer is { } s2 && s2.Ping != -2 ? (s2.Ping >= 0 ? $"{s2.Ping} ms" : "✕")
+        : "";
     public bool HasCheckPing => !string.IsNullOrEmpty(CheckPingText);
     /// <summary>Tray label for the connection check — carries the measured ping once we have it.</summary>
     public string CheckPingTrayText => string.IsNullOrEmpty(CheckPingText) ? Localization.Loc.T("S_VM_110") : string.Format(Localization.Loc.T("S_VM_111"), CheckPingText);
     [RelayCommand]
     private async Task CheckConnection()
     {
-        if (SelectedServer is null) return;
-        CheckPingText = "…";
-        // Same reason as in PingSub: bind to the real card regardless of whose tunnel is up.
-        int? outIf = Pinger.PhysicalIfIndex();
-        int ms = await ProbeAsync(SelectedServer, outIf);
-        SelectedServer.Ping = ms;
-        _lastCheckPingMs = ms;              // the learner pairs this with the next speed sample
-        CheckPingText = ms >= 0 ? $"{ms} ms" : "✕";
+        if (SelectedServer is null || CheckPinging) return;
+        var server = SelectedServer;
+        CheckPinging = true;
+        try
+        {
+            // Off the dispatcher, all of it. PhysicalIfIndex walks every adapter, which is slow
+            // enough on its own to freeze the window — the batch ping was moved off for the same
+            // reason and this one was missed.
+            int ms = await Task.Run(async () =>
+            {
+                int? outIf = Pinger.PhysicalIfIndex();
+                return await ProbeAsync(server, outIf).ConfigureAwait(false);
+            }).ConfigureAwait(true);
+            server.Ping = ms;
+            _lastCheckPingMs = ms;          // the learner pairs this with the next speed sample
+            OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
+            OnPropertyChanged(nameof(CheckPingTrayText));
+        }
+        finally { CheckPinging = false; }
     }
 
     private async Task PingSub(SubscriptionVM sub)
@@ -2305,6 +2328,8 @@ public partial class MainViewModel : ObservableObject
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }).ConfigureAwait(true);
             sub.Refresh(); RefreshReachability();
+            OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
+            OnPropertyChanged(nameof(CheckPingTrayText));
         }
         finally { sub.Pinging = false; }
     }

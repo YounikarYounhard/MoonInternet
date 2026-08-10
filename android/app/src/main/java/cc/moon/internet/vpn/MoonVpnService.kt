@@ -193,6 +193,15 @@ class MoonVpnService : VpnService() {
 
                 connectedAt = System.currentTimeMillis()
                 _state.value = State.Connected
+                // One measurement straight away: the ping line used to stay empty until the
+                // notification's own button was pressed.
+                scope.launch {
+                    runCatching {
+                        val ms = runner?.measureDelay()
+                        livePing.value = if (ms == null || ms < 0) null else "$ms ms"
+                        updateNotification(profileName, connecting = false)
+                    }
+                }
                 updateNotification(profileName, connecting = false)
                 pollTraffic()
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -377,6 +386,7 @@ class MoonVpnService : VpnService() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setShowWhen(false)
 
+        var collapsedText = state
         if (paused || connecting) {
             b.setContentText(state)
         } else {
@@ -388,19 +398,39 @@ class MoonVpnService : VpnService() {
                 append(getString(R.string.notif_time, elapsedText()))
                 livePing.value?.let { append('\n').append(getString(R.string.notif_ping, it)) }
             }
+            collapsedText = speed
             b.setContentText(speed)                                  // collapsed: one line
                 .setStyle(NotificationCompat.BigTextStyle().bigText(lines))   // expanded: all of it
+
         }
 
-        if (paused) {
-            b.addAction(0, getString(R.string.notif_start), service(ACTION_RECONNECT, 3))
-            b.addAction(0, getString(R.string.notif_disconnect), service(ACTION_DISCONNECT, 1))
-            b.addAction(0, getString(R.string.notif_server), pickServer)
-        } else {
-            b.addAction(0, getString(R.string.notif_pause), service(ACTION_PAUSE, 4))
-            b.addAction(0, getString(R.string.notif_ping_action), service(ACTION_PING, 2))
-            b.addAction(0, getString(R.string.notif_disconnect), service(ACTION_DISCONNECT, 1))
+        val actions = if (paused) listOf(
+            getString(R.string.notif_start) to service(ACTION_RECONNECT, 3),
+            getString(R.string.notif_disconnect) to service(ACTION_DISCONNECT, 1),
+            getString(R.string.notif_server) to pickServer,
+        ) else listOf(
+            getString(R.string.notif_pause) to service(ACTION_PAUSE, 4),
+            getString(R.string.notif_ping_action) to service(ACTION_PING, 2),
+            getString(R.string.notif_disconnect) to service(ACTION_DISCONNECT, 1),
+        )
+        actions.forEach { (label, intent) -> b.addAction(0, label, intent) }
+
+        // A standard notification hides its actions until the shade is opened. The collapsed row
+        // is drawn by hand so pause and disconnect are reachable without opening anything.
+        val compact = android.widget.RemoteViews(packageName, R.layout.notif_compact).apply {
+            setTextViewText(R.id.notif_title, profile.ifBlank { "Moon Internet" })
+            setTextViewText(R.id.notif_text, collapsedText)
+            listOf(R.id.notif_a1, R.id.notif_a2, R.id.notif_a3)
+                .forEachIndexed { i, id ->
+                    val a = actions.getOrNull(i)
+                    if (a == null) setViewVisibility(id, android.view.View.GONE)
+                    else {
+                        setTextViewText(id, a.first)
+                        setOnClickPendingIntent(id, a.second)
+                    }
+                }
         }
+        b.setCustomContentView(compact)
         return b.build()
     }
 

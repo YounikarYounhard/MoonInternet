@@ -494,6 +494,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun stabilityPing(s: ServerProfile, url: String): Int {
         if (!XrayConfig.supports(s.protocol)) return -2   // unknown, not down
+        // Not while our own tunnel is up. The probe raises a second core in this same process,
+        // and doing that beside a running one is what made every Hysteria server read as dead and
+        // occasionally took the live connection down with it. A plain handshake is a worse answer
+        // than stability gives, but it is an answer that does not lie about the tunnel.
+        if (vpnState.value != MoonVpnService.Companion.State.Disconnected)
+            return tcpPing(s.address, s.port, store.state.value.pingTimeoutMs)
         val cfg = runCatching {
             XrayConfig.buildProxyOnly(
                 XrayConfig.build(server = s, routing = null, hasGeoFiles = false, logLevel = "none")
@@ -514,6 +520,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             ms == null -> s(R.string.vm_no_reply)
             ms < 0 -> s(R.string.vm_no_reply)
             else -> "$ms ms"
+        }
+        // The same number goes into the row, so the pill by the button and the list cannot show
+        // two different figures for one server.
+        if (ms != null && ms >= 0) store.selectedServer()?.raw?.let { raw ->
+            _pings.update { it + (raw to ms.toInt()) }
         }
     }
 
