@@ -77,6 +77,9 @@ powershell -ExecutionPolicy Bypass -File build\get-cores.ps1
 dotnet publish src\MoonInternet.App        -c Release -r win-x64 --self-contained true -o dist\app
 dotnet publish src\MoonInternet.TunService -c Release -r win-x64 --self-contained true -o dist\app
 
+# ядра ищутся рядом с exe, а установщик пакует только distpp
+Copy-Item cores distpp\cores -Recurse -Force
+
 makensis build\installer.nsi   # если нужен установщик
 ```
 

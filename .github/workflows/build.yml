@@ -129,6 +129,18 @@ jobs:
           dotnet publish src\MoonInternet.App        -c Release -r win-x64 --self-contained true -o dist\app
           dotnet publish src\MoonInternet.TunService -c Release -r win-x64 --self-contained true -o dist\app
 
+      # get-cores.ps1 drops the engines in cores\ at the repo root, but CoreLocator looks for
+      # cores\ beside MoonInternet.exe and the installer packs only dist\app. Miss this and the
+      # installer still builds — it just installs an app that cannot connect to anything.
+      - name: Put the cores next to the app
+        run: |
+          Copy-Item cores dist\app\cores -Recurse -Force
+          foreach ($e in 'xray\xray.exe', 'singbox\sing-box.exe', 'tun2socks\tun2socks.exe') {
+            if (-not (Test-Path "dist\app\cores\$e")) { throw "core missing: $e" }
+          }
+          "{0:N0} MB of app" -f ((Get-ChildItem dist\app -Recurse -File |
+            Measure-Object Length -Sum).Sum / 1MB)
+
       - name: Build the installer
         run: |
           $v = ([xml](Get-Content src\MoonInternet.App\MoonInternet.App.csproj)).Project.PropertyGroup.Version |
@@ -182,9 +194,19 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            --title "Moon Internet ${{ github.ref_name }}" \
-            --generate-notes \
+          # The annotated tag holds what changed. --generate-notes on its own threw that away and
+          # left the release with nothing but a compare link, so write the tag message first and
+          # append the generated part to it.
+          sha=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha)
+          gh api "repos/$REPO/git/tags/$sha" --jq .message > notes.md 2>/dev/null || : > notes.md
+          printf '\n\n' >> notes.md
+          gh api -X POST "repos/$REPO/releases/generate-notes" -f tag_name="$TAG" --jq .body >> notes.md
+          cat notes.md
+
+          gh release create "$TAG" --repo "$REPO" \
+            --title "Moon Internet $TAG" \
+            --notes-file notes.md \
             rel/MoonInternet-Setup.exe rel/MoonInternet.apk
