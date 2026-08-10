@@ -144,7 +144,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val firstEver = st.lastSeenVersion.isEmpty()
         store.update { it.copy(lastSeenVersion = appVersion) }
         if (firstEver || !st.notifyAfterUpdate) return
-        _updateStatus.value = s(R.string.upd_installed, appVersion)
+        // upd_whats_new is the one-line changelog; it lives beside the version check so it
+        // gets rewritten whenever the version does.
+        _updateStatus.value = s(R.string.upd_installed, appVersion, s(R.string.upd_whats_new))
         postNotice(_updateStatus.value)
     }
 
@@ -364,6 +366,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleFavorite(s: ServerProfile) = viewModelScope.launch { store.toggleFavorite(s) }
 
     fun setSort(mode: String) = viewModelScope.launch { store.update { it.copy(sort = mode) } }
+    fun setProtocol(p: String) = viewModelScope.launch { store.update { it.copy(protocol = p) } }
 
     fun dismissWelcome() = viewModelScope.launch { store.update { it.copy(welcomeShown = true) } }
 

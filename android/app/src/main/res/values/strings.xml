@@ -384,5 +384,7 @@
     <string name="pin_active_sub">"Пока подключены — поднимать этот сервер в начало списка"</string>
     <string name="notify_after">"После обновления"</string>
     <string name="notify_after_sub">"Один раз сказать, что изменилось, когда версия сменилась"</string>
-    <string name="upd_installed">"Обновлено до %1$s — список изменений в «Обновление»"</string>
+    <string name="upd_installed">"Обновлено до %1$s. %2$s"</string>
+    <!-- Что нового. Правится вместе с versionName в build.gradle.kts, каждый выпуск. -->
+    <string name="upd_whats_new">"Плавные переходы между страницами, фильтр по протоколу работает и на главной, в свёрнутом уведомлении появились кнопки."</string>
 </resources>

@@ -461,5 +461,6 @@
     <s:String x:Key="S_Pin_Active_Sub">While connected, keep that server at the top of the list</s:String>
     <s:String x:Key="S_Notify_After">After an update</s:String>
     <s:String x:Key="S_Notify_After_Sub">Say once what changed, when the version has moved</s:String>
-    <s:String x:Key="S_Upd_Installed">Updated to {0} — the changes are under Update</s:String>
+    <s:String x:Key="S_Upd_Installed">Updated to {0}. {1}</s:String>
+    <s:String x:Key="S_Upd_WhatsNew">Smooth page transitions, the protocol filter now applies on Home too, and the collapsed notification has buttons.</s:String>
 </ResourceDictionary>

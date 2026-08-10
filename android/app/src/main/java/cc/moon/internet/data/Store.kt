@@ -26,6 +26,8 @@ data class AppState(
     val dns: String = "1.1.1.1",
     val ipv6: Boolean = false,
     val sort: String = "default",
+    /** Protocol chip on Servers. Lives here, not in the screen, so Home obeys it too. */
+    val protocol: String = "",
     /** Connected server first in the list. Off = leave it wherever the sort puts it. */
     val pinActive: Boolean = true,
     /** Always true for now: the proxy-only mode was removed, another is planned. */
@@ -256,6 +258,9 @@ class Store(private val ctx: Context) {
         val active = if (_state.value.pinActive) _state.value.selectedServerRaw else null
         val pinned = { s: ServerProfile -> if (active != null && s.raw == active) 0 else 1 }
         val fav = { s: ServerProfile -> if (isFavorite(s)) 0 else 1 }
+        val proto = _state.value.protocol
+        @Suppress("NAME_SHADOWING")
+        val list = if (proto.isEmpty()) list else list.filter { it.protocolLabel == proto }
         return when (_state.value.sort) {
             "ping" -> list.sortedWith(compareBy(pinned, fav, { pings[it.raw]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
             "name" -> list.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))

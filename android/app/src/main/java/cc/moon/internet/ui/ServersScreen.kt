@@ -36,10 +36,12 @@ fun ServersScreen(
     isFavorite: (ServerProfile) -> Boolean,
     collapsed: Set<String>,
     sort: String,
+    protocol: String,
     showSubHeader: Boolean,
     showServerCount: Boolean,
     subMeter: String,
     onSort: (String) -> Unit,
+    onProtocol: (String) -> Unit,
     onToggleCollapse: (String) -> Unit,
     onSelect: (ServerProfile) -> Unit,
     onServerMenu: (ServerProfile) -> Unit,
@@ -50,27 +52,21 @@ fun ServersScreen(
     onPaste: () -> Unit,
     onPingAll: () -> Unit,
     onRefreshAll: () -> Unit,
+    sortedIn: (Subscription) -> List<ServerProfile>,
     listState: androidx.compose.foundation.lazy.LazyListState,
 ) {
     var query by remember { mutableStateOf("") }
     // Chips carry a stable key, never their label — a label swaps with the language, a key doesn't.
-    var protocol by remember { mutableStateOf("") }   // "" = все
     val allLabel = stringResource(R.string.serversscreen_001)
 
     val all = subscriptions.flatMap { it.servers }
     val protocols = remember(all) { listOf("") + all.map { it.protocolLabel }.distinct().sorted() }
 
-    fun visible(list: List<ServerProfile>) = list.filter { s ->
-        (protocol.isEmpty() || s.protocolLabel == protocol) &&
-        (query.isBlank() || s.label.contains(query, ignoreCase = true))
-    }.let { filtered ->
-        val fav = { s: ServerProfile -> if (isFavorite(s)) 0 else 1 }
-        when (sort) {
-            "ping" -> filtered.sortedWith(compareBy(fav, { pings[it.raw]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
-            "name" -> filtered.sortedWith(compareBy(fav, { it.label.lowercase() }))
-            "favorite" -> filtered.filter(isFavorite).ifEmpty { filtered }
-            else -> filtered.sortedBy(fav)
-        }
+    // Ordering (and the protocol filter) comes from the store, the same call Home makes — this
+    // screen used to sort its own way, which is why the connected server floated to the top on
+    // Home and stayed put here. Only the search box is local: it belongs to this screen.
+    fun visible(sub: Subscription) = sortedIn(sub).filter { s ->
+        query.isBlank() || s.label.contains(query, ignoreCase = true)
     }
 
     LazyColumn(
@@ -124,7 +120,7 @@ fun ServersScreen(
 
         item {
             ChipSection(stringResource(R.string.section_protocol),
-                        protocols.map { it to it.ifEmpty { allLabel } }, protocol) { protocol = it }
+                        protocols.map { it to it.ifEmpty { allLabel } }, protocol, onProtocol)
             ChipSection(
                 stringResource(R.string.serversscreen_007),
                 listOf(
@@ -141,7 +137,7 @@ fun ServersScreen(
 
         items(subscriptions.size) { i ->
             val sub = subscriptions[i]
-            val shown = visible(sub.servers)
+            val shown = visible(sub)
             if (shown.isNotEmpty() || query.isBlank()) {
                 SubGroup(
                     showServerCount = showServerCount,

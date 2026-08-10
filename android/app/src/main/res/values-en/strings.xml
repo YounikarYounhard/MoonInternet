@@ -382,5 +382,6 @@
     <string name="pin_active_sub">"While connected, keep that server at the top of the list"</string>
     <string name="notify_after">"After an update"</string>
     <string name="notify_after_sub">"Say once what changed, when the version has moved"</string>
-    <string name="upd_installed">"Updated to %1$s — the changes are under Update"</string>
+    <string name="upd_installed">"Updated to %1$s. %2$s"</string>
+    <string name="upd_whats_new">"Smooth page transitions, the protocol filter now applies on Home too, and the collapsed notification has buttons."</string>
 </resources>

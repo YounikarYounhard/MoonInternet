@@ -9,6 +9,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -229,11 +237,18 @@ class MainActivity : ComponentActivity() {
                     // empty, which reads worse than a stretched row — the rows that actually
                     // misbehaved are fixed where they are, in the layouts themselves.
                     Box(Modifier.padding(pad).fillMaxSize()) {
-                        // Crossfade, the way the desktop swaps its pages. Snapping between four
-                        // full-screen layouts reads as a flicker on a phone.
-                        androidx.compose.animation.Crossfade(
+                        // The desktop's PageTransition, matched: opacity over 220ms plus a 16px
+                        // lift over 280ms on a cubic ease-out. A plain crossfade between two dark
+                        // screens is invisible — the lift is what you actually see.
+                        val lift = with(androidx.compose.ui.platform.LocalDensity.current) { 16.dp.roundToPx() }
+                        AnimatedContent(
                             targetState = page,
-                            animationSpec = androidx.compose.animation.core.tween(180),
+                            transitionSpec = {
+                                val ease = CubicBezierEasing(0.215f, 0.61f, 0.355f, 1f)
+                                (fadeIn(tween(220)) + slideInVertically(tween(280, easing = ease)) { lift })
+                                    .togetherWith(fadeOut(tween(120)))
+                                    .using(SizeTransform(clip = false))
+                            },
                             label = "page",
                         ) { shown ->
                         when (shown) {
@@ -279,10 +294,12 @@ class MainActivity : ComponentActivity() {
                                 isFavorite = vm::isFavorite,
                                 collapsed = collapsed,
                                 sort = state.sort,
+                                protocol = state.protocol,
                                 showSubHeader = state.showSubHeader,
                                 showServerCount = state.showServerCount,
                                 subMeter = state.subMeter,
                                 onSort = vm::setSort,
+                                onProtocol = vm::setProtocol,
                                 onToggleCollapse = vm::toggleCollapse,
                                 onSelect = vm::selectServer,
                                 onServerMenu = { serverMenu = it },
@@ -293,6 +310,7 @@ class MainActivity : ComponentActivity() {
                                 onPaste = ::pasteImport,
                                 onPingAll = { vm.pingAll() },
                                 onRefreshAll = { vm.refreshAll() },
+                                sortedIn = vm::sortedIn,
                                 listState = serversScroll,
                             )
 

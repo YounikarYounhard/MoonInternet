@@ -420,12 +420,15 @@ class MoonVpnService : VpnService() {
 
         // A standard notification hides its actions until the shade is opened. The collapsed row
         // is drawn by hand so pause and disconnect are reachable without opening anything.
+        // Two of them, not three: beside the server name a third button squeezes the title to
+        // nothing. Ping stays in the expanded shade — its reading is already on the row anyway.
+        val collapsed = if (paused) actions.take(2) else listOf(actions[0], actions[2])
         val compact = android.widget.RemoteViews(packageName, R.layout.notif_compact).apply {
             setTextViewText(R.id.notif_title, profile.ifBlank { "Moon Internet" })
             setTextViewText(R.id.notif_text, collapsedText)
             listOf(R.id.notif_a1, R.id.notif_a2, R.id.notif_a3)
                 .forEachIndexed { i, id ->
-                    val a = actions.getOrNull(i)
+                    val a = collapsed.getOrNull(i)
                     if (a == null) setViewVisibility(id, android.view.View.GONE)
                     else {
                         setTextViewText(id, a.first)

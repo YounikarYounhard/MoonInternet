@@ -1563,7 +1563,10 @@ public partial class MainViewModel : ObservableObject
         _settings.LastSeenVersion = AppVersion; _settings.Save();
         if (firstEver || !NotifyAfterUpdate) return;
 
-        UpdateStatus = string.Format(Localization.Loc.T("S_Upd_Installed"), AppVersion);
+        // S_Upd_WhatsNew is the one-line changelog; it lives beside the version check so it
+        // gets rewritten whenever the version does.
+        UpdateStatus = string.Format(Localization.Loc.T("S_Upd_Installed"), AppVersion,
+                                     Localization.Loc.T("S_Upd_WhatsNew"));
         Notifier.Show("Moon Internet", UpdateStatus);
     }
 
