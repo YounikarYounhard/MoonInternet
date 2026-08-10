@@ -90,6 +90,18 @@ jobs:
           # app-release.apk when signed, app-release-unsigned.apk when the secret is missing
           src=$([ -f "$out/app-release.apk" ] && echo "$out/app-release.apk" || ls "$out"/*.apk | head -1)
           echo "packaging $src"
+
+          # An unsigned APK does not install over an existing one. A fork has no key and that is
+          # fine, but if the key was handed in and the APK still came out unsigned, that has to
+          # stop here rather than at the phone refusing the update.
+          case "$src" in
+            *unsigned*) if [ -n "$MOON_KEYSTORE" ]; then
+                          echo "::error::the keystore was provided but the APK is unsigned"; exit 1
+                        fi
+                        echo "::warning::no keystore — this APK will not install over an existing one" ;;
+            *) "$(ls "$ANDROID_SDK_ROOT"/build-tools/*/apksigner | sort -V | tail -1)" \
+                 verify --print-certs "$src" | grep -i 'SHA-256 digest' ;;
+          esac
           mkdir -p out
           cp "$src" "out/MoonInternet-v$ver.apk"
           echo "ver=$ver" >> "$GITHUB_OUTPUT"
