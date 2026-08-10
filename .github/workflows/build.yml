@@ -124,11 +124,21 @@ jobs:
           $appver = ($v -split '\.')[0..2] -join '.'
           # NSIS does not create the OutFile directory — it just says "Can't open output file"
           New-Item -ItemType Directory -Force -Path dist\setup | Out-Null
-          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+
+          # The runner image ships NSIS but does not put it on PATH, so look for the exe itself.
+          # Going by Get-Command sent every run to chocolatey, whose feed answers 503 often
+          # enough that the job passed or failed at random.
+          $nsis = @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe",
+                    (Get-Command makensis -ErrorAction SilentlyContinue).Source) |
+                  Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          if (-not $nsis) {
             choco install nsis -y --no-progress
-            $env:PATH += ";${env:ProgramFiles(x86)}\NSIS"
+            $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
           }
-          makensis /DAPPVER=$appver build\installer.nsi
+          if (-not (Test-Path $nsis)) { throw "NSIS not available" }
+
+          & $nsis /VERSION
+          & $nsis /DAPPVER=$appver build\installer.nsi
           if ($LASTEXITCODE -ne 0) { throw "makensis failed" }
 
       - uses: actions/upload-artifact@v4
