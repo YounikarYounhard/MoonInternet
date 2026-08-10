@@ -383,7 +383,7 @@
     <string name="notify_after">"After an update"</string>
     <string name="notify_after_sub">"Say once what changed, when the version has moved"</string>
     <string name="upd_installed">"Updated to %1$s. %2$s"</string>
-    <string name="upd_whats_new">"Smooth page transitions, the protocol filter now applies on Home too, and the collapsed notification has buttons."</string>
+    <string name="upd_whats_new">"Routing is a list of profiles now: the shipped ones, a subscription’s INCY/HAPP pair, and your own copies."</string>
     <string name="routing_title">"Routing"</string>
     <string name="routing_subtitle">"Profiles: what goes through the VPN and what goes around it"</string>
     <string name="routing_add">"New profile"</string>

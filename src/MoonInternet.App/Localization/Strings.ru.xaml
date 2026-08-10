@@ -433,5 +433,17 @@
     <s:String x:Key="S_Notify_After_Sub">Один раз сказать, что изменилось, когда версия сменилась</s:String>
     <s:String x:Key="S_Upd_Installed">Обновлено до {0}. {1}</s:String>
     <!-- Что нового. Правится вместе с <Version> в MoonInternet.App.csproj, каждый выпуск. -->
-    <s:String x:Key="S_Upd_WhatsNew">Плавные переходы между страницами, фильтр по протоколу работает и на главной, в свёрнутом уведомлении появились кнопки.</s:String>
+    <s:String x:Key="S_Upd_WhatsNew">Маршрутизация переехала в профили: встроенные, профили подписки с выбором INCY/HAPP и ваши копии.</s:String>
+    <s:String x:Key="S_Routing_Profiles">ПРОФИЛИ</s:String>
+    <s:String x:Key="S_Routing_New">Новый</s:String>
+    <s:String x:Key="S_Routing_Builtin">Встроенный</s:String>
+    <s:String x:Key="S_Routing_Installed">Установленные</s:String>
+    <s:String x:Key="S_Routing_Mine">Мои профили</s:String>
+    <s:String x:Key="S_Routing_Duplicate">Дублировать</s:String>
+    <s:String x:Key="S_Routing_Export">Экспорт в буфер</s:String>
+    <s:String x:Key="S_Routing_Delete">Удалить</s:String>
+    <s:String x:Key="S_Routing_CopySuffix">(копия)</s:String>
+    <s:String x:Key="S_Routing_NewName">Новый профиль</s:String>
+    <s:String x:Key="S_Routing_Exported">Ссылка на профиль скопирована</s:String>
+    <s:String x:Key="S_Routing_ReadOnly">Этот профиль приходит из подписки и перезапишется при её обновлении — менять его нельзя. Нажмите правой кнопкой и выберите «Дублировать», копия станет вашей.</s:String>
 </ResourceDictionary>

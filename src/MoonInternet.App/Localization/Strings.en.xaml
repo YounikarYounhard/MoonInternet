@@ -462,5 +462,17 @@
     <s:String x:Key="S_Notify_After">After an update</s:String>
     <s:String x:Key="S_Notify_After_Sub">Say once what changed, when the version has moved</s:String>
     <s:String x:Key="S_Upd_Installed">Updated to {0}. {1}</s:String>
-    <s:String x:Key="S_Upd_WhatsNew">Smooth page transitions, the protocol filter now applies on Home too, and the collapsed notification has buttons.</s:String>
+    <s:String x:Key="S_Upd_WhatsNew">Routing is a list of profiles now: the shipped ones, a subscription’s INCY/HAPP pair, and your own copies.</s:String>
+    <s:String x:Key="S_Routing_Profiles">PROFILES</s:String>
+    <s:String x:Key="S_Routing_New">New</s:String>
+    <s:String x:Key="S_Routing_Builtin">Built-in</s:String>
+    <s:String x:Key="S_Routing_Installed">Installed</s:String>
+    <s:String x:Key="S_Routing_Mine">My profiles</s:String>
+    <s:String x:Key="S_Routing_Duplicate">Duplicate</s:String>
+    <s:String x:Key="S_Routing_Export">Copy as link</s:String>
+    <s:String x:Key="S_Routing_Delete">Delete</s:String>
+    <s:String x:Key="S_Routing_CopySuffix">(copy)</s:String>
+    <s:String x:Key="S_Routing_NewName">New profile</s:String>
+    <s:String x:Key="S_Routing_Exported">Profile link copied</s:String>
+    <s:String x:Key="S_Routing_ReadOnly">This profile comes from a subscription and the next fetch overwrites it, so it cannot be changed. Right-click and pick Duplicate — the copy is yours.</s:String>
 </ResourceDictionary>

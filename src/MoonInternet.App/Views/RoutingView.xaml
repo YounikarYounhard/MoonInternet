@@ -1,4 +1,4 @@
-<UserControl x:Class="MoonInternet.App.Views.RoutingView"
+﻿<UserControl x:Class="MoonInternet.App.Views.RoutingView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
@@ -10,12 +10,72 @@
                     <TextBlock Text="{Binding Value}" Foreground="{StaticResource TextPrimary}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="300"/>
                     <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="9" Width="16" Height="16" Padding="0" Margin="6,0,0,0" VerticalAlignment="Center"
                             Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondary}" Cursor="Hand"
-                            Visibility="{Binding DataContext.IsRoutingCustom, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"
+                            Visibility="{Binding DataContext.CanEditRouting, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"
                             Command="{Binding DataContext.RemoveRuleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                 </StackPanel>
             </Border>
         </DataTemplate>
         <ItemsPanelTemplate x:Key="Wrap"><WrapPanel/></ItemsPanelTemplate>
+
+        <!-- One routing profile. A RadioButton rather than a Button so "this is the active one"
+             is the control's own state: IsChecked compares the item with SelectedRouting, the
+             same Eq multi-binding the protocol chips use. -->
+        <DataTemplate x:Key="RoutingCard">
+            <RadioButton GroupName="routingprofiles" Cursor="Hand" Margin="0,0,0,6" HorizontalContentAlignment="Stretch"
+                         Command="{Binding DataContext.PickRoutingCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                         CommandParameter="{Binding}">
+                <RadioButton.IsChecked>
+                    <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                        <Binding Path="DataContext.SelectedRouting" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                        <Binding/>
+                    </MultiBinding>
+                </RadioButton.IsChecked>
+                <RadioButton.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{DynamicResource S_Routing_Duplicate}"
+                                  Command="{Binding PlacementTarget.DataContext.DuplicateRoutingCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <MenuItem Header="{DynamicResource S_Routing_Export}"
+                                  Command="{Binding PlacementTarget.DataContext.ExportRoutingCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <MenuItem Header="{DynamicResource S_Routing_Delete}"
+                                  Command="{Binding PlacementTarget.DataContext.DeleteRoutingCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    </ContextMenu>
+                </RadioButton.ContextMenu>
+                <RadioButton.Template>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="card" CornerRadius="12" Padding="14,10" Background="{StaticResource Card}"
+                                BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <Border CornerRadius="6" Background="#2E9D7BFF" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                            Visibility="{Binding Builtin, Converter={StaticResource BoolVis}}">
+                                        <TextBlock Text="{DynamicResource S_Routing_Builtin}" Foreground="{StaticResource AccentText}" FontSize="10" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border CornerRadius="6" Background="#1EFFFFFF" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                            Visibility="{Binding IsImported, Converter={StaticResource BoolVis}}">
+                                        <TextBlock Text="{Binding SourceText}" Foreground="{StaticResource TextSecondary}" FontSize="10" FontWeight="SemiBold"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12" HorizontalAlignment="Right"
+                                           VerticalAlignment="Center" Foreground="{StaticResource Accent}" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="card" Property="Background" Value="#18FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="card" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </RadioButton.Template>
+            </RadioButton>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid>
@@ -69,21 +129,43 @@
                     </StackPanel>
                 </Border>
 
-                <!-- source: INCY | HAPP | Свой -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBlock Text="{DynamicResource S_RoutingView_005}" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <Border CornerRadius="10" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="3">
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="INCY" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="incy" IsChecked="{Binding IsRoutingIncy, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="HAPP" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="happ" IsChecked="{Binding IsRoutingHapp, Mode=OneWay}"/>
-                            <RadioButton Style="{StaticResource SegButton}" GroupName="routingsel" Content="{DynamicResource S_RoutingView_006}" Command="{Binding SelectRoutingSourceCommand}" CommandParameter="custom" IsChecked="{Binding IsRoutingCustom, Mode=OneWay}"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
             </StackPanel>
 
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
+                    <!-- Profiles: what we ship, then each subscription's own, then yours. A
+                         subscription's routing sits under the subscription because that is where
+                         it arrives from — and that is where INCY and HAPP sit side by side. -->
+                    <Grid Margin="0,0,0,6">
+                        <TextBlock Text="{DynamicResource S_Routing_Profiles}" Foreground="{StaticResource SectionLabel}" FontSize="10" FontWeight="SemiBold" Margin="2,0,0,0" VerticalAlignment="Center"/>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" FontSize="12"
+                                Content="{DynamicResource S_Routing_New}" Command="{Binding NewRoutingCommand}"/>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding RoutingGroups}" Margin="0,0,0,10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextMuted}" FontSize="10.5" FontWeight="SemiBold" Margin="2,6,0,4">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Title}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <ItemsControl ItemsSource="{Binding Profiles}" ItemTemplate="{StaticResource RoutingCard}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- a subscription's rules are read-only: the next fetch overwrites them -->
+                    <Border CornerRadius="11" Background="#14FFFFFF" Padding="12,9" Margin="0,0,0,10"
+                            Visibility="{Binding CannotEditRouting, Converter={StaticResource BoolVis}}">
+                        <TextBlock Text="{DynamicResource S_Routing_ReadOnly}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap"/>
+                    </Border>
+
                     <!-- search across all three buckets -->
                     <Border CornerRadius="11" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10">
                         <Grid>
@@ -116,7 +198,7 @@
                                     </Border>
                                 </StackPanel>
                                 <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_008}" FontSize="12"
-                                        Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
+                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
                                         Command="{Binding OpenAddRuleCommand}" CommandParameter="direct"/>
                             </Grid>
                             <TextBlock Text="{DynamicResource S_RoutingView_009}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
@@ -137,7 +219,7 @@
                                     </Border>
                                 </StackPanel>
                                 <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_010}" FontSize="12"
-                                        Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
+                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
                                         Command="{Binding OpenAddRuleCommand}" CommandParameter="proxy"/>
                             </Grid>
                             <TextBlock Text="{DynamicResource S_RoutingView_011}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
@@ -158,7 +240,7 @@
                                     </Border>
                                 </StackPanel>
                                 <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_012}" FontSize="12"
-                                        Visibility="{Binding IsRoutingCustom, Converter={StaticResource BoolVis}}"
+                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
                                         Command="{Binding OpenAddRuleCommand}" CommandParameter="block"/>
                             </Grid>
                             <TextBlock Text="{DynamicResource S_RoutingView_013}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>

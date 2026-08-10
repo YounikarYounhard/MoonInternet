@@ -210,7 +210,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RoutingName), nameof(RoutingSubtitle), nameof(DirectSites), nameof(ProxySites), nameof(BlockSites),
         nameof(DirectIps), nameof(ProxyIps), nameof(BlockIps), nameof(HasMultipleRoutings),
-        nameof(IsRoutingIncy), nameof(IsRoutingHapp), nameof(IsRoutingCustom), nameof(GeoSources))]
+        nameof(IsRoutingIncy), nameof(IsRoutingHapp), nameof(IsRoutingCustom), nameof(GeoSources),
+        nameof(CanEditRouting), nameof(CannotEditRouting))]
     private RoutingProfile? selectedRouting;
     partial void OnSelectedRoutingChanged(RoutingProfile? value) => RebuildRuleChips();
 
@@ -221,28 +222,107 @@ public partial class MainViewModel : ObservableObject
     public bool HasMultipleRoutings => AvailableRoutings.Count > 1;
     public bool HasRoutings => AvailableRoutings.Count > 0;
 
-    // Two-button routing source toggle (INCY | HAPP), default INCY — like the TUN/Proxy switch. Picks the first
-    // available profile of that source. Shown only when both an INCY and a HAPP routing exist.
-    private bool _syncingRoutingToggle;
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(RoutingIsIncy), nameof(RoutingIsHapp))]
-    private bool routingUseHapp;
-    public bool RoutingIsIncy => !RoutingUseHapp;
-    public bool RoutingIsHapp => RoutingUseHapp;
-    public bool HasHappRouting => AvailableRoutings.Any(r => r.Source == RoutingSource.Happ);
-    public bool HasIncyRouting => AvailableRoutings.Any(r => r.Source == RoutingSource.Incy);
-    public bool ShowRoutingToggle => HasHappRouting && HasIncyRouting;
+    /// <summary>One block of the routing page: the shipped profiles, one per subscription, and yours.</summary>
+    public sealed record RoutingGroup(string Title, IReadOnlyList<RoutingProfile> Profiles);
 
-    partial void OnRoutingUseHappChanged(bool value)
+    /// <summary>
+    /// Routing grouped the way it arrives: what we ship, then each subscription's own profiles
+    /// (that is where the INCY/HAPP choice lives — inside the subscription that carries both),
+    /// then the profiles you made yourself.
+    /// </summary>
+    public IReadOnlyList<RoutingGroup> RoutingGroups
     {
-        if (_syncingRoutingToggle) return;
-        var src = value ? RoutingSource.Happ : RoutingSource.Incy;
-        var p = AvailableRoutings.FirstOrDefault(r => r.Source == src);
-        if (p is null) return;
+        get
+        {
+            var groups = new List<RoutingGroup>();
+            var builtins = AvailableRoutings.Where(r => r.Builtin).ToList();
+            if (builtins.Count > 0) groups.Add(new RoutingGroup("", builtins));
+
+            foreach (var sub in Subscriptions)
+            {
+                var list = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
+                if (list.Count > 0) groups.Add(new RoutingGroup(sub.Name, list));
+            }
+
+            var loose = AvailableRoutings
+                .Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl) && r.Source != RoutingSource.Custom)
+                .ToList();
+            if (loose.Count > 0) groups.Add(new RoutingGroup(Localization.Loc.T("S_Routing_Installed"), loose));
+
+            var mine = AvailableRoutings
+                .Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl) && r.Source == RoutingSource.Custom)
+                .ToList();
+            if (mine.Count > 0) groups.Add(new RoutingGroup(Localization.Loc.T("S_Routing_Mine"), mine));
+            return groups;
+        }
+    }
+
+    /// <summary>Rules are editable only on your own profiles. See <see cref="DuplicateRouting"/>.</summary>
+    public bool CanEditRouting => SelectedRouting is { Builtin: false, SubUrl: "" or null, Source: RoutingSource.Custom };
+    /// <summary>XAML has no "not" on a visibility binding, and one property is cheaper than a converter.</summary>
+    public bool CannotEditRouting => !CanEditRouting;
+
+    [RelayCommand]
+    private void PickRouting(RoutingProfile? p)
+    {
+        if (p is null || ReferenceEquals(p, SelectedRouting)) return;
         SelectedRouting = p;
-        _settings.RoutingChoice = $"{p.Source}:{p.Name}";
-        _settings.Save();
+        _settings.RoutingChoice = p.Id; _settings.Save();
         ReconnectIfConnected();
+    }
+
+    /// <summary>
+    /// A copy leaves the subscription behind — that is the point of copying one, and it is what
+    /// makes it editable when the original is not.
+    /// </summary>
+    [RelayCommand]
+    private void DuplicateRouting(RoutingProfile? p)
+    {
+        if (p is null) return;
+        var copy = System.Text.Json.JsonSerializer.Deserialize<RoutingProfile>(
+            System.Text.Json.JsonSerializer.Serialize(p));
+        if (copy is null) return;
+        copy.Id = Guid.NewGuid().ToString("N")[..8];
+        copy.Builtin = false;
+        copy.SubUrl = "";
+        copy.Source = RoutingSource.Custom;
+        copy.Name = $"{p.Name} {Localization.Loc.T("S_Routing_CopySuffix")}";
+        _settings.MyRoutings.Add(copy); _settings.Save();
+        RebuildRouting();
+        PickRouting(copy);
+    }
+
+    [RelayCommand]
+    private void DeleteRouting(RoutingProfile? p)
+    {
+        if (p is null || !_settings.MyRoutings.Remove(p)) return;
+        _settings.Save();
+        RebuildRouting();
+    }
+
+    /// <summary>Puts the profile on the clipboard as an incy://routing/add/… link.</summary>
+    [RelayCommand]
+    private void ExportRouting(RoutingProfile? p)
+    {
+        if (p is null) return;
+        try { Clipboard.SetText(MoonInternet.Core.Parsing.IncyRoutingParser.ToLink(p)); }
+        catch { return; }
+        Status = Localization.Loc.T("S_Routing_Exported");
+    }
+
+    [RelayCommand]
+    private void NewRouting()
+    {
+        var p = new RoutingProfile
+        {
+            Id = Guid.NewGuid().ToString("N")[..8],
+            Name = Localization.Loc.T("S_Routing_NewName"),
+            Source = RoutingSource.Custom,
+            DomainStrategy = "AsIs",
+        };
+        _settings.MyRoutings.Add(p); _settings.Save();
+        RebuildRouting();
+        PickRouting(p);
     }
     public IEnumerable<string> DirectSites => SelectedRouting?.DirectSites ?? Enumerable.Empty<string>();
     public IEnumerable<string> ProxySites => SelectedRouting?.ProxySites ?? Enumerable.Empty<string>();
@@ -2147,24 +2227,32 @@ public partial class MainViewModel : ObservableObject
     private void RebuildRouting()
     {
         AvailableRoutings.Clear();
-        foreach (var r in _installedRoutings) AvailableRoutings.Add(r);              // INCY + HAPP (installed) first
-        foreach (var s in Subscriptions) foreach (var r in s.Routing)                // then subscription routings
-            if (AvailableRoutings.Count < 10 && !AvailableRoutings.Any(x => x.Source == r.Source && x.Name == r.Name))
-                AvailableRoutings.Add(r);
-        while (AvailableRoutings.Count > 10) AvailableRoutings.RemoveAt(AvailableRoutings.Count - 1);   // store up to 10
-        AvailableRoutings.Add(CustomRouting);                                          // always offer the user's own profile
-        // Honour the user's saved choice; otherwise default to INCY.
-        SelectedRouting = AvailableRoutings.FirstOrDefault(r => $"{r.Source}:{r.Name}" == _settings.RoutingChoice)
-                          ?? AvailableRoutings.FirstOrDefault(r => r.Source == RoutingSource.Incy)
+        foreach (var b in RoutingProfiles.Builtins()) AvailableRoutings.Add(b);      // the two we ship
+
+        // A subscription's routing belongs to that subscription: tagged with its url so the page
+        // can group it, and identified by url+source so a refetch replaces rather than piles up.
+        foreach (var sub in Subscriptions)
+            foreach (var r in sub.Routing)
+            {
+                r.SubUrl = sub.Url;
+                r.Id = RoutingProfiles.ImportedId(sub.Url, r.Source);
+                if (!AvailableRoutings.Any(x => x.Id == r.Id)) AvailableRoutings.Add(r);
+            }
+        // Profiles INCY/HAPP left on disk have no subscription to sit under; keep offering them.
+        foreach (var r in _installedRoutings)
+        {
+            if (string.IsNullOrEmpty(r.Id)) r.Id = $"installed:{r.Source}:{r.Name}";
+            if (!AvailableRoutings.Any(x => x.Id == r.Id)) AvailableRoutings.Add(r);
+        }
+        foreach (var r in _settings.MyRoutings) AvailableRoutings.Add(r);            // yours, editable
+
+        // Honour the user's saved choice; otherwise the first shipped profile.
+        SelectedRouting = AvailableRoutings.FirstOrDefault(r => r.Id == _settings.RoutingChoice)
+                          ?? AvailableRoutings.FirstOrDefault(r => $"{r.Source}:{r.Name}" == _settings.RoutingChoice)
                           ?? AvailableRoutings.FirstOrDefault();
-        _syncingRoutingToggle = true;
-        RoutingUseHapp = SelectedRouting?.Source == RoutingSource.Happ;   // reflect the selection in the toggle
-        _syncingRoutingToggle = false;
         OnPropertyChanged(nameof(HasMultipleRoutings));
         OnPropertyChanged(nameof(HasRoutings));
-        OnPropertyChanged(nameof(HasHappRouting));
-        OnPropertyChanged(nameof(HasIncyRouting));
-        OnPropertyChanged(nameof(ShowRoutingToggle));
+        OnPropertyChanged(nameof(RoutingGroups));
     }
 
     private void RefreshHomeSummary()

@@ -77,7 +77,9 @@ public sealed class AppSettings
     public string PreferredIp { get; set; } = "auto";          // auto | ipv4 | ipv6
     public string VpnDns { get; set; } = "google";             // cf_google | google | cloudflare | quad9 | custom
     public string VpnDnsCustom { get; set; } = "";             // custom resolver IPs (comma-separated)
-    public MoonInternet.Core.Models.RoutingProfile? CustomRouting { get; set; }   // user-built Direct/Proxy/Block profile
+    public MoonInternet.Core.Models.RoutingProfile? CustomRouting { get; set; }   // pre-v5 single custom profile, migrated into MyRoutings
+    /// <summary>Your own routing profiles: copies of imported ones plus anything built from scratch.</summary>
+    public List<MoonInternet.Core.Models.RoutingProfile> MyRoutings { get; set; } = new();
     /// <summary>Last successful fetch of every subscription, so servers stay visible with no internet.</summary>
     public List<CachedSub> CachedSubs { get; set; } = new();
     // Connection settings
@@ -101,7 +103,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 4;
+    private const int CurrentVersion = 5;
 
     private void Migrate()
     {
@@ -112,6 +114,13 @@ public sealed class AppSettings
         if (SettingsVersion < 3) SubMeter = "text";
         // v4: anybody who already has a subscription has clearly been past the first launch.
         if (SettingsVersion < 4 && SubscriptionUrls.Count > 0) WelcomeShown = true;
+        // v5: routing became a list of profiles; the one custom profile becomes the first of yours.
+        if (SettingsVersion < 5 && CustomRouting is { } c && MyRoutings.Count == 0)
+        {
+            c.Id = Guid.NewGuid().ToString("N")[..8];
+            c.Source = MoonInternet.Core.Models.RoutingSource.Custom;
+            MyRoutings.Add(c);
+        }
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }
 

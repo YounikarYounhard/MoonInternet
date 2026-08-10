@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using MoonInternet.Core.Models;
 
@@ -55,6 +55,18 @@ public static class IncyRoutingParser
             profile = null;
             return false;
         }
+    }
+
+    /// <summary>The shareable form: what "Экспорт в буфер" puts on the clipboard.</summary>
+    public static string ToLink(RoutingProfile p)
+    {
+        // Our own bookkeeping is not part of the payload — the other app has its own ids and
+        // knows nothing about which subscription this came from.
+        var wire = JsonSerializer.Deserialize<RoutingProfile>(JsonSerializer.Serialize(p, Opts), Opts)!;
+        wire.Id = ""; wire.SubUrl = ""; wire.Builtin = false;
+        var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(wire, Opts)))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        return "incy://routing/add/" + b64;
     }
 }
 
