@@ -1,0 +1,155 @@
+name: build
+
+# Every push builds both clients and leaves them as artifacts. Pushing a v* tag additionally
+# publishes them as a GitHub release — so a release is always something you did on purpose,
+# never a side effect of a commit.
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      # libv2ray.aar is xray-core wrapped for Android. It is not in the repo (19 MB of built
+      # third-party code), so CI builds it the same way android/build-xray.ps1 does — and caches
+      # it against the upstream commit, because that build is the slow part of this job.
+      - id: upstream
+        run: echo "sha=$(git ls-remote https://github.com/2dust/AndroidLibXrayLite HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: aar
+        with:
+          path: android/app/libs/libv2ray.aar
+          key: libv2ray-${{ steps.upstream.outputs.sha }}
+
+      - name: Build libv2ray.aar
+        if: steps.aar.outputs.cache-hit != 'true'
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+        run: |
+          set -e
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          git clone --depth 1 https://github.com/2dust/AndroidLibXrayLite.git "$RUNNER_TEMP/xray"
+          cd "$RUNNER_TEMP/xray"
+          go get golang.org/x/mobile/bind
+          go mod tidy
+          "$(go env GOPATH)/bin/gomobile" init
+          # -checklinkname=0: xray pulls in wlynxg/anet, which reaches into net.zoneCache through
+          # //go:linkname. Go 1.23+ rejects that by default and the link fails. anet is what lets
+          # Android 11+ enumerate interfaces at all, so allow the linkname rather than drop it.
+          "$(go env GOPATH)/bin/gomobile" bind -target=android/arm64 -androidapi 24 \
+            -o libv2ray.aar -trimpath -ldflags="-s -w -checklinkname=0" .
+          mkdir -p "$GITHUB_WORKSPACE/android/app/libs"
+          cp libv2ray.aar "$GITHUB_WORKSPACE/android/app/libs/"
+
+      # The signing key never lives in the repo. Without the secret the job still runs and
+      # produces an unsigned APK — useful for a PR check, useless for installing over an
+      # existing copy, so the step says so out loud.
+      - name: Unpack the signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::ANDROID_KEYSTORE_B64 is not set — the APK will be unsigned and will not install over an existing one"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/moon-release.jks"
+          echo "MOON_KEYSTORE=$RUNNER_TEMP/moon-release.jks" >> "$GITHUB_ENV"
+
+      - name: Assemble release
+        working-directory: android
+        env:
+          MOON_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          MOON_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          MOON_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Name it after the version
+        id: apk
+        run: |
+          ver=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)
+          src=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          mkdir -p out
+          cp "$src" "out/MoonInternet-v$ver.apk"
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: out/*.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # ~120 MB of third-party engines, deliberately not in the repo
+      - name: Fetch the cores
+        run: powershell -ExecutionPolicy Bypass -File build\get-cores.ps1
+
+      - name: Publish
+        run: |
+          dotnet publish src\MoonInternet.App        -c Release -r win-x64 --self-contained true -o dist\app
+          dotnet publish src\MoonInternet.TunService -c Release -r win-x64 --self-contained true -o dist\app
+
+      - name: Build the installer
+        id: setup
+        run: |
+          $v = ([xml](Get-Content src\MoonInternet.App\MoonInternet.App.csproj)).Project.PropertyGroup.Version |
+               Where-Object { $_ } | Select-Object -First 1
+          $appver = ($v -split '\.')[0..2] -join '.'
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+            $env:PATH += ";${env:ProgramFiles(x86)}\NSIS"
+          }
+          makensis /DAPPVER=$appver build\installer.nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed" }
+          "ver=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup
+          path: dist/setup/*.exe
+
+  release:
+    needs: [android, windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "Moon Internet ${{ github.ref_name }}" \
+            --generate-notes \
+            files/*/*

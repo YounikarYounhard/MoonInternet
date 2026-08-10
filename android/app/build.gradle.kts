@@ -24,12 +24,16 @@ android {
 
     signingConfigs {
         create("release") {
-            val ks = file("moon-release.jks")
+            // The keystore is never in the repo. Locally it sits next to this file; on CI it
+            // arrives as a secret and its path comes in through the environment. Missing key =
+            // an unsigned APK rather than a failed build, so a PR check still tells you the
+            // code compiles.
+            val ks = file(System.getenv("MOON_KEYSTORE") ?: "moon-release.jks")
             if (ks.exists()) {
                 storeFile = ks
-                storePassword = "moonbeta"
-                keyAlias = "moon"
-                keyPassword = "moonbeta"
+                storePassword = System.getenv("MOON_KEYSTORE_PASSWORD")?.ifBlank { null } ?: "moonbeta"
+                keyAlias = System.getenv("MOON_KEY_ALIAS")?.ifBlank { null } ?: "moon"
+                keyPassword = System.getenv("MOON_KEY_PASSWORD")?.ifBlank { null } ?: "moonbeta"
             }
         }
     }
