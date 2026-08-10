@@ -133,10 +133,18 @@ class MainActivity : ComponentActivity() {
                 // landing back on Home every time reads like the app restarted.
                 var pageName by rememberSaveable { mutableStateOf(Page.Home.name) }
                 var page by remember { mutableStateOf(Page.valueOf(pageName)) }
-                LaunchedEffect(page) { pageName = page.name }
-                // one scroll state per list, so switching tabs comes back where you left off
                 val homeScroll = rememberLazyListState()
                 val serversScroll = rememberLazyListState()
+                LaunchedEffect(page) {
+                    pageName = page.name
+                    // Back to the top whenever a page opens — the desktop does this on IsVisibleChanged.
+                    // Settings needs no help: its scroll state dies with the page.
+                    when (page) {
+                        Page.Home -> homeScroll.scrollToItem(0)
+                        Page.Servers -> serversScroll.scrollToItem(0)
+                        else -> {}
+                    }
+                }
                 var settingsPageName by rememberSaveable { mutableStateOf("") }
                 var settingsPage by remember {
                     mutableStateOf(settingsPageName.takeIf { it.isNotEmpty() }?.let(SettingsPage::valueOf))
