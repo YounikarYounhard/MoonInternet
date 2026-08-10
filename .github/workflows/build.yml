@@ -86,7 +86,10 @@ jobs:
         id: apk
         run: |
           ver=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)
-          src=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          out=android/app/build/outputs/apk/release
+          # app-release.apk when signed, app-release-unsigned.apk when the secret is missing
+          src=$([ -f "$out/app-release.apk" ] && echo "$out/app-release.apk" || ls "$out"/*.apk | head -1)
+          echo "packaging $src"
           mkdir -p out
           cp "$src" "out/MoonInternet-v$ver.apk"
           echo "ver=$ver" >> "$GITHUB_OUTPUT"

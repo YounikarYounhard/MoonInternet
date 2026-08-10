@@ -25,9 +25,7 @@ android {
     signingConfigs {
         create("release") {
             // The keystore is never in the repo. Locally it sits next to this file; on CI it
-            // arrives as a secret and its path comes in through the environment. Missing key =
-            // an unsigned APK rather than a failed build, so a PR check still tells you the
-            // code compiles.
+            // arrives as a secret and its path comes in through the environment.
             val ks = file(System.getenv("MOON_KEYSTORE") ?: "moon-release.jks")
             if (ks.exists()) {
                 storeFile = ks
@@ -40,7 +38,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Attach the signing config only when the key is really there. A config with no
+            // storeFile does not yield an unsigned APK — packageRelease dies with
+            // 'SigningConfig "release" is missing required property "storeFile"', which would
+            // turn "no key on this machine" into a broken build.
+            signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
