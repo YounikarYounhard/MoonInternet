@@ -5,7 +5,7 @@
 # Moon Internet
 
 Клиент для VLESS, VMess, Trojan, Shadowsocks, Hysteria2 и WireGuard.
-Windows и Android, один и тот же интерфейс.
+Windows и Android.
 
 [![Версия](https://img.shields.io/github/v/release/YounikarYounhard/MoonInternet?include_prereleases&label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F&color=9D7BFF)](../../releases/latest)
 [![MIT](https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-blue)](LICENSE)
