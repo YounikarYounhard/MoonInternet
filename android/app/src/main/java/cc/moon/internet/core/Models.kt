@@ -129,6 +129,14 @@ data class RoutingProfile(
     val ipCount: Int get() = directIp.size + proxyIp.size + blockIp.size
 }
 
+/**
+ * What a profile you create yourself starts with. Not a default on the model: an imported profile
+ * passes its own (often empty) URLs explicitly, and a built-in needs no download at all —
+ * "geoip:private" lives in xray's own bundled file.
+ */
+const val GEOIP_URL_DEFAULT = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geoip/release/geoip.dat"
+const val GEOSITE_URL_DEFAULT = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/geosite.dat"
+
 /** The four ways xray can be told to reach a resolver, as it writes them. */
 fun dnsUri(type: String, address: String): String {
     val a = address.trim()

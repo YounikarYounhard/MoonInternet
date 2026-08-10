@@ -319,6 +319,8 @@ public partial class MainViewModel : ObservableObject
             Name = Localization.Loc.T("S_Routing_NewName"),
             Source = RoutingSource.Custom,
             DomainStrategy = "AsIs",
+            Geoipurl = RoutingProfiles.DefaultGeoip,
+            Geositeurl = RoutingProfiles.DefaultGeosite,
         };
         _settings.MyRoutings.Add(p); _settings.Save();
         RebuildRouting();

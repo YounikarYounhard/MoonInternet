@@ -477,13 +477,23 @@ private fun Bucket(
                              color = Moon.TextPrimary, fontSize = 12.5.sp)
                     }
                 }
-                Row(
-                    Modifier.fillMaxWidth().clickable(onClick = onPickGeo).padding(14.dp, 0.dp, 14.dp, 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    onClick = onPickGeo,
+                    shape = RoundedCornerShape(10.dp),
+                    color = Moon.Accent.copy(alpha = 0.14f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Moon.Accent.copy(alpha = 0.55f)),
+                    modifier = Modifier.fillMaxWidth().padding(14.dp, 0.dp, 14.dp, 12.dp),
                 ) {
-                    Icon(Icons.Filled.Public, null, tint = Moon.AccentText, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.routing_geo_pick), color = Moon.AccentText, fontSize = 12.sp)
+                    Row(
+                        Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Filled.Public, null, tint = Moon.AccentText, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.routing_geo_pick), color = Moon.AccentText,
+                             fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }

@@ -65,6 +65,14 @@ public enum RoutingSource { Incy, Happ, Custom }
 
 public static class RoutingProfiles
 {
+    /// <summary>
+    /// What a profile you create yourself starts with. Not a default on the model: an imported
+    /// profile carries its own (often empty) URLs, and a built-in needs no download at all —
+    /// "geoip:private" lives in xray's own bundled file.
+    /// </summary>
+    public const string DefaultGeoip = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geoip/release/geoip.dat";
+    public const string DefaultGeosite = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/geosite.dat";
+
     /// <summary>A subscription carries at most one profile per source, so that pair is the identity.</summary>
     public static string ImportedId(string subUrl, RoutingSource source) => $"sub:{subUrl}:{source}";
 

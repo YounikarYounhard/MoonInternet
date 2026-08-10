@@ -296,6 +296,11 @@ private fun RoutingSettingsPage(
         RowDivider()
         NavRow(stringResource(R.string.settingsscreen_040),
                stringResource(R.string.fmt_routing_sub, routing?.name ?: stringResource(R.string.none)), onOpenRouting)
+        // Next to the profile picker, not below the tunnel switches: both rows answer "what goes
+        // through the tunnel", so the two doors into that belong side by side.
+        NavRow(stringResource(R.string.settingsscreen_047), stringResource(R.string.settingsscreen_048)) {
+            onOpen(SettingsPage.AppRouting)
+        }
         RowDivider()
         SwitchRow(stringResource(R.string.settingsscreen_041), stringResource(R.string.settingsscreen_042),
             state.tlsFragment) { v -> onSet { copy(tlsFragment = v) } }
@@ -303,10 +308,6 @@ private fun RoutingSettingsPage(
             state.mux) { v -> onSet { copy(mux = v) } }
         SwitchRow(stringResource(R.string.settingsscreen_045), stringResource(R.string.settingsscreen_046),
             state.sniffing) { v -> onSet { copy(sniffing = v) } }
-        RowDivider()
-        NavRow(stringResource(R.string.settingsscreen_047), stringResource(R.string.settingsscreen_048)) {
-            onOpen(SettingsPage.AppRouting)
-        }
         RowDivider()
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

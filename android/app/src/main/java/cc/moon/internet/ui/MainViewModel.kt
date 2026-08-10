@@ -728,7 +728,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** A blank profile for the "+" button. */
     fun blankRouting() = RoutingProfile(name = s(R.string.routing_new_name), source = "custom",
-                                        domainStrategy = "AsIs")
+                                        domainStrategy = "AsIs",
+                                        geoipUrl = GEOIP_URL_DEFAULT, geositeUrl = GEOSITE_URL_DEFAULT)
 
     fun refreshGeo(force: Boolean = true) = viewModelScope.launch {
         if (_geoBusy.value) return@launch
