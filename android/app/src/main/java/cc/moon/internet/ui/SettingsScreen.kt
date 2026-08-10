@@ -115,8 +115,11 @@ fun SettingsDetail(
             val title = stringResource(page.titleRes)
             PageHeader(title, big = title.length < 20, onBack = onBack)
         }
+        // A fresh scroll state per page: one shared state meant opening a short page after a
+        // long one dropped you halfway down it, exactly like the desktop bug we fixed.
         LazyColumn(
             Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            state = androidx.compose.foundation.lazy.rememberLazyListState(),
             contentPadding = PaddingValues(bottom = bottomNavSpace()),
         ) {
             item {
@@ -383,7 +386,11 @@ private fun AppRoutingPage(
             }
             Spacer(Modifier.height(6.dp))
 
-            val shown = apps.filter {
+            // Chosen ones first: the list is hundreds of apps long and the ones you picked were
+            // scattered through it alphabetically.
+            val chosen = state.perApps.toSet()
+            val ordered = apps.sortedWith(compareBy({ if (it.pkg in chosen) 0 else 1 }, { it.label.lowercase() }))
+            val shown = ordered.filter {
                 query.isBlank() || it.label.contains(query, true) || it.pkg.contains(query, true)
             }
             MoonCard(padding = 0) {

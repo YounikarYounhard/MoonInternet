@@ -44,6 +44,7 @@ fun HomeScreen(
     pings: Map<String, Int>,
     pinging: Set<String>,
     pingDisplay: String,
+    busy: Boolean,
     isFavorite: (ServerProfile) -> Boolean,
     checkPing: String,
     showSubHeader: Boolean,
@@ -88,7 +89,7 @@ fun HomeScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2150)),
                 ) {
                     Row(Modifier.padding(3.dp)) {
-                        SegButton(stringResource(R.string.mode_tunnel), true) { }
+                        SegButton("TUN", true) { }   // a protocol name, not a word to translate
                     }
                 }
 
@@ -235,6 +236,7 @@ fun HomeScreen(
                 servers = sortedIn(sub),
                 onToggleCollapse = { onToggleCollapse(sub.url) },
                 onMenu = { onSubMenu(sub) },
+                subBusy = busy,
                 onPing = { onPingSub(sub) },
                 onRefresh = { onRefreshSub(sub) },
                 onSelect = onSelect,
@@ -364,6 +366,7 @@ private fun SubscriptionCard(
     isFavorite: (ServerProfile) -> Boolean,
     onToggleCollapse: () -> Unit,
     onMenu: () -> Unit,
+    subBusy: Boolean,
     onPing: () -> Unit,
     onRefresh: () -> Unit,
     onSelect: (ServerProfile) -> Unit,
@@ -399,12 +402,8 @@ private fun SubscriptionCard(
                         Text("${sub.servers.size}", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                              color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    IconButton(onPing, Modifier.size(30.dp)) {
-                        Icon(Icons.Filled.Speed, null, tint = Moon.TextSecondary, modifier = Modifier.size(15.dp))
-                    }
-                    IconButton(onRefresh, Modifier.size(30.dp)) {
-                        Icon(Icons.Filled.Refresh, null, tint = Moon.TextSecondary, modifier = Modifier.size(15.dp))
-                    }
+                    BusyIconButton(Icons.Filled.Speed, busy = subBusy, onClick = onPing)
+                    BusyIconButton(Icons.Filled.Refresh, busy = subBusy, onClick = onRefresh)
                     IconButton(onMenu, Modifier.size(30.dp)) {
                         Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }

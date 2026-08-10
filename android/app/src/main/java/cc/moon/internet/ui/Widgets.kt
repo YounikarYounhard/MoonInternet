@@ -13,6 +13,13 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -147,10 +154,7 @@ private fun MeterBar(fraction: Double, color: Color, height: androidx.compose.ui
  */
 @Composable
 fun PingIndicator(ping: Int?, busy: Boolean, style: String) {
-    if (busy) {
-        CircularProgressIndicator(Modifier.size(13.dp), color = Moon.Accent, strokeWidth = 1.6.dp)
-        return
-    }
+    if (busy) { SpinnerRing(13.dp, Moon.Accent); return }
     val ms = ping ?: return
     val color = pingColorOf(ms)
     val signal = when {
@@ -183,6 +187,46 @@ fun PingIndicator(ping: Int?, busy: Boolean, style: String) {
             Spacer(Modifier.width(6.dp))
             Text(text, color = Moon.TextSecondary, fontSize = 11.5.sp)
         }
+    }
+}
+
+/**
+ * The desktop's spinner: a dashed ring that turns, not Material's sweeping arc. It replaces the
+ * button's icon rather than being drawn over it, which is what made the two overlap before.
+ */
+@Composable
+fun SpinnerRing(size: androidx.compose.ui.unit.Dp = 15.dp, color: Color = Moon.AccentText) {
+    val turn = rememberInfiniteTransition(label = "spin")
+    val angle by turn.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
+        label = "angle",
+    )
+    Canvas(Modifier.size(size).graphicsLayer { rotationZ = angle }) {
+        drawArc(
+            color = color,
+            startAngle = 0f, sweepAngle = 360f, useCenter = false,
+            style = Stroke(
+                width = 2.dp.toPx(),
+                cap = StrokeCap.Round,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 2.dp.toPx())),
+            ),
+        )
+    }
+}
+
+/** A glyph button that turns into a spinner while its job runs. */
+@Composable
+fun BusyIconButton(
+    icon: ImageVector,
+    busy: Boolean,
+    contentDescription: String? = null,
+    size: androidx.compose.ui.unit.Dp = 30.dp,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick, Modifier.size(size), enabled = !busy) {
+        if (busy) SpinnerRing()
+        else Icon(icon, contentDescription, tint = Moon.TextSecondary, modifier = Modifier.size(15.dp))
     }
 }
 

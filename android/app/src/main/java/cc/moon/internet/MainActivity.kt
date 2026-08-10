@@ -108,6 +108,7 @@ class MainActivity : ComponentActivity() {
                 val vpn by vm.vpnState.collectAsState()
                 val pings by vm.pings.collectAsState()
                 val pinging by vm.pinging.collectAsState()
+                val pingingAll by vm.pingingAll.collectAsState()
                 val (up, down) = vm.speed.collectAsState().value
                 val elapsed by vm.elapsed.collectAsState()
                 val traffic by vm.sessionTraffic.collectAsState()
@@ -210,7 +211,9 @@ class MainActivity : ComponentActivity() {
                     contentWindowInsets = WindowInsets.safeDrawing
                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
                     snackbarHost = {
-                        SnackbarHost(snackbar) { data ->
+                        // Lifted clear of the floating nav card — at the Scaffold's own bottom it
+                        // landed level with the phone's back/home buttons.
+                        SnackbarHost(snackbar, Modifier.padding(bottom = bottomNavSpace())) { data ->
                             Snackbar(
                                 snackbarData = data,
                                 containerColor = Moon.Card,
@@ -236,6 +239,7 @@ class MainActivity : ComponentActivity() {
                                 pings = pings,
                                 pinging = pinging,
                                 pingDisplay = state.pingDisplay,
+                                busy = pingingAll,
                                 isFavorite = vm::isFavorite,
                                 checkPing = checkPing,
                                 showSubHeader = state.showSubHeader,
@@ -264,6 +268,7 @@ class MainActivity : ComponentActivity() {
                                 pings = pings,
                                 pinging = pinging,
                                 pingDisplay = state.pingDisplay,
+                                busy = pingingAll,
                                 isFavorite = vm::isFavorite,
                                 collapsed = collapsed,
                                 sort = state.sort,
@@ -532,7 +537,10 @@ private fun BottomNav(
             shape = RoundedCornerShape(24.dp),
             border = BorderStroke(1.dp, Moon.BorderSoft),
             tonalElevation = 0.dp,
-            modifier = Modifier.fillMaxWidth(),
+            // Capped and centred. The tabs take the width by weight, so on a tablet they grew
+            // enormous around a moon that stayed 54dp — the card is the thing to bound, not
+            // the page.
+            modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().align(Alignment.Center),
         ) {
             Row(
                 Modifier.fillMaxWidth().height(68.dp).padding(horizontal = 6.dp),
