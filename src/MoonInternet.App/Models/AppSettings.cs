@@ -42,6 +42,7 @@ public sealed class AppSettings
     public string PingDisplay { get; set; } = "num";           // num | bar | both | dots
     public string PingTestUrl { get; set; } = "https://www.gstatic.com/generate_204";
     public int PingTimeoutMs { get; set; } = 4000;             // per-probe timeout
+    public bool PinActiveServer { get; set; } = true;    // connected server first in the list
     public bool ShowServerCount { get; set; } = true;   // badge with the number of servers on a subscription
     public bool PingStagger { get; set; } = true;              // space the probes out instead of all at once
     public int PingStaggerMs { get; set; } = 150;              // gap between them when staggering
@@ -66,6 +67,8 @@ public sealed class AppSettings
     public bool TrayBalloons { get; set; } = true;             // pop up over the tray, or stay silent
     public bool NotifyConnection { get; set; }                 // connected/disconnected — off, it fires on every toggle
     public bool NotifyAppUpdate { get; set; } = true;          // a newer release is on GitHub
+    public bool NotifyAfterUpdate { get; set; } = true;        // say what changed, once, after updating
+    public string? LastSeenVersion { get; set; }               // the build the "what changed" notice was shown for
     // Tunnel tuning
     public bool TlsFragment { get; set; }                      // split the TLS ClientHello
     public bool Mux { get; set; }                              // connection multiplexing

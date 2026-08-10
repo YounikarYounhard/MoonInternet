@@ -380,4 +380,9 @@
     <string name="auto_alwayson">"Постоянный VPN"</string>
     <string name="auto_alwayson_sub">"Android умеет держать VPN всегда включённым. Включается только в системных настройках — откроем их"</string>
     <string name="mode_tunnel">"Туннель"</string>
+    <string name="pin_active">"Активный сервер сверху"</string>
+    <string name="pin_active_sub">"Пока подключены — поднимать этот сервер в начало списка"</string>
+    <string name="notify_after">"После обновления"</string>
+    <string name="notify_after_sub">"Один раз сказать, что изменилось, когда версия сменилась"</string>
+    <string name="upd_installed">"Обновлено до %1$s — список изменений в «Обновление»"</string>
 </resources>

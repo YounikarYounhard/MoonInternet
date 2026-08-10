@@ -174,17 +174,32 @@ internal static class ServerComparers
     private static int PingRank(int p) => p < 0 ? int.MaxValue : p; // -2 unknown / -1 timeout sort last
     private static int Fav(ServerItem x, ServerItem y) => y.IsFavorite.CompareTo(x.IsFavorite); // true first
 
+    /// <summary>
+    /// The server the tunnel is currently running on, or null. Set by the view model; every mode
+    /// puts it first, because that is the row you go looking for while it is live.
+    /// </summary>
+    public static string? ActiveRaw;
+    private static int Active(ServerItem x, ServerItem y)
+    {
+        if (ActiveRaw is null) return 0;
+        return (y.ShareUrl == ActiveRaw).CompareTo(x.ShareUrl == ActiveRaw);
+    }
+
     public static readonly IComparer ByDefault = Comparer<object>.Create((a, b) =>
     {
         var (x, y) = ((ServerItem)a, (ServerItem)b);
-        int c = Fav(x, y);
+        int c = Active(x, y);
+        if (c != 0) return c;
+        c = Fav(x, y);
         return c != 0 ? c : x.Order.CompareTo(y.Order);               // subscription order
     });
 
     public static readonly IComparer ByName = Comparer<object>.Create((a, b) =>
     {
         var (x, y) = ((ServerItem)a, (ServerItem)b);
-        int c = Fav(x, y);
+        int c = Active(x, y);
+        if (c != 0) return c;
+        c = Fav(x, y);
         return c != 0 ? c : string.Compare(x.Label, y.Label, StringComparison.OrdinalIgnoreCase);
     });
 
@@ -193,7 +208,9 @@ internal static class ServerComparers
     public static readonly IComparer ByPing = Comparer<object>.Create((a, b) =>
     {
         var (x, y) = ((ServerItem)a, (ServerItem)b);
-        int c = Fav(x, y);
+        int c = Active(x, y);
+        if (c != 0) return c;
+        c = Fav(x, y);
         if (c != 0) return c;
         c = PingRank(x.Ping).CompareTo(PingRank(y.Ping));
         return c != 0 ? c : string.Compare(x.Label, y.Label, StringComparison.OrdinalIgnoreCase);

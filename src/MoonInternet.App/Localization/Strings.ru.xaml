@@ -427,4 +427,9 @@
     <s:String x:Key="S_Upd_Downloading">Скачиваю обновление…</s:String>
     <s:String x:Key="S_Upd_Installing">Запускаю установщик — приложение закроется</s:String>
     <s:String x:Key="S_Upd_Failed">Не удалось скачать обновление</s:String>
+    <s:String x:Key="S_Pin_Active">Активный сервер сверху</s:String>
+    <s:String x:Key="S_Pin_Active_Sub">Пока подключены — поднимать этот сервер в начало списка</s:String>
+    <s:String x:Key="S_Notify_After">После обновления</s:String>
+    <s:String x:Key="S_Notify_After_Sub">Один раз сказать, что изменилось, когда версия сменилась</s:String>
+    <s:String x:Key="S_Upd_Installed">Обновлено до {0} — смотрите список изменений в «Обновление»</s:String>
 </ResourceDictionary>

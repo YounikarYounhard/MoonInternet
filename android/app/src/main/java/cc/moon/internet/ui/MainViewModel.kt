@@ -135,6 +135,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!cc.moon.internet.data.ApkInstaller.install(ctx, file)) _updateStatus.value = s(R.string.upd_failed)
     }
 
+    /**
+     * First run of a build we have not greeted yet: say what changed, once. A fresh install says
+     * nothing — there is no "what changed" from nothing.
+     */
+    private suspend fun announceIfUpdated() {
+        val st = store.state.value
+        if (st.lastSeenVersion == appVersion) return
+        val firstEver = st.lastSeenVersion.isEmpty()
+        store.update { it.copy(lastSeenVersion = appVersion) }
+        if (firstEver || !st.notifyAfterUpdate) return
+        _updateStatus.value = s(R.string.upd_installed, appVersion)
+        postNotice(_updateStatus.value)
+    }
+
     /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
     fun checkUpdate() = viewModelScope.launch {
         _updateStatus.value = s(R.string.vm_checking)
@@ -161,6 +175,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // until the button was pressed.
             if (store.state.value.updateOnStart) refreshAll(silent = true)
             if (store.state.value.pingOnStart && _pings.value.isEmpty()) pingAll()
+            announceIfUpdated()
             requestAutoConnect()
         }
         // Always check at launch. Gating the check itself on the notification setting left the

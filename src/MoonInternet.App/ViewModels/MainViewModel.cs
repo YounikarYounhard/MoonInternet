@@ -821,6 +821,9 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
         if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
         else _ = CheckConnection();                                   // auto-measure ping the moment we connect
+        ServerComparers.ActiveRaw = PinActiveServer && value == ConnectionState.Connected
+            ? SelectedServer?.ShareUrl : null;
+        foreach (var sub in Subscriptions) sub.Refresh();
         OnPropertyChanged(nameof(ElapsedDisplay));
         OnPropertyChanged(nameof(MoonAwake));
         OnPropertyChanged(nameof(TrayToggleText));
@@ -912,7 +915,7 @@ public partial class MainViewModel : ObservableObject
         PingMethod = _settings.PingMethod; PingDisplay = _settings.PingDisplay;
         PingTestUrl = _settings.PingTestUrl; PingTimeoutMs = _settings.PingTimeoutMs;
         PingStagger = _settings.PingStagger; PingStaggerMs = _settings.PingStaggerMs;
-        ShowServerCount = _settings.ShowServerCount;
+        ShowServerCount = _settings.ShowServerCount; PinActiveServer = _settings.PinActiveServer;
         Language = Localization.Loc.Language;   // already applied at startup; mirror it here
         PingEveryMinutes = _settings.PingEveryMinutes;
         AutoUpdateSubs = _settings.AutoUpdateSubs; AutoUpdateSubsMinutes = _settings.AutoUpdateSubsMinutes;
@@ -925,6 +928,7 @@ public partial class MainViewModel : ObservableObject
         NotificationsEnabled = _settings.NotificationsEnabled; TrayBalloons = _settings.TrayBalloons;
         NotifyConnection = _settings.NotifyConnection; NotifyAppUpdate = _settings.NotifyAppUpdate;
         ApplyHwid();
+        AnnounceIfUpdated();
         TlsFragment = _settings.TlsFragment; Mux = _settings.Mux; Sniffing = _settings.Sniffing;
         TrafficPriority = _settings.TrafficPriority;
         PreferredIp = _settings.PreferredIp; VpnDns = _settings.VpnDns; VpnDnsCustom = _settings.VpnDnsCustom;
@@ -1380,6 +1384,14 @@ public partial class MainViewModel : ObservableObject
         RefreshLogsInfo();
     }
 
+    [ObservableProperty] private bool pinActiveServer = true;
+    partial void OnPinActiveServerChanged(bool v)
+    {
+        _settings.PinActiveServer = v; _settings.Save();
+        ServerComparers.ActiveRaw = v && IsConnected ? SelectedServer?.ShareUrl : null;
+        foreach (var sub in Subscriptions) sub.Refresh();
+    }
+
     [ObservableProperty] private bool showServerCount = true;
     partial void OnShowServerCountChanged(bool value) { _settings.ShowServerCount = value; _settings.Save(); }
 
@@ -1536,6 +1548,24 @@ public partial class MainViewModel : ObservableObject
     partial void OnNotifyConnectionChanged(bool v) { _settings.NotifyConnection = v; _settings.Save(); Notifier.OnConnection = v; }
     [ObservableProperty] private bool notifyAppUpdate = true;
     partial void OnNotifyAppUpdateChanged(bool v) { _settings.NotifyAppUpdate = v; _settings.Save(); Notifier.OnAppUpdate = v; }
+    [ObservableProperty] private bool notifyAfterUpdate = true;
+    partial void OnNotifyAfterUpdateChanged(bool v) { _settings.NotifyAfterUpdate = v; _settings.Save(); }
+
+    /// <summary>
+    /// First run of a build we have not greeted yet: say what changed, once. The notes come from
+    /// the release the update check fetches, trimmed to a few lines — the full text is a page and
+    /// nobody reads a page in a balloon.
+    /// </summary>
+    private void AnnounceIfUpdated()
+    {
+        if (_settings.LastSeenVersion == AppVersion) return;
+        bool firstEver = _settings.LastSeenVersion is null;
+        _settings.LastSeenVersion = AppVersion; _settings.Save();
+        if (firstEver || !NotifyAfterUpdate) return;
+
+        UpdateStatus = string.Format(Localization.Loc.T("S_Upd_Installed"), AppVersion);
+        Notifier.Show("Moon Internet", UpdateStatus);
+    }
 
     [ObservableProperty] private bool updateSubsOnStart;
     partial void OnUpdateSubsOnStartChanged(bool value) { _settings.UpdateSubsOnStart = value; _settings.Save(); }

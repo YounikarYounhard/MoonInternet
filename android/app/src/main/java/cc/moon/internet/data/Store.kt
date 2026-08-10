@@ -26,6 +26,8 @@ data class AppState(
     val dns: String = "1.1.1.1",
     val ipv6: Boolean = false,
     val sort: String = "default",
+    /** Connected server first in the list. Off = leave it wherever the sort puts it. */
+    val pinActive: Boolean = true,
     /** Always true for now: the proxy-only mode was removed, another is planned. */
     val tunMode: Boolean = true,
     /** urls of subscriptions the user collapsed on Home */
@@ -61,6 +63,8 @@ data class AppState(
     val notifyHeadsUp: Boolean = false,
     val notifyConnection: Boolean = false,
     val notifyAppUpdate: Boolean = true,
+    val notifyAfterUpdate: Boolean = true,     // один раз сказать, что изменилось, после обновления
+    val lastSeenVersion: String = "",          // сборка, для которой это уже показали
     val notifyExpiry: Boolean = true,
     val notifyTrafficLow: Boolean = true,   // предупредить, когда осталось меньше 10 % трафика
     val expiryNotifyDays: Int = 3,
@@ -247,11 +251,15 @@ class Store(private val ctx: Context) {
     }
 
     private fun order(list: List<ServerProfile>, pings: Map<String, Int>): List<ServerProfile> {
+        // The one you are connected through goes first — it is the row you look for, and hunting
+        // for it in thirty others while it is live is the whole complaint.
+        val active = if (_state.value.pinActive) _state.value.selectedServerRaw else null
+        val pinned = { s: ServerProfile -> if (active != null && s.raw == active) 0 else 1 }
         val fav = { s: ServerProfile -> if (isFavorite(s)) 0 else 1 }
         return when (_state.value.sort) {
-            "ping" -> list.sortedWith(compareBy(fav, { pings[it.raw]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
-            "name" -> list.sortedWith(compareBy(fav, { it.label.lowercase() }))
-            "favorite" -> list.filter { isFavorite(it) }.ifEmpty { list }
+            "ping" -> list.sortedWith(compareBy(pinned, fav, { pings[it.raw]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
+            "name" -> list.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))
+            "favorite" -> list.filter { isFavorite(it) }.ifEmpty { list }.sortedWith(compareBy(pinned))
             else -> list.sortedBy(fav)
         }
     }

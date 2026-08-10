@@ -378,4 +378,9 @@
     <string name="auto_alwayson">"Always-on VPN"</string>
     <string name="auto_alwayson_sub">"Android can keep a VPN always on. Only the system settings can turn it on — we will open them"</string>
     <string name="mode_tunnel">"Tunnel"</string>
+    <string name="pin_active">"Active server first"</string>
+    <string name="pin_active_sub">"While connected, keep that server at the top of the list"</string>
+    <string name="notify_after">"After an update"</string>
+    <string name="notify_after_sub">"Say once what changed, when the version has moved"</string>
+    <string name="upd_installed">"Updated to %1$s — the changes are under Update"</string>
 </resources>

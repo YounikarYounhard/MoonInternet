@@ -469,6 +469,9 @@ private fun SubsPage(
             SwitchRow(stringResource(R.string.settingsscreen_079), stringResource(R.string.settingsscreen_080),
                 state.showServerCount) { v -> onSet { copy(showServerCount = v) } }
             RowDivider()
+            SwitchRow(stringResource(R.string.pin_active), stringResource(R.string.pin_active_sub),
+                state.pinActive) { v -> onSet { copy(pinActive = v) } }
+            RowDivider()
             Column(Modifier.padding(12.dp)) {
                 Text(stringResource(R.string.submeter_title), color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text(stringResource(R.string.submeter_sub), color = Moon.TextSecondary, fontSize = 12.sp,
@@ -752,6 +755,9 @@ private fun NotificationsPage(state: AppState, onSet: ((AppState.() -> AppState)
                 RowDivider()
                 SwitchRow(stringResource(R.string.notify_upd), stringResource(R.string.notify_upd_sub),
                     state.notifyAppUpdate) { v -> onSet { copy(notifyAppUpdate = v) } }
+                RowDivider()
+                SwitchRow(stringResource(R.string.notify_after), stringResource(R.string.notify_after_sub),
+                    state.notifyAfterUpdate) { v -> onSet { copy(notifyAfterUpdate = v) } }
             }
         }
     }

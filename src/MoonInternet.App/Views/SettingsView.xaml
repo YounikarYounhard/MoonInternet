@@ -622,6 +622,14 @@
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowServerCount}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_Pin_Active}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Pin_Active_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PinActiveServer}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <StackPanel Margin="12">
                             <TextBlock Text="{DynamicResource S_SubMeter_Title}" FontSize="14" FontWeight="SemiBold"/>
                             <TextBlock Text="{DynamicResource S_SubMeter_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
@@ -823,6 +831,14 @@
                                 <TextBlock Text="{DynamicResource S_Notify_Upd_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyAppUpdate}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <Grid Margin="12">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_Notify_After}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Notify_After_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding NotifyAfterUpdate}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                     </StackPanel>
                 </Border>
