@@ -44,7 +44,7 @@ fun HomeScreen(
     pings: Map<String, Int>,
     pinging: Set<String>,
     pingDisplay: String,
-    busy: Boolean,
+    refreshing: Set<String>,
     isFavorite: (ServerProfile) -> Boolean,
     checkPing: String,
     showSubHeader: Boolean,
@@ -236,7 +236,8 @@ fun HomeScreen(
                 servers = sortedIn(sub),
                 onToggleCollapse = { onToggleCollapse(sub.url) },
                 onMenu = { onSubMenu(sub) },
-                subBusy = busy,
+                pingBusy = sortedIn(sub).any { it.raw in pinging },
+                refreshBusy = sub.url in refreshing,
                 onPing = { onPingSub(sub) },
                 onRefresh = { onRefreshSub(sub) },
                 onSelect = onSelect,
@@ -366,7 +367,8 @@ private fun SubscriptionCard(
     isFavorite: (ServerProfile) -> Boolean,
     onToggleCollapse: () -> Unit,
     onMenu: () -> Unit,
-    subBusy: Boolean,
+    pingBusy: Boolean,
+    refreshBusy: Boolean,
     onPing: () -> Unit,
     onRefresh: () -> Unit,
     onSelect: (ServerProfile) -> Unit,
@@ -402,8 +404,8 @@ private fun SubscriptionCard(
                         Text("${sub.servers.size}", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                              color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    BusyIconButton(Icons.Filled.Speed, busy = subBusy, onClick = onPing)
-                    BusyIconButton(Icons.Filled.Refresh, busy = subBusy, onClick = onRefresh)
+                    BusyIconButton(Icons.Filled.Speed, busy = pingBusy, onClick = onPing)
+                    BusyIconButton(Icons.Filled.Refresh, busy = refreshBusy, onClick = onRefresh)
                     IconButton(onMenu, Modifier.size(30.dp)) {
                         Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }

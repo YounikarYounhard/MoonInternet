@@ -32,7 +32,7 @@ fun ServersScreen(
     pings: Map<String, Int>,
     pinging: Set<String>,
     pingDisplay: String,
-    busy: Boolean,
+    refreshing: Set<String>,
     isFavorite: (ServerProfile) -> Boolean,
     collapsed: Set<String>,
     sort: String,
@@ -81,8 +81,10 @@ fun ServersScreen(
                     Text(stringResource(R.string.fmt_servers, all.size), fontSize = 12.sp, color = Moon.TextSecondary,
                          modifier = Modifier.padding(top = 2.dp))
                 }
-                BusyIconButton(Icons.Filled.Speed, busy, stringResource(R.string.serversscreen_003), 40.dp, onPingAll)
-                BusyIconButton(Icons.Filled.Refresh, busy, stringResource(R.string.serversscreen_004), 40.dp, onRefreshAll)
+                // Each button reports its own job. One shared flag meant a ping spun the refresh
+                // icon too, on every subscription at once — a screenful of spinners for one press.
+                BusyIconButton(Icons.Filled.Speed, pinging.isNotEmpty(), stringResource(R.string.serversscreen_003), 40.dp, onPingAll)
+                BusyIconButton(Icons.Filled.Refresh, refreshing.isNotEmpty(), stringResource(R.string.serversscreen_004), 40.dp, onRefreshAll)
             }
         }
 
@@ -147,7 +149,8 @@ fun ServersScreen(
                     pingDisplay = pingDisplay, isFavorite = isFavorite,
                     onToggleCollapse = { onToggleCollapse(sub.url) },
                     onMenu = { onSubMenu(sub) },
-                    subBusy = busy,
+                    pingBusy = shown.any { it.raw in pinging },
+                    refreshBusy = sub.url in refreshing,
                     onPing = { onPingSub(sub) },
                     onRefresh = { onRefreshSub(sub) },
                     onSelect = onSelect, onServerMenu = onServerMenu,
@@ -193,7 +196,8 @@ private fun SubGroup(
     isFavorite: (ServerProfile) -> Boolean,
     onToggleCollapse: () -> Unit,
     onMenu: () -> Unit,
-    subBusy: Boolean,
+    pingBusy: Boolean,
+    refreshBusy: Boolean,
     onPing: () -> Unit,
     onRefresh: () -> Unit,
     onSelect: (ServerProfile) -> Unit,
@@ -226,8 +230,8 @@ private fun SubGroup(
                         Text("${servers.size}", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                              color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    BusyIconButton(Icons.Filled.Speed, busy = subBusy, onClick = onPing)
-                    BusyIconButton(Icons.Filled.Refresh, busy = subBusy, onClick = onRefresh)
+                    BusyIconButton(Icons.Filled.Speed, busy = pingBusy, onClick = onPing)
+                    BusyIconButton(Icons.Filled.Refresh, busy = refreshBusy, onClick = onRefresh)
                     IconButton(onMenu, Modifier.size(30.dp)) {
                         Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }

@@ -118,11 +118,13 @@ class MainActivity : ComponentActivity() {
                 val pings by vm.pings.collectAsState()
                 val pinging by vm.pinging.collectAsState()
                 val pingingAll by vm.pingingAll.collectAsState()
+                val refreshing by vm.refreshing.collectAsState()
                 val (up, down) = vm.speed.collectAsState().value
                 val elapsed by vm.elapsed.collectAsState()
                 val traffic by vm.sessionTraffic.collectAsState()
                 val status by vm.status.collectAsState()
                 val checkPing by vm.checkPing.collectAsState()
+                val logsSize by vm.logsSize.collectAsState()
                 val geoBusy by vm.geoBusy.collectAsState()
                 val geoStatus by vm.geoStatus.collectAsState()
                 val updateAvailable by vm.updateAvailable.collectAsState()
@@ -143,6 +145,7 @@ class MainActivity : ComponentActivity() {
                     when (page) {
                         Page.Home -> homeScroll.scrollToItem(0)
                         Page.Servers -> serversScroll.scrollToItem(0)
+                        Page.Settings -> vm.refreshLogsSize()
                         else -> {}
                     }
                 }
@@ -276,7 +279,7 @@ class MainActivity : ComponentActivity() {
                                 pings = pings,
                                 pinging = pinging,
                                 pingDisplay = state.pingDisplay,
-                                busy = pingingAll,
+                                refreshing = refreshing,
                                 isFavorite = vm::isFavorite,
                                 checkPing = checkPing,
                                 showSubHeader = state.showSubHeader,
@@ -305,7 +308,7 @@ class MainActivity : ComponentActivity() {
                                 pings = pings,
                                 pinging = pinging,
                                 pingDisplay = state.pingDisplay,
-                                busy = pingingAll,
+                                refreshing = refreshing,
                                 isFavorite = vm::isFavorite,
                                 collapsed = collapsed,
                                 sort = state.sort,
@@ -372,8 +375,8 @@ class MainActivity : ComponentActivity() {
                                     state = state,
                                     routing = vm.activeRouting(),
                                     apps = installedApps,
-                                    // recomputed whenever the page opens, not once at startup
-                                    logsSize = remember(settingsPage) { vm.logsSize() },
+                                    // a flow, so Clear updates the row where you are standing
+                                    logsSize = logsSize,
                                     xrayVersion = xrayVersion,
                                     onBack = { settingsPage = settingsBack.removeLastOrNull() },
                                     onOpen = { settingsBack.add(sp); settingsPage = it },

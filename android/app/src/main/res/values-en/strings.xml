@@ -434,4 +434,5 @@
     <string name="routing_geo_search">"Search categories"</string>
     <string name="routing_geo_empty">"Geo files not downloaded yet — refresh them below"</string>
     <string name="routing_desc_lan">"Local addresses go direct"</string>
+    <string name="vm_failover">"That server did not answer — switching to %1$s"</string>
 </resources>

@@ -53,6 +53,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _pingingAll = MutableStateFlow(false)
     val pingingAll = _pingingAll.asStateFlow()
 
+    /** Subscriptions being refetched right now, by URL — so only the row you pressed spins. */
+    private val _refreshing = MutableStateFlow<Set<String>>(emptySet())
+    val refreshing = _refreshing.asStateFlow()
+
     /** result of "Проверить соединение" — shown next to the button while connected. */
     private val _checkPing = MutableStateFlow("")
     val checkPing = _checkPing.asStateFlow()
@@ -277,7 +281,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val urls = store.state.value.subscriptions.map { it.url }.filter { it.startsWith("http") }
         if (urls.isEmpty()) return@launch
         if (!silent) _busy.value = true
-        urls.forEach { refreshOne(it) }
+        _refreshing.update { it + urls }
+        urls.forEach { refreshOne(it); _refreshing.update { s -> s - it } }
         _busy.value = false
         pingAll()
     }
@@ -285,7 +290,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshSubscription(url: String) = viewModelScope.launch {
         if (!url.startsWith("http")) return@launch
         _busy.value = true
+        _refreshing.update { it + url }
         if (refreshOne(url)) _status.value = s(R.string.vm_sub_updated) else _status.value = s(R.string.vm_sub_update_failed)
+        _refreshing.update { it - url }
         _busy.value = false
     }
 
@@ -431,6 +438,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun pingServers(servers: List<ServerProfile>) {
         val targets = servers.filter { !it.raw.isNullOrBlank() }
         if (targets.isEmpty()) return
+        // The flag existed and nothing ever raised it, so the ping button never span and stayed
+        // pressable — a second tap on top of a running pass fought the first one for the same
+        // sockets. One pass at a time, and the button says so.
+        if (_pingingAll.value) return
+        _pingingAll.value = true
         val st = store.state.value
         _status.value = s(R.string.vm_pinging, targets.size)
 
@@ -455,6 +467,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             s.raw?.let { raw ->
                                 _pings.update { it + (raw to ms) }
                                 _pinging.update { it - raw }
+                                // The other half of the link: checkConnection already writes its
+                                // reading into the row, and measuring the row has to reach the
+                                // pill by the button, or the two show different numbers for the
+                                // same server after a subscription ping.
+                                if (raw == store.state.value.selectedServerRaw) {
+                                    _checkPing.value = if (ms >= 0) "$ms ms" else s(R.string.vm_no_reply)
+                                }
                             }
                         }
                     }
@@ -462,6 +481,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         } finally {
             _pinging.value = emptySet()
+            _pingingAll.value = false
             _status.value = ""
         }
     }
@@ -550,11 +570,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- connection ------------------------------------------------------
-    fun connect() {
-        val s = store.selectedServer() ?: run { _status.value = s(R.string.vm_pick_server); return }
+    fun connect() = viewModelScope.launch {
+        var s = store.selectedServer() ?: run { _status.value = s(R.string.vm_pick_server); return@launch }
+
+        // "The chosen server is silent -> take the fastest live one." That is what the setting
+        // says, and until now it only applied when auto-connect picked a server at launch:
+        // pressing Connect on a server whose ping had just come back dead dialled it anyway and
+        // sat there failing. Only a measured failure counts — an unmeasured server is not a dead
+        // one, and we do not overrule a choice we know nothing about.
+        if (store.state.value.autoFailover && (_pings.value[s.raw] ?: -2) == -1) {
+            val alt = store.allServers
+                .filter { it.raw != s.raw && XrayConfig.supports(it.protocol) && (_pings.value[it.raw] ?: -2) >= 0 }
+                .minByOrNull { _pings.value[it.raw] ?: Int.MAX_VALUE }
+            if (alt != null) {
+                store.selectServer(alt)
+                _status.value = s(R.string.vm_failover, alt.label)
+                s = alt
+            }
+        }
+
         if (!XrayConfig.supports(s.protocol)) {
             _status.value = s(R.string.vm_unsupported, s.protocolLabel)
-            return
+            return@launch
         }
         val st = store.state.value
 
@@ -590,7 +627,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 allowLan = st.allowLan,
                 dnsList = dnsServers(st),
             )
-        }.getOrElse { _status.value = s(R.string.vm_config_error, it.message); return }
+        }.getOrElse { _status.value = s(R.string.vm_config_error, it.message); return@launch }
 
         // Прокси-режим: только локальные SOCKS/HTTP, без системного туннеля.
         // Proxy mode keeps the tunnel. Stripping the tun inbound left nothing capturing traffic,
@@ -762,11 +799,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearLogs() {
         cc.moon.internet.data.LogStore.clear(getApplication())
+        _logsSize.value = cc.moon.internet.data.LogStore.size(getApplication())
         _status.value = s(R.string.vm_logs_cleared)
     }
 
-    /** Size of the core log for the settings row. */
-    fun logsSize(): String = cc.moon.internet.data.LogStore.size(getApplication())
+    /**
+     * Size of the core log for the settings row. A flow, not a plain call: read once when the page
+     * opened, the row went on showing the old size after Clear and only told the truth if you left
+     * the page and came back. The desktop assigns its own LogsSizeInfo there, so it never did this.
+     */
+    private val _logsSize = MutableStateFlow("")
+    val logsSize = _logsSize.asStateFlow()
+    fun refreshLogsSize() { _logsSize.value = cc.moon.internet.data.LogStore.size(getApplication()) }
 
     /** Last lines of the core log, for the viewer. */
     fun logsTail(): String = cc.moon.internet.data.LogStore.tail(getApplication())

@@ -437,4 +437,5 @@
     <string name="routing_geo_search">"Поиск категории"</string>
     <string name="routing_geo_empty">"Гео-файлы не загружены — обновите их ниже"</string>
     <string name="routing_desc_lan">"Локальные адреса напрямую"</string>
+    <string name="vm_failover">"Сервер не отвечал — переключаюсь на %1$s"</string>
 </resources>
