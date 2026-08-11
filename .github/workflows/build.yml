@@ -122,6 +122,8 @@ jobs:
 
       # ~120 MB of third-party engines, deliberately not in the repo
       - name: Fetch the cores
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: powershell -ExecutionPolicy Bypass -File build\get-cores.ps1
 
       - name: Publish

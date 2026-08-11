@@ -1,4 +1,4 @@
-<#
+﻿<#
     Downloads the tunnel engines into cores\.
 
     They are NOT in the repository: together they weigh ~120 MB and they're
@@ -15,7 +15,13 @@ New-Item -ItemType Directory -Force -Path $cores, $tmp | Out-Null
 
 function Get-Release([string]$repo, [string]$pattern) {
     $api = "https://api.github.com/repos/$repo/releases/latest"
-    $rel = Invoke-RestMethod -Uri $api -Headers @{ 'User-Agent' = 'moon-internet-build' }
+    # Anonymous calls to the GitHub API are rate-limited per IP, and a CI runner shares its IP with
+    # everybody else's builds — so on Actions this is the difference between working and a flat 403.
+    # Locally there is usually no token and none is needed.
+    $headers = @{ 'User-Agent' = 'moon-internet-build' }
+    $token = if ($env:GH_TOKEN) { $env:GH_TOKEN } else { $env:GITHUB_TOKEN }
+    if ($token) { $headers['Authorization'] = "Bearer $token" }
+    $rel = Invoke-RestMethod -Uri $api -Headers $headers
     $asset = $rel.assets | Where-Object { $_.name -like $pattern } | Select-Object -First 1
     if (-not $asset) { throw "$repo : asset '$pattern' not found in $($rel.tag_name)" }
     $out = Join-Path $tmp $asset.name
