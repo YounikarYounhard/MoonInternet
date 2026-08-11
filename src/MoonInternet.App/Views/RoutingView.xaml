@@ -65,20 +65,19 @@
                                         Visibility="{Binding HasMenu, Converter={StaticResource BoolVis}}"
                                         Click="RoutingMenu_Click" Tag="{Binding Profile}">
                                     <Button.ContextMenu>
+                                        <!-- A ContextMenu lives in its own visual tree, so a binding
+                                             to the UserControl's DataContext finds nothing and every
+                                             item comes up greyed. The profile rides in on Tag and the
+                                             handler looks the view model up itself. -->
                                         <ContextMenu>
-                                            <MenuItem Header="{DynamicResource S_Routing_Edit}"
-                                                      Command="{Binding PlacementTarget.DataContext.EditRoutingProfileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                      CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                      Visibility="{Binding PlacementTarget.DataContext.CanEditRouting, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolVis}}"/>
-                                            <MenuItem Header="{DynamicResource S_Routing_Duplicate}"
-                                                      Command="{Binding PlacementTarget.DataContext.DuplicateRoutingCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                      CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                            <MenuItem Header="{DynamicResource S_Routing_Export}"
-                                                      Command="{Binding PlacementTarget.DataContext.ExportRoutingCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                      CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                            <MenuItem Header="{DynamicResource S_Routing_Delete}"
-                                                      Command="{Binding PlacementTarget.DataContext.DeleteRoutingCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                      CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                            <MenuItem Header="{DynamicResource S_Routing_Edit}" Click="MenuEdit_Click"
+                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                            <MenuItem Header="{DynamicResource S_Routing_Duplicate}" Click="MenuDuplicate_Click"
+                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                            <MenuItem Header="{DynamicResource S_Routing_Export}" Click="MenuExport_Click"
+                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                            <MenuItem Header="{DynamicResource S_Routing_Delete}" Click="MenuDelete_Click"
+                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                         </ContextMenu>
                                     </Button.ContextMenu>
                                 </Button>
@@ -109,24 +108,30 @@
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                            Visibility="{Binding NotEditingRouting, Converter={StaticResource BoolVis}}">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding BackToRoutingSettingsCommand}"/>
-                    <TextBlock Text="{DynamicResource S_RoutingView_002}" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <!-- The editor's own header: ✕, the profile's name, and Save on the right. -->
-                <Grid Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                      Visibility="{Binding IsEditingRouting, Converter={StaticResource BoolVis}}">
+                <!-- One header for all three levels, like the phone: the back arrow goes up a
+                     level rather than always out to settings, and the title says where you are. -->
+                <Grid Margin="0,4,0,6" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <StackPanel Orientation="Horizontal" Margin="0,0,110,0">
-                        <Button Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseRoutingEditorCommand}"/>
-                        <TextBlock Text="{Binding EditName}" FontSize="21" FontWeight="Bold" Margin="6,0,0,0"
+                        <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding RoutingBackCommand}"/>
+                        <TextBlock Text="{Binding RoutingHeader}" FontSize="21" FontWeight="Bold" Margin="6,0,0,0"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource GlyphButton}"
+                            Content="&#xE710;" FontSize="18" Foreground="{StaticResource Accent}"
+                            Visibility="{Binding ShowRoutingAdd, Converter={StaticResource BoolVis}}"
+                            Command="{Binding NewRoutingCommand}"/>
                     <Button HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource PrimaryButton}"
                             Padding="16,7" FontSize="13" Content="{DynamicResource S_Routing_Save}"
+                            Visibility="{Binding IsEditingRouting, Converter={StaticResource BoolVis}}"
                             Command="{Binding CloseRoutingEditorCommand}"/>
                 </Grid>
+
+                <TextBlock Text="{DynamicResource S_Routing_Subtitle}" Foreground="{StaticResource TextSecondary}"
+                           FontSize="12.5" Margin="4,0,0,10" TextWrapping="Wrap"
+                           Visibility="{Binding ShowRoutingAdd, Converter={StaticResource BoolVis}}"/>
+                <TextBlock Text="{DynamicResource S_Routing_SubHint}" Foreground="{StaticResource TextSecondary}"
+                           FontSize="12.5" Margin="4,0,0,10" TextWrapping="Wrap"
+                           Visibility="{Binding InRoutingSub, Converter={StaticResource BoolVis}}"/>
 
                 <!-- geo files: part of the editor, the way ГЕО-ДАННЫЕ is on the phone -->
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10"
@@ -179,17 +184,6 @@
                     <!-- Top level, the same three blocks the phone shows: the shipped pair, a row
                          per subscription you step into, then your own copies. -->
                     <StackPanel Visibility="{Binding NotInRoutingSub, Converter={StaticResource BoolVis}}">
-                        <Grid Margin="0,0,0,10">
-                            <StackPanel Margin="0,0,44,0">
-                                <TextBlock Text="{DynamicResource S_Routing_Title}" FontSize="21" FontWeight="Bold"/>
-                                <TextBlock Text="{DynamicResource S_Routing_Subtitle}" Foreground="{StaticResource TextSecondary}"
-                                           FontSize="12.5" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                            </StackPanel>
-                            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource GlyphButton}"
-                                    Content="&#xE710;" FontSize="18" Foreground="{StaticResource Accent}"
-                                    Command="{Binding NewRoutingCommand}"/>
-                        </Grid>
-
                         <ItemsControl ItemsSource="{Binding RoutingBuiltinRows}" ItemTemplate="{StaticResource RoutingCard}"/>
 
                         <TextBlock Text="{DynamicResource S_Routing_SecSubs}" Foreground="{StaticResource TextMuted}"
@@ -206,14 +200,6 @@
                     <!-- Inside one subscription: INCY and HAPP side by side, which is the choice the
                          old segmented control used to make. -->
                     <StackPanel Visibility="{Binding InRoutingSub, Converter={StaticResource BoolVis}}">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" FontSize="16"
-                                    Command="{Binding CloseRoutingSubscriptionCommand}"/>
-                            <TextBlock Text="{Binding RoutingSubTitle}" FontSize="21" FontWeight="Bold"
-                                       VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
-                        <TextBlock Text="{DynamicResource S_Routing_SubHint}" Foreground="{StaticResource TextSecondary}"
-                                   FontSize="12.5" Margin="4,0,0,12" TextWrapping="Wrap"/>
                         <ItemsControl ItemsSource="{Binding RoutingSubRows}" ItemTemplate="{StaticResource RoutingCard}"/>
                     </StackPanel>
 

@@ -242,6 +242,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(InRoutingSub), nameof(NotInRoutingSub),
                               nameof(RoutingSubRows), nameof(RoutingSubTitle),
+                              nameof(RoutingHeader), nameof(ShowRoutingAdd),
                               nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
                               nameof(HasRoutingSubs), nameof(HasRoutingMine))]
     private string? openRoutingSub;
@@ -269,8 +270,14 @@ public partial class MainViewModel : ObservableObject
         AvailableRoutings.Where(r => r.Builtin)
             .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false)).ToList();
 
+    /// <summary>
+    /// Only profiles you made. A subscription's import that arrived before profiles had a SubUrl
+    /// has no subscription to sit under, but it is still not yours — listing it here put two
+    /// copies of the provider's "РФ" in a section that should start out empty.
+    /// </summary>
     public IReadOnlyList<RoutingRow> RoutingMineRows =>
-        AvailableRoutings.Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl))
+        AvailableRoutings.Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl)
+                                     && r.Source == RoutingSource.Custom)
             .Select(r => Row(r, "", menu: true)).ToList();
 
     /// <summary>One row per subscription that brought routing with it — click steps inside.</summary>
@@ -292,6 +299,24 @@ public partial class MainViewModel : ObservableObject
     public IReadOnlyList<RoutingRow> RoutingSubRows =>
         AvailableRoutings.Where(r => r.SubUrl == OpenRoutingSub)
             .Select(r => Row(r, "", menu: true, badge: r.SourceText)).ToList();
+
+    /// <summary>Title of the single header: where you are, not always the page's name.</summary>
+    public string RoutingHeader =>
+        IsEditingRouting ? EditName
+        : InRoutingSub ? RoutingSubTitle
+        : Localization.Loc.T("S_Routing_Title");
+
+    /// <summary>"+" belongs to the list only — not to a subscription, and not to the editor.</summary>
+    public bool ShowRoutingAdd => !IsEditingRouting && !InRoutingSub;
+
+    /// <summary>Back goes up one level, the way it does on the phone.</summary>
+    [RelayCommand]
+    private void RoutingBack()
+    {
+        if (IsEditingRouting) { CloseRoutingEditor(); return; }
+        if (InRoutingSub) { OpenRoutingSub = null; return; }
+        BackToRoutingSettings();
+    }
 
     public bool HasRoutingSubs => RoutingSubscriptionRows.Count > 0;
     public bool HasRoutingMine => RoutingMineRows.Count > 0;
@@ -318,6 +343,7 @@ public partial class MainViewModel : ObservableObject
                               nameof(EditGlobalProxy), nameof(EditRemoteDns), nameof(EditDomesticDns),
                               nameof(EditRemoteDnsType), nameof(EditDomesticDnsType),
                               nameof(EditDomainStrategy), nameof(EditGeoip), nameof(EditGeosite),
+                              nameof(RoutingHeader), nameof(ShowRoutingAdd),
                               nameof(IsDsAsIs), nameof(IsDsIfNoMatch), nameof(IsDsOnDemand))]
     private RoutingProfile? editingRouting;
 
