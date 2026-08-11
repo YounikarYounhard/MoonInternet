@@ -459,8 +459,8 @@
     <s:String x:Key="S_Upd_Failed">Could not download the update</s:String>
     <s:String x:Key="S_Pin_Active">Active server first</s:String>
     <s:String x:Key="S_Pin_Active_Sub">While connected, keep that server at the top of the list</s:String>
-    <s:String x:Key="S_Notify_After">After an update</s:String>
-    <s:String x:Key="S_Notify_After_Sub">Say once what changed, when the version has moved</s:String>
+    <s:String x:Key="S_Notify_After">What's new in this version</s:String>
+    <s:String x:Key="S_Notify_After_Sub">After an update installs, say once what changed</s:String>
     <s:String x:Key="S_Upd_Installed">Updated to {0}. {1}</s:String>
     <s:String x:Key="S_Upd_WhatsNew">Routing is a list of profiles now: the shipped ones, a subscription’s INCY/HAPP pair, and your own copies. Stability no longer hands a reading to protocols that do not work.</s:String>
     <s:String x:Key="S_Routing_Profiles">PROFILES</s:String>
@@ -475,9 +475,9 @@
     <s:String x:Key="S_Routing_NewName">New profile</s:String>
     <s:String x:Key="S_Routing_Exported">Profile link copied</s:String>
     <s:String x:Key="S_Routing_ReadOnly">This profile comes from a subscription and the next fetch overwrites it, so it cannot be changed. Right-click and pick Duplicate — the copy is yours.</s:String>
-    <s:String x:Key="S_Ping_Moon">A TCP handshake sent around the tunnel — latency to the server itself. It shows the port answers, not that the protocol works.</s:String>
-    <s:String x:Key="S_Ping_Tcp">A plain TCP handshake on the current route. With someone else's VPN up you measure the path through it, not to the server.</s:String>
-    <s:String x:Key="S_Ping_HttpGet">An HTTP request to the server, timed to the first byte. Slower than a handshake, but it shows the server actually replies.</s:String>
-    <s:String x:Key="S_Ping_HttpHead">The same as HTTP GET but with HEAD: no response body, so a little quicker.</s:String>
-    <s:String x:Key="S_Ping_Stability">Brings up a real connection and makes a request through it. The slowest of them, and the only one that does not lie.</s:String>
+    <s:String x:Key="S_Ping_Moon">Ours: a TCP handshake sent around the tunnel, clean latency to the server. It answers "is someone listening on the port" — which is not the same as "the protocol works": a CDN, your ISP's middlebox or an expired key will finish the handshake too, and a dead server will report a healthy 30 ms.</s:String>
+    <s:String x:Key="S_Ping_Tcp">The same handshake, but on the current route. With someone else's VPN up the probe goes into their tunnel, so you measure the way to it rather than to the server.</s:String>
+    <s:String x:Key="S_Ping_HttpGet">Not just opening a port but getting an answer: a request to the server, timed to the first byte. Slower than a handshake, and a silent server can no longer pass for a live one.</s:String>
+    <s:String x:Key="S_Ping_HttpHead">The same with a HEAD request: the server replies with headers and no body, so it is quicker and lighter on the line.</s:String>
+    <s:String x:Key="S_Ping_Stability">The only method that brings up a real connection and makes a request through it. The slowest of them, and the one that does not lie.</s:String>
 </ResourceDictionary>

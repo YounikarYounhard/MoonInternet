@@ -472,7 +472,7 @@ fun ServerRowCompact(
                      maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Tag(server.protocolLabel, Moon.AccentText, Moon.Accent.copy(alpha = 0.18f))
-                    Tag(server.network.uppercase(), Moon.TextSecondary, Moon.ChipBg)
+                    Tag(server.transportLabel, Moon.TextSecondary, Moon.ChipBg)
                     if (server.security != "none") Tag(server.security.uppercase(), Moon.Green, Moon.Green.copy(alpha = 0.15f))
                 }
             }

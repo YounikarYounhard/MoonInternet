@@ -72,6 +72,19 @@ data class ServerProfile(
             Protocol.WIREGUARD -> "WireGuard"
             Protocol.SOCKS -> "SOCKS"
         }
+
+    /**
+     * What the connection actually rides on, for the chip beside the protocol.
+     *
+     * [network] only means anything for the protocols that can choose — VLESS, VMess, Trojan.
+     * Hysteria2 is QUIC and WireGuard is its own thing, both UDP always; neither reads that field,
+     * so it kept its default and the row claimed "Hysteria2 · TCP", which is simply not true.
+     */
+    val transportLabel: String
+        get() = when (protocol) {
+            Protocol.HYSTERIA2, Protocol.WIREGUARD -> "UDP"
+            else -> network.uppercase()
+        }
 }
 
 @Serializable
