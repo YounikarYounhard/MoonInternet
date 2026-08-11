@@ -262,43 +262,57 @@ fun LogViewerDialog(
     onCopy: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    // Not an AlertDialog: that caps its width at about 280dp, and a log line is 120 characters —
+    // you could scroll sideways forever and still read a sliver at a time. The desktop gives the
+    // log the whole card, so here it gets the whole screen.
+    androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
-        containerColor = Moon.Card,
-        shape = RoundedCornerShape(16.dp),
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Description, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(title, color = Moon.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                     maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        },
-        text = {
-            Surface(
-                shape = RoundedCornerShape(12.dp), color = Color(0xFF0B0916),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2150)),
-                modifier = Modifier.heightIn(max = 420.dp),
-            ) {
-                SelectionContainer {
-                    Text(
-                        text.ifBlank { stringResource(R.string.sheets_016) },
-                        color = Color(0xFFCFC7EC), fontSize = 11.sp, lineHeight = 15.sp,
-                        fontFamily = FontFamily.Monospace,
-                        modifier = Modifier
-                            .verticalScroll(rememberScrollState())
-                            .horizontalScroll(rememberScrollState())
-                            .padding(12.dp),
-                    )
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp), color = Moon.Card,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+            modifier = Modifier.fillMaxSize().padding(10.dp),
+        ) {
+            Column(Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Description, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(title, color = Moon.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    IconButton(onDismiss, Modifier.size(30.dp)) {
+                        Icon(Icons.Filled.Close, stringResource(R.string.sheets_009),
+                             tint = Moon.TextSecondary, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp), color = Color(0xFF0B0916),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2150)),
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 12.dp),
+                ) {
+                    SelectionContainer {
+                        Text(
+                            text.ifBlank { stringResource(R.string.sheets_016) },
+                            color = Color(0xFFCFC7EC), fontSize = 10.sp, lineHeight = 14.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier
+                                .verticalScroll(rememberScrollState())
+                                .horizontalScroll(rememberScrollState())
+                                .padding(12.dp),
+                        )
+                    }
+                }
+
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onReload) { Text(stringResource(R.string.settingsscreen_086), color = Moon.TextSecondary) }
+                    TextButton(onCopy) { Text(stringResource(R.string.sheets_008), color = Moon.Accent) }
+                    TextButton(onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) }
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onCopy) { Text(stringResource(R.string.sheets_008), color = Moon.Accent) } },
-        dismissButton = {
-            Row {
-                TextButton(onClick = onReload) { Text(stringResource(R.string.settingsscreen_086), color = Moon.TextSecondary) }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) }
-            }
-        },
-    )
+        }
+    }
 }

@@ -390,6 +390,7 @@ class MoonVpnService : VpnService() {
             .setShowWhen(false)
 
         var collapsedText = state
+        var expandedText = state
         if (paused || connecting) {
             b.setContentText(state)
         } else {
@@ -402,9 +403,8 @@ class MoonVpnService : VpnService() {
                 livePing.value?.let { append('\n').append(getString(R.string.notif_ping, it)) }
             }
             collapsedText = speed
-            b.setContentText(speed)                                  // collapsed: one line
-                .setStyle(NotificationCompat.BigTextStyle().bigText(lines))   // expanded: all of it
-
+            expandedText = lines
+            b.setContentText(speed)   // for anything that ignores the custom views (Wear, some launchers)
         }
 
         val actions = if (paused) listOf(
@@ -421,22 +421,27 @@ class MoonVpnService : VpnService() {
         // A standard notification hides its actions until the shade is opened. The collapsed row
         // is drawn by hand so pause and disconnect are reachable without opening anything.
         // Two of them, not three: beside the server name a third button squeezes the title to
-        // nothing. Ping stays in the expanded shade — its reading is already on the row anyway.
-        val collapsed = if (paused) actions.take(2) else listOf(actions[0], actions[2])
-        val compact = android.widget.RemoteViews(packageName, R.layout.notif_compact).apply {
-            setTextViewText(R.id.notif_title, profile.ifBlank { "Moon Internet" })
-            setTextViewText(R.id.notif_text, collapsedText)
-            listOf(R.id.notif_a1, R.id.notif_a2, R.id.notif_a3)
-                .forEachIndexed { i, id ->
-                    val a = collapsed.getOrNull(i)
+        // nothing. Ping stays in the expanded view, where all three fit.
+        fun view(layout: Int, body: String, shown: List<Pair<String, PendingIntent>>) =
+            android.widget.RemoteViews(packageName, layout).apply {
+                setTextViewText(R.id.notif_title, profile.ifBlank { "Moon Internet" })
+                setTextViewText(R.id.notif_text, body)
+                listOf(R.id.notif_a1, R.id.notif_a2, R.id.notif_a3).forEachIndexed { i, id ->
+                    val a = shown.getOrNull(i)
                     if (a == null) setViewVisibility(id, android.view.View.GONE)
                     else {
                         setTextViewText(id, a.first)
                         setOnClickPendingIntent(id, a.second)
                     }
                 }
-        }
-        b.setCustomContentView(compact)
+            }
+
+        // Both views, always. A custom content view cancels BigTextStyle, so with only the
+        // collapsed one set there is nothing to expand into: Android drops the chevron and a
+        // notification you once collapsed can never be opened again — which is what happened.
+        b.setCustomContentView(view(R.layout.notif_compact, collapsedText,
+                                    if (paused) actions.take(2) else listOf(actions[0], actions[2])))
+        b.setCustomBigContentView(view(R.layout.notif_expanded, expandedText, actions))
         return b.build()
     }
 

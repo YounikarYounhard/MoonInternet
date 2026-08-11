@@ -197,13 +197,11 @@ jobs:
           REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
-          # The annotated tag holds what changed. --generate-notes on its own threw that away and
-          # left the release with nothing but a compare link, so write the tag message first and
-          # append the generated part to it.
+          # The annotated tag is the whole release description. GitHub's generated notes are not
+          # appended on purpose: all they added was a "Full Changelog: v…​…v…" line, and the
+          # compare is a click away on the release page anyway.
           sha=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha)
           gh api "repos/$REPO/git/tags/$sha" --jq .message > notes.md 2>/dev/null || : > notes.md
-          printf '\n\n' >> notes.md
-          gh api -X POST "repos/$REPO/releases/generate-notes" -f tag_name="$TAG" --jq .body >> notes.md
           cat notes.md
 
           gh release create "$TAG" --repo "$REPO" \

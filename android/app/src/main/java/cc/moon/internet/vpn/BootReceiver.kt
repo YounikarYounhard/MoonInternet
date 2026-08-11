@@ -36,6 +36,9 @@ class BootReceiver : BroadcastReceiver() {
 
                 val server = store.autoTarget() ?: return@launch
                 if (!XrayConfig.supports(server.protocol)) return@launch
+                // Same as the tile: failover may have picked a different server, and the app has
+                // to be told, or it keeps presenting the old one as the live one.
+                store.selectServer(server)
 
                 val config = XrayConfig.build(
                     server = server,

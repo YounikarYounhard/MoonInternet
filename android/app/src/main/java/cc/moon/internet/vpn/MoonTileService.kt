@@ -73,6 +73,11 @@ class MoonTileService : TileService() {
             // already know is dead only spins and fails.
             val server = store.autoTarget()
             if (server == null || !XrayConfig.supports(server.protocol)) return@launch
+            // Record it. autoTarget can overrule the stored preference when that server stopped
+            // answering, and leaving the choice here meant the tunnel ran one server while the
+            // app went on showing another — the notification and the home screen disagreed, and
+            // the failover looked broken when it had in fact done its job.
+            store.selectServer(server)
 
             val socks = cc.moon.internet.core.freeLocalPort(st.socksPort)
             val config = runCatching {

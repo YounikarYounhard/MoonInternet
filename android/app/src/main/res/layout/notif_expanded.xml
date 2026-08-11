@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Expanded notification. Its only reason to exist is that setCustomContentView cancels
+     BigTextStyle: with a custom collapsed view and no big view, Android has nothing to expand
+     into, drops the chevron, and a notification you collapsed once can never be opened again.
+
+     No height cap here, so the numbers get their own lines and all three actions fit. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/notif_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Title"/>
+
+    <TextView
+        android:id="@+id/notif_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:maxLines="5"
+        android:textAppearance="@style/TextAppearance.Compat.Notification"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/notif_a1"
+            style="@android:style/Widget.Material.Button.Borderless.Small"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textSize="13sp"
+            android:textAllCaps="false"/>
+
+        <Button
+            android:id="@+id/notif_a2"
+            style="@android:style/Widget.Material.Button.Borderless.Small"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textSize="13sp"
+            android:textAllCaps="false"/>
+
+        <Button
+            android:id="@+id/notif_a3"
+            style="@android:style/Widget.Material.Button.Borderless.Small"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textSize="13sp"
+            android:textAllCaps="false"/>
+    </LinearLayout>
+</LinearLayout>
