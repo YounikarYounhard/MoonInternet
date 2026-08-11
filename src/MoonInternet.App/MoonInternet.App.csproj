@@ -19,7 +19,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>MoonInternet</AssemblyName>
     <RootNamespace>MoonInternet.App</RootNamespace>
-    <Version>0.9.3.7</Version>
+    <Version>0.9.3.8</Version>
     <ApplicationIcon>Assets\moon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>

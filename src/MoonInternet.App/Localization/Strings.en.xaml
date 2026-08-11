@@ -475,9 +475,9 @@
     <s:String x:Key="S_Routing_NewName">New profile</s:String>
     <s:String x:Key="S_Routing_Exported">Profile link copied</s:String>
     <s:String x:Key="S_Routing_ReadOnly">This profile comes from a subscription and the next fetch overwrites it, so it cannot be changed. Right-click and pick Duplicate — the copy is yours.</s:String>
-    <s:String x:Key="S_Ping_Moon">Ours: a TCP handshake sent around the tunnel, clean latency to the server. It answers "is someone listening on the port" — which is not the same as "the protocol works": a CDN, your ISP's middlebox or an expired key will finish the handshake too, and a dead server will report a healthy 30 ms.</s:String>
-    <s:String x:Key="S_Ping_Tcp">The same handshake, but on the current route. With someone else's VPN up the probe goes into their tunnel, so you measure the way to it rather than to the server.</s:String>
-    <s:String x:Key="S_Ping_HttpGet">Not just opening a port but getting an answer: a request to the server, timed to the first byte. Slower than a handshake, and a silent server can no longer pass for a live one.</s:String>
-    <s:String x:Key="S_Ping_HttpHead">The same with a HEAD request: the server replies with headers and no body, so it is quicker and lighter on the line.</s:String>
-    <s:String x:Key="S_Ping_Stability">The only method that brings up a real connection and makes a request through it. The slowest of them, and the one that does not lie.</s:String>
+    <s:String x:Key="S_Ping_Moon">A TCP handshake to the server, sent around the tunnel — the channel's own latency. It confirms the port is open, not that the protocol works: a CDN, an ISP middlebox or a server with an expired key will complete the handshake too.</s:String>
+    <s:String x:Key="S_Ping_Tcp">A TCP handshake on the current route. With any VPN running the probe goes through it and reports the latency to the tunnel rather than to the server.</s:String>
+    <s:String x:Key="S_Ping_HttpGet">A request to the server, timed to the first byte. Longer than a handshake, but it confirms the server answers instead of merely holding a port open.</s:String>
+    <s:String x:Key="S_Ping_HttpHead">A request for headers only, without the response body. Faster than HTTP GET and checks the same thing.</s:String>
+    <s:String x:Key="S_Ping_Stability">Opens a connection over the selected protocol and makes a request through it. The slowest measurement, and the only one that confirms the protocol actually works.</s:String>
 </ResourceDictionary>

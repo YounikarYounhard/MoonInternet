@@ -29,7 +29,7 @@ data class AppState(
     /** Protocol chip on Servers. Lives here, not in the screen, so Home obeys it too. */
     val protocol: String = "",
     /** Connected server first in the list. Off = leave it wherever the sort puts it. */
-    val pinActive: Boolean = true,
+    val pinActive: Boolean = false,
     /** Always true for now: the proxy-only mode was removed, another is planned. */
     val tunMode: Boolean = true,
     /** urls of subscriptions the user collapsed on Home */

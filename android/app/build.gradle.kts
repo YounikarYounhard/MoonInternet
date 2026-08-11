@@ -14,8 +14,8 @@ android {
         minSdk = 24                     // Android 7.0 — VpnService + modern TLS
         targetSdk = 35
         // has to go up on every published APK, or the phone refuses to install over the old one
-        versionCode = 16
-        versionName = "0.9.3.7"
+        versionCode = 17
+        versionName = "0.9.3.8"
 
         // The core is built for arm64 only, so shipping other ABIs would just be an app that
         // crashes the moment it tries to connect.
