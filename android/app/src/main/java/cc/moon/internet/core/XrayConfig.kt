@@ -186,9 +186,18 @@ object XrayConfig {
             .put("statsOutboundDownlink", true))
         // Level 0 is what ordinary traffic runs at, so this is where the priority mode bites:
         // a smaller buffer stops a bulk transfer running ahead of everything else.
-        bufferSizeKb(trafficPriority)?.let { kb ->
-            policy.put("levels", JSONObject().put("0", JSONObject().put("bufferSize", kb)))
-        }
+        //
+        // The timeouts are spelled out rather than left to the defaults, because they decide how
+        // long a session the far side has to keep alive. Without them a connection the phone has
+        // finished with lingers for xray's default five minutes, and on a server carrying a whole
+        // subscription those add up into real memory. These are the figures v2rayNG and INCY ship.
+        val level0 = JSONObject()
+            .put("handshake", 4)
+            .put("connIdle", 120)
+            .put("uplinkOnly", 1)
+            .put("downlinkOnly", 1)
+        bufferSizeKb(trafficPriority)?.let { kb -> level0.put("bufferSize", kb) }
+        policy.put("levels", JSONObject().put("0", level0))
         cfg.put("policy", policy)
         return cfg.toString(2)
     }

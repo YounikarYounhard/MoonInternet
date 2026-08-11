@@ -183,7 +183,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // fire a second pass on top of it because _pings was still empty when the check ran —
             // two passes measuring the same servers at once, trampling the same maps.
             if (store.state.value.updateOnStart) refreshAll(silent = true).join()
-            if (store.state.value.pingOnStart && _pings.value.isEmpty()) pingAll().join()
+            if (store.state.value.pingOnStart && _pings.value.isEmpty())
+                viewModelScope.launch { pingServers(store.allServers, auto = true) }.join()
             announceIfUpdated()
             requestAutoConnect()
         }
@@ -232,7 +233,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (sinceLastRun < every) continue
             sinceLastRun = 0
             val servers = store.state.value.subscriptions.flatMap { it.servers }
-            if (servers.isNotEmpty()) pingServers(servers)
+            if (servers.isNotEmpty()) pingServers(servers, auto = true)
         }
     }
 
@@ -287,7 +288,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _refreshing.update { it + urls }
         urls.forEach { refreshOne(it); _refreshing.update { s -> s - it } }
         _busy.value = false
-        pingServers(store.allServers)
+        pingServers(store.allServers, auto = true)
     }
 
     fun refreshSubscription(url: String) = viewModelScope.launch {
@@ -437,8 +438,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      *    provider's panel and balloons our own memory (the desktop build caps it the same way);
      *  * the atomic update is what actually fixed "not every server gets a ping": a plain
      *    read-modify-write on the map lost most results when jobs finished together.
+     *
+     * @param auto true when nobody asked — the startup sweep, the one after a subscription
+     *   refresh, and the background timer.
      */
-    private suspend fun pingServers(servers: List<ServerProfile>) {
+    private suspend fun pingServers(servers: List<ServerProfile>, auto: Boolean = false) {
         val targets = servers
         if (targets.isEmpty()) return
         // The flag existed and nothing ever raised it, so the ping button never span and stayed
@@ -452,9 +456,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // rows show a spinner instead of a stale number while they are being measured
         _pinging.value = targets.map { it.pingKey }.toSet()
 
+        // Стабильность is not a ping. It brings up a core and carries a real request through the
+        // protocol, so one measurement is one full session on the provider's server. Sweeping
+        // every server with it, unprompted, every time a subscription refreshes, is thirty real
+        // sessions the user never asked for — and that is what was filling the server's memory.
+        // Automatic passes therefore use the cheap probe; Стабильность stays for when you press it.
+        val method = if (auto && st.pingMethod == "stability") "moon" else st.pingMethod
+
         // Стабильность starts a core per server, so one at a time — six at once would be six
         // cores and the phone would feel it.
-        val parallel = if (st.pingMethod == "stability") 1 else PING_PARALLEL
+        val parallel = if (method == "stability") 1 else PING_PARALLEL
         val gate = kotlinx.coroutines.sync.Semaphore(parallel)
         try {
             kotlinx.coroutines.coroutineScope {
@@ -466,7 +477,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             kotlinx.coroutines.delay(i.toLong() * st.pingStaggerMs)
                         }
                         gate.withPermit {
-                            val ms = measurePing(s)
+                            val ms = measurePing(s, method)
                             s.pingKey.let { raw ->
                                 _pings.update { it + (raw to ms) }
                                 _pinging.update { it - raw }
@@ -501,12 +512,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * path to gstatic and handed every server the same number no matter what — that is the
      * "only our method works" report.
      */
-    private fun measurePing(s: ServerProfile): Int {
+    private fun measurePing(s: ServerProfile, method: String): Int {
         val st = store.state.value
         val timeout = st.pingTimeoutMs
-        return when (st.pingMethod) {
+        return when (method) {
             "stability" -> stabilityPing(s, st.pingTestUrl)
-            "httpget", "httphead" -> httpPing(s, timeout, head = st.pingMethod == "httphead")
+            "httpget", "httphead" -> httpPing(s, timeout, head = method == "httphead")
             else -> tcpPing(s.address, s.port, timeout)
         }
     }
