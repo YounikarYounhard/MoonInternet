@@ -160,7 +160,12 @@ private fun MeterBar(fraction: Double, color: Color, height: androidx.compose.ui
 @Composable
 fun PingIndicator(ping: Int?, busy: Boolean, style: String) {
     if (busy) { SpinnerRing(color = Moon.Accent); return }
-    val ms = ping ?: return
+    // Never draw nothing. A row with no reading used to be blank, which reads as "fine" and hides
+    // the fact that the server was never measured at all — the dash says which of the two it is.
+    val ms = ping ?: run {
+        Text("—", color = Moon.TextMuted, fontSize = 11.5.sp)
+        return
+    }
     val color = pingColorOf(ms)
     val signal = when {
         ms < 0 -> 0

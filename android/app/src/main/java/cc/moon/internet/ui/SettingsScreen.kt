@@ -555,10 +555,16 @@ private fun PingPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
             state.pingMethod,
         ) { v -> onSet { copy(pingMethod = v) } }
         // One line about the method you actually picked, instead of a paragraph covering all of
-        // them at once — that paragraph was three quarters irrelevant whatever you had selected.
-        Text(stringResource(pingHint(state.pingMethod)),
-             color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 16.sp,
-             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 16.dp))
+        // them at once. Nothing here while Stability is on: none of these four chips is selected
+        // then, so a description under them described a choice that was not made — and the card
+        // below says the same thing a second time.
+        if (state.pingMethod != "stability") {
+            Text(stringResource(pingHint(state.pingMethod)),
+                 color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 16.sp,
+                 modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 16.dp))
+        } else {
+            Spacer(Modifier.height(16.dp))
+        }
 
         // Стабильность стоит отдельно: она поднимает настоящее соединение, работает заметно
         // дольше остальных и пока в бете.
@@ -572,7 +578,7 @@ private fun PingPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
                          color = Color(0xFFF5C042), fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            Text(stringResource(R.string.settingsscreen_092) + stringResource(R.string.settingsscreen_093),
+            Text(stringResource(R.string.ping_desc_stability),
                  color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 16.sp,
                  modifier = Modifier.padding(top = 6.dp, bottom = 10.dp))
             ChipFlow(listOf("stability" to stringResource(R.string.ping_use_stability)), state.pingMethod) { v ->

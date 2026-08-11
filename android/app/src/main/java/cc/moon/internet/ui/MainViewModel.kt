@@ -179,8 +179,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // Both, not one or the other: refreshAll bails out early when there is nothing to
             // fetch, and the ping went with it — which is why the list opened with no numbers
             // until the button was pressed.
-            if (store.state.value.updateOnStart) refreshAll(silent = true)
-            if (store.state.value.pingOnStart && _pings.value.isEmpty()) pingAll()
+            // Awaited, both of them. refreshAll ends with a ping of its own, and this used to
+            // fire a second pass on top of it because _pings was still empty when the check ran —
+            // two passes measuring the same servers at once, trampling the same maps.
+            if (store.state.value.updateOnStart) refreshAll(silent = true).join()
+            if (store.state.value.pingOnStart && _pings.value.isEmpty()) pingAll().join()
             announceIfUpdated()
             requestAutoConnect()
         }
@@ -284,7 +287,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _refreshing.update { it + urls }
         urls.forEach { refreshOne(it); _refreshing.update { s -> s - it } }
         _busy.value = false
-        pingAll()
+        pingServers(store.allServers)
     }
 
     fun refreshSubscription(url: String) = viewModelScope.launch {
