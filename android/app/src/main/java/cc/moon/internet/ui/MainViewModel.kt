@@ -510,7 +510,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun tcpPing(host: String, port: Int, timeout: Int = 3000): Int = try {
         val t0 = System.currentTimeMillis()
-        Socket().use { it.connect(InetSocketAddress(host, port), timeout) }
+        Socket().use {
+            // Out of our own tunnel, or the reading is the tunnel's: Android sends an app's
+            // sockets through the VpnService it started, and a TUN stack answers the handshake
+            // itself in a millisecond for live and dead servers alike. This is what the desktop
+            // does by binding the probe to the physical adapter.
+            MoonVpnService.protectSocket(it)
+            it.connect(InetSocketAddress(host, port), timeout)
+        }
         (System.currentTimeMillis() - t0).toInt()
     } catch (_: Exception) { -1 }
 

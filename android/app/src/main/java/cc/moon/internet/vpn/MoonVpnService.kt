@@ -76,6 +76,22 @@ class MoonVpnService : VpnService() {
         @Volatile var runner: XrayRunner? = null
             private set
 
+        /**
+         * Live service, kept only so a latency probe can be excluded from our own tunnel.
+         *
+         * Android routes an app's own sockets through the VpnService it started, so a probe made
+         * while connected measures the tunnel rather than the server — a TUN stack completes the
+         * handshake locally, in a millisecond or two, for live and dead servers alike. The desktop
+         * build binds its probes to the physical adapter for exactly this reason; protect() is the
+         * Android equivalent.
+         */
+        @Volatile internal var current: MoonVpnService? = null
+            private set
+
+        /** Keeps a socket out of the tunnel. False when no tunnel is up, which needs no help. */
+        fun protectSocket(socket: java.net.Socket): Boolean =
+            current?.protect(socket) ?: false
+
         fun start(
             ctx: Context, config: String, profileName: String, mtu: Int = 1500,
             tun: Boolean = true, perAppMode: String = "off", perApps: List<String> = emptyList(),
@@ -110,6 +126,7 @@ class MoonVpnService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
+        current = this
         createChannel()
     }
 
@@ -332,7 +349,7 @@ class MoonVpnService : VpnService() {
     }
 
     override fun onRevoke() { stopTunnel() }          // user disabled the VPN from system settings
-    override fun onDestroy() { stopCore(); scope.cancel(); super.onDestroy() }
+    override fun onDestroy() { current = null; stopCore(); scope.cancel(); super.onDestroy() }
 
     // ---- notification ----------------------------------------------------
     /**
