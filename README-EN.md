@@ -22,7 +22,7 @@ Windows and Android.
 An ordinary client: paste a subscription link, get a server list, tap the moon.
 No accounts, no sign-up, and no servers of ours — they are yours.
 
-Version **0.9.2 beta**. Usable every day, with rough edges left.
+Version **0.9.3 beta**. Usable every day, with rough edges left.
 The interface is in Russian and English and switches on the fly.
 
 | | | |

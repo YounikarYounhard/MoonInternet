@@ -386,7 +386,7 @@
     <string name="notify_after_sub">"После установки обновления один раз показать, что изменилось"</string>
     <string name="upd_installed">"Обновлено до %1$s. %2$s"</string>
     <!-- Что нового. Правится вместе с versionName в build.gradle.kts, каждый выпуск. -->
-    <string name="upd_whats_new">"Маршрутизация переехала в профили: встроенные, профили подписки с выбором INCY/HAPP и ваши копии. «Стабильность» больше не приписывает отклик протоколам, которые не работают."</string>
+    <string name="upd_whats_new">"Маршрутизация на ПК переехала в профили, как на телефоне. «Стабильность» больше не проверяет серверы сама — только по нажатию."</string>
     <string name="routing_title">"Маршрутизация"</string>
     <string name="routing_subtitle">"Профили: какой трафик идёт через VPN, а какой мимо"</string>
     <string name="routing_add">"Новый профиль"</string>

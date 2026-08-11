@@ -462,7 +462,7 @@
     <s:String x:Key="S_Notify_After">What's new in this version</s:String>
     <s:String x:Key="S_Notify_After_Sub">After an update installs, say once what changed</s:String>
     <s:String x:Key="S_Upd_Installed">Updated to {0}. {1}</s:String>
-    <s:String x:Key="S_Upd_WhatsNew">Routing is a list of profiles now: the shipped ones, a subscription’s INCY/HAPP pair, and your own copies. Stability no longer hands a reading to protocols that do not work.</s:String>
+    <s:String x:Key="S_Upd_WhatsNew">Routing on Windows moved into profiles, the way it works on the phone. Stability no longer probes servers on its own — only when you press it.</s:String>
     <s:String x:Key="S_Routing_Profiles">PROFILES</s:String>
     <s:String x:Key="S_Routing_New">New</s:String>
     <s:String x:Key="S_Routing_Builtin">Built-in</s:String>

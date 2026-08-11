@@ -433,7 +433,7 @@
     <s:String x:Key="S_Notify_After_Sub">После установки обновления один раз показать, что изменилось</s:String>
     <s:String x:Key="S_Upd_Installed">Обновлено до {0}. {1}</s:String>
     <!-- Что нового. Правится вместе с <Version> в MoonInternet.App.csproj, каждый выпуск. -->
-    <s:String x:Key="S_Upd_WhatsNew">Маршрутизация переехала в профили: встроенные, профили подписки с выбором INCY/HAPP и ваши копии. «Стабильность» больше не приписывает отклик протоколам, которые не работают.</s:String>
+    <s:String x:Key="S_Upd_WhatsNew">Маршрутизация на ПК переехала в профили, как на телефоне. «Стабильность» больше не проверяет серверы сама — только по нажатию.</s:String>
     <s:String x:Key="S_Routing_Profiles">ПРОФИЛИ</s:String>
     <s:String x:Key="S_Routing_New">Новый</s:String>
     <s:String x:Key="S_Routing_Builtin">Встроенный</s:String>
