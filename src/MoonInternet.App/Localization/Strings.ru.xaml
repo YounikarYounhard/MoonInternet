@@ -484,4 +484,7 @@
     <s:String x:Key="S_Routing_DsIfNoHint">Разрешать в IP, когда правила не сошлись</s:String>
     <s:String x:Key="S_Routing_DsOnDemand">Всегда IP</s:String>
     <s:String x:Key="S_Routing_DsOnDemandHint">Всегда превращать домены в IP</s:String>
+    <s:String x:Key="S_Routing_Edit">Изменить</s:String>
+    <s:String x:Key="S_Routing_SecGeo">ГЕО-ДАННЫЕ</s:String>
+    <s:String x:Key="S_Routing_IpCount">{0} IP</s:String>
 </ResourceDictionary>

@@ -614,8 +614,34 @@ public partial class MainViewModel : ObservableObject
         Fill(DirectRules, "direct", r?.DirectSites, r?.DirectIp);
         Fill(ProxyRules, "proxy", r?.ProxySites, r?.ProxyIp);
         Fill(BlockRules, "block", r?.BlockSites, r?.BlockIp);
-        OnPropertyChanged(nameof(DirectCount)); OnPropertyChanged(nameof(ProxyCount)); OnPropertyChanged(nameof(BlockCount));
+        foreach (var n in new[] { nameof(DirectCount), nameof(ProxyCount), nameof(BlockCount),
+                                  nameof(DirectIpCount), nameof(ProxyIpCount), nameof(BlockIpCount) })
+            OnPropertyChanged(n);
     }
+
+    // One input per bucket, sitting inside it — the phone types the rule where the rule goes
+    // rather than opening a dialog to ask for it.
+    [ObservableProperty] private string directInput = "";
+    [ObservableProperty] private string proxyInput = "";
+    [ObservableProperty] private string blockInput = "";
+
+    [RelayCommand] private void AddDirect() { AddToBucket("direct", DirectInput); DirectInput = ""; }
+    [RelayCommand] private void AddProxy() { AddToBucket("proxy", ProxyInput); ProxyInput = ""; }
+    [RelayCommand] private void AddBlock() { AddToBucket("block", BlockInput); BlockInput = ""; }
+
+    /// <summary>Opens the category picker already pointed at the bucket that asked for it.</summary>
+    [RelayCommand]
+    private void PickGeoFor(string bucket)
+    {
+        RuleBucket = bucket;
+        OpenGeoBrowser();
+    }
+
+    // The phone shows two chips per bucket: how many site rules, and how many IP ones.
+    private static string IpChip(int n) => string.Format(Localization.Loc.T("S_Routing_IpCount"), n);
+    public string DirectIpCount => IpChip((EditingRouting ?? SelectedRouting)?.DirectIp.Count ?? 0);
+    public string ProxyIpCount => IpChip((EditingRouting ?? SelectedRouting)?.ProxyIp.Count ?? 0);
+    public string BlockIpCount => IpChip((EditingRouting ?? SelectedRouting)?.BlockIp.Count ?? 0);
 
     private static bool IsIpLike(string v) => v.StartsWith("geoip:", StringComparison.OrdinalIgnoreCase)
         || System.Net.IPAddress.TryParse(v.Split('/')[0], out _);
@@ -2474,7 +2500,7 @@ public partial class MainViewModel : ObservableObject
         // those are left alone rather than guessed at.
         if (Subscriptions.Count == 1)
         {
-            foreach (var orphan in _settings.MyRoutings
+            foreach (var orphan in _settings.MyRoutings.Concat(_installedRoutings)
                          .Where(r => r.IsImported && string.IsNullOrEmpty(r.SubUrl)).ToList())
             {
                 orphan.SubUrl = Subscriptions[0].Url;

@@ -513,4 +513,7 @@
     <s:String x:Key="S_Routing_DsIfNoHint">Resolve when no rule matched</s:String>
     <s:String x:Key="S_Routing_DsOnDemand">Always IP</s:String>
     <s:String x:Key="S_Routing_DsOnDemandHint">Always resolve domains to IPs</s:String>
+    <s:String x:Key="S_Routing_Edit">Edit</s:String>
+    <s:String x:Key="S_Routing_SecGeo">GEO DATA</s:String>
+    <s:String x:Key="S_Routing_IpCount">{0} IP</s:String>
 </ResourceDictionary>

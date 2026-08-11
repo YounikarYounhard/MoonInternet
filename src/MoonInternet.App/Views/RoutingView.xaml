@@ -24,6 +24,42 @@
              accent when the row is picked, the name with an optional source badge, the line saying
              what the profile does, and the trailing chevron or menu. Selection is the accent
              outline we use for the active server, not a radio column. -->
+        <!-- RadioRow() from RoutingEditor.kt: a filled accent circle with a tick, a title and
+             the line under it. WPF's stock radio is a grey dot and looks nothing like it. -->
+        <Style x:Key="MoonRadio" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="row" Background="Transparent" Padding="0,4">
+                            <StackPanel Orientation="Horizontal">
+                                <Grid Width="18" Height="18" VerticalAlignment="Top" Margin="0,2,12,0">
+                                    <Ellipse x:Name="ring" Stroke="{StaticResource BorderSoft}" StrokeThickness="1.5"/>
+                                    <Ellipse x:Name="dot" Fill="{StaticResource Accent}" Visibility="Collapsed"/>
+                                    <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="9"
+                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Visibility="Collapsed"/>
+                                </Grid>
+                                <StackPanel>
+                                    <TextBlock Text="{TemplateBinding Content}" FontSize="13"/>
+                                    <TextBlock Text="{TemplateBinding Tag}" Foreground="{StaticResource TextMuted}" FontSize="11"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ring" Property="Stroke" Value="Transparent"/>
+                                <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- SheetItem() from Sheets.kt: a glyph, a label, the whole row is the button. -->
         <Style x:Key="SheetItem" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
@@ -144,45 +180,6 @@
                            FontSize="12.5" Margin="4,0,0,10" TextWrapping="Wrap"
                            Visibility="{Binding InRoutingSub, Converter={StaticResource BoolVis}}"/>
 
-                <!-- geo files: part of the editor, the way ГЕО-ДАННЫЕ is on the phone -->
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10"
-                        Visibility="{Binding IsEditingRouting, Converter={StaticResource BoolVis}}">
-                    <StackPanel>
-                        <Grid>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource S_RoutingView_003}" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right"
-                                    Command="{Binding RefreshGeoCommand}" IsEnabled="{Binding GeoRefreshing, Converter={StaticResource InvBool}}"/>
-                        </Grid>
-                        <!-- one block per distinct geoip/geosite pair: INCY and HAPP share a plate
-                             while they point at the same release, and split when they do not -->
-                        <ItemsControl ItemsSource="{Binding GeoSources}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Owner}" FontSize="10.5" FontWeight="SemiBold" Margin="0,10,0,0"
-                                                   Foreground="{StaticResource AccentText}"
-                                                   Visibility="{Binding ShowOwner, Converter={StaticResource BoolVis}}"/>
-                                        <Grid Margin="0,10,0,0">
-                                            <TextBlock Text="geoip.dat" FontSize="12.5" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding GeoipText}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,8"/>
-                                        <Grid>
-                                            <TextBlock Text="geosite.dat" FontSize="12.5" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding GeositeText}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="{Binding GeoStatus}" Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="0,8,0,0"
-                                   Visibility="{Binding GeoRefreshing, Converter={StaticResource BoolVis}}"/>
-                    </StackPanel>
-                </Border>
-
             </StackPanel>
 
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -248,10 +245,38 @@
                                 <TextBlock Text="{DynamicResource S_Routing_DnsRemote}" Foreground="{StaticResource AccentText}"
                                            FontSize="12" FontWeight="SemiBold"/>
                                 <WrapPanel Margin="0,8,0,0">
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoH" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoH"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoT" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoT"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoU" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoU"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="TCP" Margin="0,0,0,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:TCP"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoH" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoH">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditRemoteDnsType"/>
+                                                         <Binding Source="DoH"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoT" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoT">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditRemoteDnsType"/>
+                                                         <Binding Source="DoT"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoU" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoU">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditRemoteDnsType"/>
+                                                         <Binding Source="DoU"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="TCP" Margin="0,0,0,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:TCP">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditRemoteDnsType"/>
+                                                         <Binding Source="TCP"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
                                 </WrapPanel>
                                 <TextBox Style="{StaticResource DarkTextBox}" Margin="0,4,0,0"
                                          Text="{Binding EditRemoteDns, UpdateSourceTrigger=PropertyChanged}"/>
@@ -261,10 +286,38 @@
                                 <TextBlock Text="{DynamicResource S_Routing_DnsDomestic}" Foreground="#4ED8A0"
                                            FontSize="12" FontWeight="SemiBold"/>
                                 <WrapPanel Margin="0,8,0,0">
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoH" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoH"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoT" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoT"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoU" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoU"/>
-                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="TCP" Margin="0,0,0,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:TCP"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoH" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoH">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditDomesticDnsType"/>
+                                                         <Binding Source="DoH"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoT" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoT">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditDomesticDnsType"/>
+                                                         <Binding Source="DoT"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoU" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoU">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditDomesticDnsType"/>
+                                                         <Binding Source="DoU"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="TCP" Margin="0,0,0,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:TCP">
+                                                 <RadioButton.IsChecked>
+                                                     <MultiBinding Converter="{StaticResource Eq}" Mode="OneWay">
+                                                         <Binding Path="EditDomesticDnsType"/>
+                                                         <Binding Source="TCP"/>
+                                                     </MultiBinding>
+                                                 </RadioButton.IsChecked>
+                                    </RadioButton>
                                 </WrapPanel>
                                 <TextBox Style="{StaticResource DarkTextBox}" Margin="0,4,0,0"
                                          Text="{Binding EditDomesticDns, UpdateSourceTrigger=PropertyChanged}"/>
@@ -299,68 +352,156 @@
                         </Grid>
                     </Border>
 
-                    <!-- DIRECT -->
+                    <!-- DIRECT — Bucket() from RoutingEditor.kt: the counts as two chips, the hint
+                         under the name, and inside the open bucket the chips, a line to type a rule
+                         into with its Добавить, and the geo-category button across the width. -->
                     <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
                         <StackPanel>
                             <Grid>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Style="{StaticResource GlyphButton}" Width="24" Height="24" FontSize="11" Content="&#xE70D;" Command="{Binding ToggleBucketCommand}" CommandParameter="direct"/>
                                     <TextBlock Text="DIRECT" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                    <Border CornerRadius="8" Background="#2534D399" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Border CornerRadius="8" Background="#2534D399" Padding="7,1">
                                         <TextBlock Text="{Binding DirectCount}" Foreground="{StaticResource Green}" FontSize="11" FontWeight="SemiBold"/>
                                     </Border>
+                                    <Border CornerRadius="8" Background="#1EFFFFFF" Padding="7,1" Margin="6,0,0,0">
+                                        <TextBlock Text="{Binding DirectIpCount}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
                                 </StackPanel>
-                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_008}" FontSize="12"
-                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
-                                        Command="{Binding OpenAddRuleCommand}" CommandParameter="direct"/>
                             </Grid>
                             <TextBlock Text="{DynamicResource S_RoutingView_009}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
-                            <ItemsControl ItemsSource="{Binding DirectRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
-                                          Visibility="{Binding DirectOpen, Converter={StaticResource BoolVis}}"/>
+
+                            <StackPanel Visibility="{Binding DirectOpen, Converter={StaticResource BoolVis}}">
+                                <ItemsControl ItemsSource="{Binding DirectRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"/>
+                                <Grid Margin="0,10,0,0" Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}" Text="{Binding DirectInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Padding="14,7" Margin="8,0,0,0" FontSize="12.5"
+                                            Content="{DynamicResource S_RoutingView_008}" Command="{Binding AddDirectCommand}"/>
+                                </Grid>
+                                <Button Margin="0,8,0,0" HorizontalAlignment="Stretch" Cursor="Hand"
+                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
+                                        Command="{Binding PickGeoForCommand}" CommandParameter="direct">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="g" CornerRadius="10" Background="#22B9A8FF" BorderBrush="{StaticResource Accent}" BorderThickness="1" Padding="0,9">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AccentText}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource S_RoutingView_015}" Foreground="{StaticResource AccentText}" FontSize="12.5" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="g" Property="Background" Value="#33B9A8FF"/></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <!-- PROXY -->
+                    <!-- PROXY — Bucket() from RoutingEditor.kt: the counts as two chips, the hint
+                         under the name, and inside the open bucket the chips, a line to type a rule
+                         into with its Добавить, and the geo-category button across the width. -->
                     <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
                         <StackPanel>
                             <Grid>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Style="{StaticResource GlyphButton}" Width="24" Height="24" FontSize="11" Content="&#xE70D;" Command="{Binding ToggleBucketCommand}" CommandParameter="proxy"/>
-                                    <TextBlock Text="PROXY" Foreground="{StaticResource Accent}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                    <Border CornerRadius="8" Background="#2E9D7BFF" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="PROXY" Foreground="{StaticResource AccentText}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Border CornerRadius="8" Background="#26B9A8FF" Padding="7,1">
                                         <TextBlock Text="{Binding ProxyCount}" Foreground="{StaticResource AccentText}" FontSize="11" FontWeight="SemiBold"/>
                                     </Border>
+                                    <Border CornerRadius="8" Background="#1EFFFFFF" Padding="7,1" Margin="6,0,0,0">
+                                        <TextBlock Text="{Binding ProxyIpCount}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
                                 </StackPanel>
-                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_010}" FontSize="12"
-                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
-                                        Command="{Binding OpenAddRuleCommand}" CommandParameter="proxy"/>
                             </Grid>
-                            <TextBlock Text="{DynamicResource S_RoutingView_011}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
-                            <ItemsControl ItemsSource="{Binding ProxyRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
-                                          Visibility="{Binding ProxyOpen, Converter={StaticResource BoolVis}}"/>
+                            <TextBlock Text="{DynamicResource S_RoutingView_010}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+
+                            <StackPanel Visibility="{Binding ProxyOpen, Converter={StaticResource BoolVis}}">
+                                <ItemsControl ItemsSource="{Binding ProxyRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"/>
+                                <Grid Margin="0,10,0,0" Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}" Text="{Binding ProxyInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Padding="14,7" Margin="8,0,0,0" FontSize="12.5"
+                                            Content="{DynamicResource S_RoutingView_008}" Command="{Binding AddProxyCommand}"/>
+                                </Grid>
+                                <Button Margin="0,8,0,0" HorizontalAlignment="Stretch" Cursor="Hand"
+                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
+                                        Command="{Binding PickGeoForCommand}" CommandParameter="proxy">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="g" CornerRadius="10" Background="#22B9A8FF" BorderBrush="{StaticResource Accent}" BorderThickness="1" Padding="0,9">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AccentText}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource S_RoutingView_015}" Foreground="{StaticResource AccentText}" FontSize="12.5" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="g" Property="Background" Value="#33B9A8FF"/></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <!-- BLOCK -->
+                    <!-- BLOCK — Bucket() from RoutingEditor.kt: the counts as two chips, the hint
+                         under the name, and inside the open bucket the chips, a line to type a rule
+                         into with its Добавить, and the geo-category button across the width. -->
                     <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
                         <StackPanel>
                             <Grid>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Style="{StaticResource GlyphButton}" Width="24" Height="24" FontSize="11" Content="&#xE70D;" Command="{Binding ToggleBucketCommand}" CommandParameter="block"/>
                                     <TextBlock Text="BLOCK" Foreground="{StaticResource Danger}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                    <Border CornerRadius="8" Background="#33FF6B8A" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Border CornerRadius="8" Background="#26FF6B8A" Padding="7,1">
                                         <TextBlock Text="{Binding BlockCount}" Foreground="{StaticResource Danger}" FontSize="11" FontWeight="SemiBold"/>
                                     </Border>
+                                    <Border CornerRadius="8" Background="#1EFFFFFF" Padding="7,1" Margin="6,0,0,0">
+                                        <TextBlock Text="{Binding BlockIpCount}" Foreground="{StaticResource TextSecondary}" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
                                 </StackPanel>
-                                <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" Content="{DynamicResource S_RoutingView_012}" FontSize="12"
-                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
-                                        Command="{Binding OpenAddRuleCommand}" CommandParameter="block"/>
                             </Grid>
-                            <TextBlock Text="{DynamicResource S_RoutingView_013}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
-                            <ItemsControl ItemsSource="{Binding BlockRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"
-                                          Visibility="{Binding BlockOpen, Converter={StaticResource BoolVis}}"/>
+                            <TextBlock Text="{DynamicResource S_RoutingView_011}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
+
+                            <StackPanel Visibility="{Binding BlockOpen, Converter={StaticResource BoolVis}}">
+                                <ItemsControl ItemsSource="{Binding BlockRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"/>
+                                <Grid Margin="0,10,0,0" Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}" Text="{Binding BlockInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Padding="14,7" Margin="8,0,0,0" FontSize="12.5"
+                                            Content="{DynamicResource S_RoutingView_008}" Command="{Binding AddBlockCommand}"/>
+                                </Grid>
+                                <Button Margin="0,8,0,0" HorizontalAlignment="Stretch" Cursor="Hand"
+                                        Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}"
+                                        Command="{Binding PickGeoForCommand}" CommandParameter="block">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="g" CornerRadius="10" Background="#22B9A8FF" BorderBrush="{StaticResource Accent}" BorderThickness="1" Padding="0,9">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AccentText}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource S_RoutingView_015}" Foreground="{StaticResource AccentText}" FontSize="12.5" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="g" Property="Background" Value="#33B9A8FF"/></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
+
 
                         <TextBlock Text="{DynamicResource S_Routing_SecAdv}" Foreground="{StaticResource TextMuted}"
                                    FontSize="10.5" FontWeight="SemiBold" Margin="4,8,0,6"/>
@@ -368,17 +509,56 @@
                                 BorderThickness="1" Margin="0,0,0,10">
                             <StackPanel Margin="14,12">
                                 <TextBlock Text="{DynamicResource S_Routing_DomainStrategy}" FontSize="13.5" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                                <RadioButton GroupName="ds" Content="{DynamicResource S_Routing_DsAsIs}"
-                                             IsChecked="{Binding IsDsAsIs, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="AsIs" Margin="0,0,0,2"/>
-                                <TextBlock Text="{DynamicResource S_Routing_DsAsIsHint}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="22,0,0,8"/>
-                                <RadioButton GroupName="ds" Content="{DynamicResource S_Routing_DsIfNo}"
-                                             IsChecked="{Binding IsDsIfNoMatch, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="IPIfNonMatch" Margin="0,0,0,2"/>
-                                <TextBlock Text="{DynamicResource S_Routing_DsIfNoHint}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="22,0,0,8"/>
-                                <RadioButton GroupName="ds" Content="{DynamicResource S_Routing_DsOnDemand}"
-                                             IsChecked="{Binding IsDsOnDemand, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="IPOnDemand" Margin="0,0,0,2"/>
-                                <TextBlock Text="{DynamicResource S_Routing_DsOnDemandHint}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="22,0,0,0"/>
+                                <RadioButton Style="{StaticResource MoonRadio}" GroupName="ds" Content="{DynamicResource S_Routing_DsAsIs}" Tag="{DynamicResource S_Routing_DsAsIsHint}"
+                                             IsChecked="{Binding IsDsAsIs, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="AsIs"/>
+                                <RadioButton Style="{StaticResource MoonRadio}" GroupName="ds" Content="{DynamicResource S_Routing_DsIfNo}" Tag="{DynamicResource S_Routing_DsIfNoHint}"
+                                             IsChecked="{Binding IsDsIfNoMatch, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="IPIfNonMatch"/>
+                                <RadioButton Style="{StaticResource MoonRadio}" GroupName="ds" Content="{DynamicResource S_Routing_DsOnDemand}" Tag="{DynamicResource S_Routing_DsOnDemandHint}"
+                                             IsChecked="{Binding IsDsOnDemand, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="IPOnDemand"/>
                             </StackPanel>
                         </Border>
+
+                        <TextBlock Text="{DynamicResource S_Routing_SecGeo}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" FontWeight="SemiBold" Margin="4,8,0,6"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10"
+>
+                            <StackPanel>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{DynamicResource S_RoutingView_003}" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right"
+                                            Command="{Binding RefreshGeoCommand}" IsEnabled="{Binding GeoRefreshing, Converter={StaticResource InvBool}}"/>
+                                </Grid>
+                                <!-- one block per distinct geoip/geosite pair: INCY and HAPP share a plate
+                                     while they point at the same release, and split when they do not -->
+                                <ItemsControl ItemsSource="{Binding GeoSources}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Owner}" FontSize="10.5" FontWeight="SemiBold" Margin="0,10,0,0"
+                                                           Foreground="{StaticResource AccentText}"
+                                                           Visibility="{Binding ShowOwner, Converter={StaticResource BoolVis}}"/>
+                                                <Grid Margin="0,10,0,0">
+                                                    <TextBlock Text="geoip.dat" FontSize="12.5" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding GeoipText}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,8"/>
+                                                <Grid>
+                                                    <TextBlock Text="geosite.dat" FontSize="12.5" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding GeositeText}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding GeoStatus}" Foreground="{StaticResource AccentText}" FontSize="11.5" Margin="0,8,0,0"
+                                           Visibility="{Binding GeoRefreshing, Converter={StaticResource BoolVis}}"/>
+                            </StackPanel>
+                        </Border>
+
+
                     </StackPanel>
 
                 </StackPanel>
