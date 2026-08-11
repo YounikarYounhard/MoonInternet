@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- The night behind the moon, same as the app's own background. A launcher will mask this
-         into a circle, a squircle or a rounded square depending on the theme — whatever it does,
-         the art no longer sits on a stranger's white plate. -->
-    <color name="ic_launcher_background">#0B0916</color>
-</resources>

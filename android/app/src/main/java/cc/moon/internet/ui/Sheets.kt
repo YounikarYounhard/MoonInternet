@@ -304,15 +304,38 @@ fun LogViewerDialog(
                     }
                 }
 
+                // Buttons that look like buttons. Bare accent text reads as a caption — the
+                // desktop puts two secondary buttons and a primary one under the log, so does this.
                 Row(
                     Modifier.fillMaxWidth().padding(top = 12.dp),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(onReload) { Text(stringResource(R.string.settingsscreen_086), color = Moon.TextSecondary) }
-                    TextButton(onCopy) { Text(stringResource(R.string.sheets_008), color = Moon.Accent) }
-                    TextButton(onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) }
+                    LogButton(stringResource(R.string.settingsscreen_086), onReload)
+                    Spacer(Modifier.width(8.dp))
+                    LogButton(stringResource(R.string.sheets_008), onCopy)
+                    Spacer(Modifier.width(8.dp))
+                    LogButton(stringResource(R.string.sheets_009), onDismiss, primary = true)
                 }
             }
         }
+    }
+}
+
+/** The desktop's SecondaryButton / PrimaryButton pair, for the log viewer's footer. */
+@Composable
+private fun LogButton(text: String, onClick: () -> Unit, primary: Boolean = false) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = if (primary) Moon.Accent else Moon.ChipBg,
+        border = if (primary) null else androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+    ) {
+        Text(
+            text,
+            Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+            color = if (primary) Color.White else Moon.TextPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }

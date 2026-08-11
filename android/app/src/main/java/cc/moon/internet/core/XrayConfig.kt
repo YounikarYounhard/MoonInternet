@@ -349,6 +349,20 @@ object XrayConfig {
         routing: RoutingProfile?, fallback: String, server: ServerProfile, dnsList: List<String>,
     ): JSONObject {
         val servers = JSONArray()
+        // The proxy's own hostname has to be resolved before the tunnel can exist. Left to the
+        // ordinary resolvers, that query is itself sent through the proxy — which needs the very
+        // hostname being looked up. xray gives up on the circle with
+        //   "lookup <host>: operation was canceled"
+        // and the server never connects. So it gets its own plain resolver, reached directly
+        // (see the matching direct rule in buildRouting), and only for that one name.
+        if (!isIpLiteral(server.address)) {
+            servers.put(
+                JSONObject()
+                    .put("address", bootstrapDns(routing))
+                    .put("domains", JSONArray().put("full:${server.address}"))
+                    .put("skipFallback", true)
+            )
+        }
         dnsList.filter { it.isNotBlank() }.forEach(servers::put)
         if (servers.length() == 0) {
             // The profile's resolver, written the way its type says to reach it — a DoH pick that
@@ -358,13 +372,16 @@ object XrayConfig {
         }
         servers.put("localhost")
         val dns = JSONObject().put("servers", servers)
-        // The proxy's own hostname must resolve through the system, or connecting needs DNS
-        // and DNS needs the connection.
-        if (!isIpLiteral(server.address)) {
-            dns.put("hosts", JSONObject())   // placeholder, real bypass is the routing rule below
-        }
         return dns
     }
+
+    /**
+     * The resolver used to look up the proxy's own hostname, before there is a tunnel. It has to
+     * be a plain address we can also send straight out, so a DoH/DoT profile setting is no good
+     * here — the domestic resolver if it is an IP, otherwise a public one.
+     */
+    private fun bootstrapDns(routing: RoutingProfile?): String =
+        routing?.domesticDns?.trim()?.takeIf { isIpLiteral(it) } ?: "8.8.8.8"
 
     private fun buildRouting(
         routing: RoutingProfile?, server: ServerProfile, geo: Boolean, blockUdp: Boolean = false,
@@ -381,6 +398,12 @@ object XrayConfig {
             if (isIpLiteral(server.address)) put("ip", JSONArray().put(server.address))
             else put("domain", JSONArray().put("full:${server.address}"))
         })
+        // 1b. and so does the resolver that answers for it, or the lookup goes through the tunnel
+        // we are still trying to build
+        if (!isIpLiteral(server.address)) {
+            rules.put(JSONObject().put("type", "field").put("outboundTag", "direct")
+                .put("ip", JSONArray().put(bootstrapDns(routing))))
+        }
         // 2. private ranges stay local
         rules.put(JSONObject().put("type", "field").put("outboundTag", "direct")
             .put("ip", JSONArray().apply { PRIVATE_CIDRS.forEach(::put) }))
