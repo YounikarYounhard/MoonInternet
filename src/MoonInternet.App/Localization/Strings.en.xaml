@@ -485,4 +485,15 @@
     <s:String x:Key="S_Routing_SubPicked">{0} selected</s:String>
     <s:String x:Key="S_Routing_FromSubs">FROM SUBSCRIPTIONS</s:String>
     <s:String x:Key="S_Routing_Mine2">MY PROFILES</s:String>
+    <s:String x:Key="S_Routing_Title">Routing</s:String>
+    <s:String x:Key="S_Routing_Subtitle">Profiles: what goes through the VPN and what goes around it</s:String>
+    <s:String x:Key="S_Routing_SecSubs">FROM SUBSCRIPTIONS</s:String>
+    <s:String x:Key="S_Routing_SecMine">MY PROFILES</s:String>
+    <s:String x:Key="S_Routing_SubHint">These profiles arrive with the subscription and are refreshed with it. They cannot be edited — make a copy and the copy is yours.</s:String>
+    <s:String x:Key="S_Routing_Add">New profile</s:String>
+    <s:String x:Key="S_Routing_DescAll">All traffic through the VPN</s:String>
+    <s:String x:Key="S_Routing_DescLan">Local addresses go direct</s:String>
+    <s:String x:Key="S_Routing_DescDirect">Everything direct, around the VPN</s:String>
+    <s:String x:Key="S_Routing_DescRules">{0} sites · {1} IPs</s:String>
+    <s:String x:Key="S_Routing_SubActive">{0} selected</s:String>
 </ResourceDictionary>

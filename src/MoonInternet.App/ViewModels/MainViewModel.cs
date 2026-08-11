@@ -222,56 +222,91 @@ public partial class MainViewModel : ObservableObject
     public bool HasMultipleRoutings => AvailableRoutings.Count > 1;
     public bool HasRoutings => AvailableRoutings.Count > 0;
 
-    /// <summary>One row on the routing page for a subscription you can step into.</summary>
-    public sealed record RoutingSubRow(string Url, string Name, string Selected);
+    /// <summary>
+    /// One card on the routing page, built here so the XAML draws exactly what RoutingScreen.kt
+    /// draws: a glyph tile, a name with an optional source badge, a line saying what the profile
+    /// does, and whatever sits on the right.
+    /// </summary>
+    /// <param name="Glyph">Segoe MDL2 codepoint for the tile.</param>
+    /// <param name="SubUrl">Set on a subscription row: clicking it steps into that subscription.</param>
+    public sealed record RoutingRow(
+        RoutingProfile? Profile, string Glyph, string Title, string Subtitle,
+        bool Selected, string? Badge, bool HasMenu, bool HasChevron, string? SubUrl)
+    {
+        public bool HasBadge => !string.IsNullOrEmpty(Badge);
+    }
 
     /// <summary>
-    /// The routing page has two levels, the same as the phone's: the shipped profiles and your own
-    /// on top, and a row per subscription that opens that subscription's profiles. INCY and HAPP
-    /// belong inside the subscription that brought them, not in a flat list beside everything else.
-    /// Null means we are on the top level.
+    /// Two levels, exactly as on the phone. Null means the top one.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(InRoutingSub), nameof(NotInRoutingSub),
-                              nameof(RoutingSubProfiles), nameof(RoutingSubTitle))]
+                              nameof(RoutingSubRows), nameof(RoutingSubTitle),
+                              nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
+                              nameof(HasRoutingSubs), nameof(HasRoutingMine))]
     private string? openRoutingSub;
 
     public bool InRoutingSub => !string.IsNullOrEmpty(OpenRoutingSub);
     public bool NotInRoutingSub => !InRoutingSub;
+    public string RoutingSubTitle => Subscriptions.FirstOrDefault(s => s.Url == OpenRoutingSub)?.Name ?? "";
 
-    public string RoutingSubTitle =>
-        Subscriptions.FirstOrDefault(s => s.Url == OpenRoutingSub)?.Name ?? "";
+    /// <summary>The line under the name: what the profile does, worked out rather than stored.</summary>
+    private static string Describe(RoutingProfile p)
+    {
+        if (p.Id == "builtin-global") return Localization.Loc.T("S_Routing_DescAll");
+        if (p.Id == "builtin-lan") return Localization.Loc.T("S_Routing_DescLan");
+        int sites = p.DirectSites.Count + p.ProxySites.Count + p.BlockSites.Count;
+        int ips = p.DirectIp.Count + p.ProxyIp.Count + p.BlockIp.Count;
+        if (sites + ips == 0)
+            return Localization.Loc.T(p.GlobalProxy ? "S_Routing_DescAll" : "S_Routing_DescDirect");
+        return string.Format(Localization.Loc.T("S_Routing_DescRules"), sites, ips);
+    }
 
-    public IReadOnlyList<RoutingProfile> RoutingSubProfiles =>
-        AvailableRoutings.Where(r => r.SubUrl == OpenRoutingSub).ToList();
+    private RoutingRow Row(RoutingProfile p, string glyph, bool menu, string? badge = null) =>
+        new(p, glyph, p.Name, Describe(p), p.Id == SelectedRouting?.Id, badge, menu, false, null);
 
-    public IReadOnlyList<RoutingProfile> RoutingBuiltins =>
-        AvailableRoutings.Where(r => r.Builtin).ToList();
+    public IReadOnlyList<RoutingRow> RoutingBuiltinRows =>
+        AvailableRoutings.Where(r => r.Builtin)
+            .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false)).ToList();
 
-    /// <summary>Your own profiles, plus anything imported that carries no subscription of its own.</summary>
-    public IReadOnlyList<RoutingProfile> RoutingMine =>
-        AvailableRoutings.Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl)).ToList();
+    public IReadOnlyList<RoutingRow> RoutingMineRows =>
+        AvailableRoutings.Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl))
+            .Select(r => Row(r, "", menu: true)).ToList();
 
-    /// <summary>One row per subscription that actually brought a routing profile with it.</summary>
-    public IReadOnlyList<RoutingSubRow> RoutingSubs =>
+    /// <summary>One row per subscription that brought routing with it — click steps inside.</summary>
+    public IReadOnlyList<RoutingRow> RoutingSubscriptionRows =>
         Subscriptions
-            .Where(sub => AvailableRoutings.Any(r => r.SubUrl == sub.Url))
-            .Select(sub =>
+            .Select(sub => (sub, list: AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList()))
+            .Where(x => x.list.Count > 0)
+            .Select(x =>
             {
-                var mine = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
-                var picked = mine.FirstOrDefault(r => r.Id == SelectedRouting?.Id);
-                return new RoutingSubRow(
-                    sub.Url, sub.Name,
-                    picked is null ? string.Format(Localization.Loc.T("S_Routing_SubCount"), mine.Count)
-                                   : string.Format(Localization.Loc.T("S_Routing_SubPicked"), picked.SourceText));
+                var active = x.list.FirstOrDefault(r => r.Id == SelectedRouting?.Id);
+                string sub = active is not null
+                    ? string.Format(Localization.Loc.T("S_Routing_SubActive"), active.SourceText)
+                    : string.Join(" · ", x.list.Select(r => r.SourceText));
+                return new RoutingRow(null, "", x.sub.Name, sub, active is not null, null, false, true, x.sub.Url);
             })
             .ToList();
 
-    public bool HasRoutingSubs => RoutingSubs.Count > 0;
-    public bool HasRoutingMine => RoutingMine.Count > 0;
+    /// <summary>Inside a subscription: its own profiles, which is where INCY and HAPP are chosen.</summary>
+    public IReadOnlyList<RoutingRow> RoutingSubRows =>
+        AvailableRoutings.Where(r => r.SubUrl == OpenRoutingSub)
+            .Select(r => Row(r, "", menu: true, badge: r.SourceText)).ToList();
+
+    public bool HasRoutingSubs => RoutingSubscriptionRows.Count > 0;
+    public bool HasRoutingMine => RoutingMineRows.Count > 0;
 
     [RelayCommand] private void OpenRoutingSubscription(string? url) => OpenRoutingSub = url;
     [RelayCommand] private void CloseRoutingSubscription() => OpenRoutingSub = null;
+
+    /// <summary>Clicking a card picks that profile; a subscription card steps into it instead.</summary>
+    [RelayCommand]
+    private void ActivateRoutingRow(RoutingRow? row)
+    {
+        if (row is null) return;
+        if (row.SubUrl is not null) { OpenRoutingSub = row.SubUrl; return; }
+        if (row.Profile is not null) PickRouting(row.Profile);
+    }
 
     public bool CanEditRouting => SelectedRouting is { Builtin: false, SubUrl: "" or null, Source: RoutingSource.Custom };
     /// <summary>XAML has no "not" on a visibility binding, and one property is cheaper than a converter.</summary>
@@ -2281,9 +2316,9 @@ public partial class MainViewModel : ObservableObject
                           ?? AvailableRoutings.FirstOrDefault();
         OnPropertyChanged(nameof(HasMultipleRoutings));
         OnPropertyChanged(nameof(HasRoutings));
-        foreach (var n in new[] { nameof(RoutingBuiltins), nameof(RoutingMine), nameof(RoutingSubs),
-                                  nameof(RoutingSubProfiles), nameof(RoutingSubTitle),
-                                  nameof(HasRoutingSubs), nameof(HasRoutingMine) })
+        foreach (var n in new[] { nameof(RoutingBuiltinRows), nameof(RoutingMineRows),
+                                  nameof(RoutingSubscriptionRows), nameof(RoutingSubRows),
+                                  nameof(RoutingSubTitle), nameof(HasRoutingSubs), nameof(HasRoutingMine) })
             OnPropertyChanged(n);
     }
 

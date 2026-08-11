@@ -456,4 +456,15 @@
     <s:String x:Key="S_Routing_SubPicked">Выбран {0}</s:String>
     <s:String x:Key="S_Routing_FromSubs">ИЗ ПОДПИСОК</s:String>
     <s:String x:Key="S_Routing_Mine2">МОИ ПРОФИЛИ</s:String>
+    <s:String x:Key="S_Routing_Title">Маршрутизация</s:String>
+    <s:String x:Key="S_Routing_Subtitle">Профили: какой трафик идёт через VPN, а какой мимо</s:String>
+    <s:String x:Key="S_Routing_SecSubs">ИЗ ПОДПИСОК</s:String>
+    <s:String x:Key="S_Routing_SecMine">МОИ ПРОФИЛИ</s:String>
+    <s:String x:Key="S_Routing_SubHint">Профили приходят вместе с подпиской и обновляются вместе с ней. Менять их нельзя — сделайте копию, она станет вашей.</s:String>
+    <s:String x:Key="S_Routing_Add">Новый профиль</s:String>
+    <s:String x:Key="S_Routing_DescAll">Весь трафик через VPN</s:String>
+    <s:String x:Key="S_Routing_DescLan">Локальные адреса напрямую</s:String>
+    <s:String x:Key="S_Routing_DescDirect">Всё напрямую, мимо VPN</s:String>
+    <s:String x:Key="S_Routing_DescRules">{0} сайтов · {1} IP</s:String>
+    <s:String x:Key="S_Routing_SubActive">Выбран {0}</s:String>
 </ResourceDictionary>
