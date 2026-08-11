@@ -324,9 +324,9 @@ class Store(private val ctx: Context) {
         if (!st.autoConnect) return all.first()
 
         val favs = all.filter { isFavorite(it) }
-        fun reachable(s: ServerProfile) = (pings[s.raw] ?: -2) >= 0
+        fun reachable(s: ServerProfile) = (pings[s.pingKey] ?: -2) >= 0
         fun lowest(list: List<ServerProfile>) =
-            list.filter(::reachable).minByOrNull { pings[it.raw] ?: Int.MAX_VALUE }
+            list.filter(::reachable).minByOrNull { pings[it.pingKey] ?: Int.MAX_VALUE }
 
         val preferred = when (st.autoConnectTarget) {
             "last" -> selectedServer() ?: all.last()
@@ -358,7 +358,7 @@ class Store(private val ctx: Context) {
         @Suppress("NAME_SHADOWING")
         val list = if (proto.isEmpty()) list else list.filter { it.protocolLabel == proto }
         return when (_state.value.sort) {
-            "ping" -> list.sortedWith(compareBy(pinned, fav, { pings[it.raw]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
+            "ping" -> list.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
             "name" -> list.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))
             "favorite" -> list.filter { isFavorite(it) }.ifEmpty { list }.sortedWith(compareBy(pinned))
             else -> list.sortedBy(fav)

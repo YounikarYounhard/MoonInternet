@@ -74,6 +74,14 @@ data class ServerProfile(
         }
 
     /**
+     * Key for the ping map. [raw] is the share link and is normally there, but a server parsed
+     * from a format that carries no link has none — and pinging keyed on raw quietly dropped
+     * those from the list of things to measure, so they sat in the list forever with no number
+     * and no attempt. Address and port always exist.
+     */
+    val pingKey: String get() = raw?.takeIf { it.isNotBlank() } ?: "$address:$port"
+
+    /**
      * What the connection actually rides on, for the chip beside the protocol.
      *
      * [network] only means anything for the protocols that can choose — VLESS, VMess, Trojan.

@@ -436,7 +436,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      *    read-modify-write on the map lost most results when jobs finished together.
      */
     private suspend fun pingServers(servers: List<ServerProfile>) {
-        val targets = servers.filter { !it.raw.isNullOrBlank() }
+        val targets = servers
         if (targets.isEmpty()) return
         // The flag existed and nothing ever raised it, so the ping button never span and stayed
         // pressable — a second tap on top of a running pass fought the first one for the same
@@ -447,7 +447,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _status.value = s(R.string.vm_pinging, targets.size)
 
         // rows show a spinner instead of a stale number while they are being measured
-        _pinging.value = targets.mapNotNull { it.raw }.toSet()
+        _pinging.value = targets.map { it.pingKey }.toSet()
 
         // Стабильность starts a core per server, so one at a time — six at once would be six
         // cores and the phone would feel it.
@@ -464,7 +464,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         }
                         gate.withPermit {
                             val ms = measurePing(s)
-                            s.raw?.let { raw ->
+                            s.pingKey.let { raw ->
                                 _pings.update { it + (raw to ms) }
                                 _pinging.update { it - raw }
                                 // The other half of the link: checkConnection already writes its
@@ -571,8 +571,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         // The same number goes into the row, so the pill by the button and the list cannot show
         // two different figures for one server.
-        if (ms != null && ms >= 0) store.selectedServer()?.raw?.let { raw ->
-            _pings.update { it + (raw to ms.toInt()) }
+        if (ms != null && ms >= 0) store.selectedServer()?.let { sel ->
+            _pings.update { it + (sel.pingKey to ms.toInt()) }
         }
     }
 
@@ -591,11 +591,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // -2, "unknown", and slipped through as if it were fine.
         // A server nobody measured is not a dead one, so "-1" already implies a measurement; an
         // unsupported protocol needs none, we would refuse to dial it anyway.
-        val dead = !XrayConfig.supports(s.protocol) || _pings.value[s.raw] == -1
+        val dead = !XrayConfig.supports(s.protocol) || _pings.value[s.pingKey] == -1
         if (store.state.value.autoFailover && dead) {
             val alt = store.allServers
-                .filter { it.raw != s.raw && XrayConfig.supports(it.protocol) && (_pings.value[it.raw] ?: -2) >= 0 }
-                .minByOrNull { _pings.value[it.raw] ?: Int.MAX_VALUE }
+                .filter { it.raw != s.raw && XrayConfig.supports(it.protocol) && (_pings.value[it.pingKey] ?: -2) >= 0 }
+                .minByOrNull { _pings.value[it.pingKey] ?: Int.MAX_VALUE }
             if (alt != null) {
                 store.selectServer(alt)
                 _status.value = s(R.string.vm_failover, alt.label)
