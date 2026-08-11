@@ -186,7 +186,7 @@
     <s:String x:Key="S_SettingsView_115">Warn this many days ahead</s:String>
 
     <!-- Settings: ping -->
-    <s:String x:Key="S_SettingsView_116">METHOD</s:String>
+    <s:String x:Key="S_SettingsView_116">PING TYPE</s:String>
     <s:String x:Key="S_SettingsView_117">Stability</s:String>
     <s:String x:Key="S_SettingsView_118">Moon Ping, TCP and HTTP answer the question &quot;is something listening on the port&quot;. That is not the same as &quot;the protocol works&quot;: a CDN, your provider's middlebox or a stale key will all complete a handshake, and a dead server will show a cheerful 30 ms.</s:String>
     <s:String x:Key="S_SettingsView_119">Stability is the only method that opens a real connection and makes a request through it. Slower than the rest, and it does not lie: if nothing comes back, no traffic will get through that server either.</s:String>
@@ -475,4 +475,9 @@
     <s:String x:Key="S_Routing_NewName">New profile</s:String>
     <s:String x:Key="S_Routing_Exported">Profile link copied</s:String>
     <s:String x:Key="S_Routing_ReadOnly">This profile comes from a subscription and the next fetch overwrites it, so it cannot be changed. Right-click and pick Duplicate — the copy is yours.</s:String>
+    <s:String x:Key="S_Ping_Moon">A TCP handshake sent around the tunnel — latency to the server itself. It shows the port answers, not that the protocol works.</s:String>
+    <s:String x:Key="S_Ping_Tcp">A plain TCP handshake on the current route. With someone else's VPN up you measure the path through it, not to the server.</s:String>
+    <s:String x:Key="S_Ping_HttpGet">An HTTP request to the server, timed to the first byte. Slower than a handshake, but it shows the server actually replies.</s:String>
+    <s:String x:Key="S_Ping_HttpHead">The same as HTTP GET but with HEAD: no response body, so a little quicker.</s:String>
+    <s:String x:Key="S_Ping_Stability">Brings up a real connection and makes a request through it. The slowest of them, and the only one that does not lie.</s:String>
 </ResourceDictionary>

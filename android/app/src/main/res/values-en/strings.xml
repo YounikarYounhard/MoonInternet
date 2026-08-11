@@ -435,4 +435,10 @@
     <string name="routing_geo_empty">"Geo files not downloaded yet — refresh them below"</string>
     <string name="routing_desc_lan">"Local addresses go direct"</string>
     <string name="vm_failover">"That server did not answer — switching to %1$s"</string>
+    <string name="ping_kind">"PING TYPE"</string>
+    <string name="ping_desc_moon">"A TCP handshake sent around the tunnel — latency to the server itself. It shows the port answers, not that the protocol works."</string>
+    <string name="ping_desc_tcp">"A plain TCP handshake on the current route. With someone else's VPN up you measure the path through it, not to the server."</string>
+    <string name="ping_desc_httpget">"An HTTP request to the server, timed to the first byte. Slower than a handshake, but it shows the server actually replies."</string>
+    <string name="ping_desc_httphead">"The same as HTTP GET but with HEAD: no response body, so a little quicker."</string>
+    <string name="ping_desc_stability">"Brings up a real connection and makes a request through it. The slowest of them, and the only one that does not lie."</string>
 </resources>

@@ -574,7 +574,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,7,0"
-                               Visibility="{Binding IsFavorite, Converter={StaticResource BoolVis}}" ToolTip="В избранном"/>
+                               Visibility="{Binding IsFavorite, Converter={StaticResource BoolVis}}"/>
 
                     <!-- While this row is being measured a spinner stands in for the reading: the
                          previous number is stale, and leaving it up looks like a fresh result. -->
@@ -626,7 +626,7 @@
                             <TextBlock Text="{Binding PingText}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
-                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="16" Content="&#xE712;" ToolTip="Действия"
+                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="16" Content="&#xE712;"
                             Command="{Binding DataContext.OpenServerSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                 </StackPanel>
             </Grid>

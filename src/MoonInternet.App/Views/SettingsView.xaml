@@ -79,7 +79,7 @@
                 Visibility="{Binding IsSettingsSubPage, Converter={StaticResource BoolVis}}"
                 shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <StackPanel Orientation="Horizontal">
-                <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}" ToolTip="{DynamicResource S_SettingsView_001}"/>
+                <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding SettingsBackCommand}"/>
                 <TextBlock Text="{Binding SettingsPageTitle}" FontSize="22" FontWeight="Bold" Margin="6,0,0,0"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
@@ -94,7 +94,7 @@
                 <Grid Margin="0,4,0,2">
                     <TextBlock Text="{DynamicResource S_SettingsView_002}" FontSize="26" FontWeight="Bold" Margin="2,0,0,0"/>
                     <Button HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Hand"
-                            Command="{Binding ToggleLanguageCommand}" ToolTip="Русский / English"
+                            Command="{Binding ToggleLanguageCommand}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
@@ -114,17 +114,17 @@
                 </Grid>
                 <TextBlock Text="{Binding AppVersion, StringFormat=Moon Internet · {0}}" Foreground="{StaticResource TextSecondary}" FontSize="12.5" Margin="2,0,0,18"/>
 
-                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="{DynamicResource S_SettingsView_003}" ToolTip="{DynamicResource S_SettingsView_004}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="{DynamicResource S_SettingsView_005}" ToolTip="{DynamicResource S_SettingsView_006}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="{DynamicResource S_SettingsView_007}" ToolTip="{DynamicResource S_SettingsView_008}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="{DynamicResource S_SettingsView_009}" ToolTip="{DynamicResource S_SettingsView_010}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="{DynamicResource S_SettingsView_011}" ToolTip="{DynamicResource S_SettingsView_012}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="{DynamicResource S_SettingsView_013}" ToolTip="{DynamicResource S_SettingsView_014}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEA8F;" Content="{DynamicResource S_Page_Notify}" ToolTip="{DynamicResource S_Notify_Hub_Sub}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="notify"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="{DynamicResource S_SettingsView_015}" ToolTip="{DynamicResource S_SettingsView_016}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="{DynamicResource S_SettingsView_003}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="{DynamicResource S_SettingsView_005}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="{DynamicResource S_SettingsView_007}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="{DynamicResource S_SettingsView_009}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="{DynamicResource S_SettingsView_011}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="{DynamicResource S_SettingsView_013}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEA8F;" Content="{DynamicResource S_Page_Notify}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="notify"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="{DynamicResource S_SettingsView_015}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
                 <!-- Политики конфиденциальности здесь нет: она открывается из «О приложении»,
                      где ей и место, и в хабе не занимает строку. -->
-                <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="{DynamicResource S_SettingsView_017}" ToolTip="{DynamicResource S_SettingsView_018}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="{DynamicResource S_SettingsView_017}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
             </StackPanel>
         </ScrollViewer>
 
@@ -239,14 +239,14 @@
                                 <TextBlock Text="{DynamicResource S_SettingsView_037}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding ProxyUser}" FontFamily="Consolas" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyUserCommand}" ToolTip="{DynamicResource S_SettingsView_038}"/>
+                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyUserCommand}"/>
                                 </StackPanel>
                             </Grid>
                             <Grid Margin="12,0,12,12">
                                 <TextBlock Text="{DynamicResource S_SettingsView_039}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding ProxyPassMasked}" FontFamily="Consolas" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyPassCommand}" ToolTip="{DynamicResource S_SettingsView_040}"/>
+                                    <Button Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyProxyPassCommand}"/>
                                 </StackPanel>
                             </Grid>
                             <Button Command="{Binding ResetProxyCredsCommand}" Cursor="Hand" HorizontalContentAlignment="Left" Margin="6,0,0,10">
@@ -455,8 +455,8 @@
                                                 <TextBlock Text="&#xE7C4;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 <Image Source="{Binding Icon}" Stretch="Uniform"/>
                                             </Grid>
-                                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}"/>
-                                            <Button Grid.Column="2" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource GlyphButton}" ToolTip="{DynamicResource S_SettingsView_076}"
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <Button Grid.Column="2" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource GlyphButton}"
                                                     Command="{Binding DataContext.RemoveAppRouteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                         </Grid>
                                     </Border>
@@ -685,8 +685,10 @@
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP GET" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httpget" IsChecked="{Binding IsPingHttpGet, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
                 </WrapPanel>
+                <!-- One line about the method you picked. The old paragraph described all four at
+                     once, so three quarters of it was irrelevant whatever you had selected. -->
                 <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="4,0,0,16" TextWrapping="Wrap"
-                           Text="{DynamicResource S_SettingsView_118}"/>
+                           Text="{Binding PingMethodHint}"/>
 
                 <!-- Стабильность стоит отдельно: она поднимает настоящее соединение, работает
                      заметно дольше остальных и пока в бете. -->
@@ -771,7 +773,7 @@
                             <TextBlock Text="{DynamicResource S_SettingsView_146}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE738;" Command="{Binding PingTimeoutDecCommand}" ToolTip="{DynamicResource S_SettingsView_147}"/>
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE738;" Command="{Binding PingTimeoutDecCommand}"/>
                             <!-- Fixed width, not MinWidth: the pill grew with the number, so the
                                  minus and plus buttons shifted sideways as the value changed and
                                  nothing stayed put. -->
@@ -779,7 +781,7 @@
                                 <TextBlock Text="{Binding PingTimeoutText}" Foreground="{StaticResource AccentText}" FontWeight="SemiBold"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
                             </Border>
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE710;" Command="{Binding PingTimeoutIncCommand}" ToolTip="{DynamicResource S_SettingsView_148}"/>
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE710;" Command="{Binding PingTimeoutIncCommand}"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -1000,7 +1002,7 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="HWID" FontSize="13.5" VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1" Text="{Binding HwidDisplay}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="10,0,6,0" TextTrimming="CharacterEllipsis"/>
-                            <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyHwidCommand}" ToolTip="{DynamicResource S_SettingsView_194}"/>
+                            <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE8C8;" Command="{Binding CopyHwidCommand}"/>
                         </Grid>
                     </StackPanel>
                 </Border>

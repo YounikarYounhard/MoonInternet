@@ -438,4 +438,10 @@
     <string name="routing_geo_empty">"Гео-файлы не загружены — обновите их ниже"</string>
     <string name="routing_desc_lan">"Локальные адреса напрямую"</string>
     <string name="vm_failover">"Сервер не отвечал — переключаюсь на %1$s"</string>
+    <string name="ping_kind">"ВИД ПИНГА"</string>
+    <string name="ping_desc_moon">"Рукопожатие TCP мимо туннеля — задержка до самого сервера. Показывает, что порт отвечает, но не что протокол работает."</string>
+    <string name="ping_desc_tcp">"Обычное рукопожатие TCP по текущему маршруту. Если поднят чужой VPN, померите путь через него, а не до сервера."</string>
+    <string name="ping_desc_httpget">"HTTP-запрос к серверу, время до первого байта. Медленнее рукопожатия, зато видно, что он вообще отвечает."</string>
+    <string name="ping_desc_httphead">"То же, что HTTP GET, но запросом HEAD: без тела ответа, поэтому немного быстрее."</string>
+    <string name="ping_desc_stability">"Поднимает настоящее соединение и делает через него запрос. Медленнее всех, зато не врёт."</string>
 </resources>

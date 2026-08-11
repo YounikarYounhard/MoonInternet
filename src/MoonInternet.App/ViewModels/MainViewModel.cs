@@ -1399,13 +1399,25 @@ public partial class MainViewModel : ObservableObject
 
     // ===== Ping settings =====
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsPingMoon), nameof(IsPingTcp), nameof(IsPingHttpGet), nameof(IsPingHttpHead))]
+    [NotifyPropertyChangedFor(nameof(IsPingMoon), nameof(IsPingTcp), nameof(IsPingHttpGet), nameof(IsPingHttpHead),
+                              nameof(IsPingStability), nameof(PingMethodHint))]
     private string pingMethod = "moon";
     public bool IsPingMoon => PingMethod == "moon";
     public bool IsPingTcp => PingMethod == "tcp";
     public bool IsPingHttpGet => PingMethod == "httpget";
     public bool IsPingHttpHead => PingMethod == "httphead";
     public bool IsPingStability => PingMethod == "stability";
+
+    /// <summary>What the picked method actually measures. One line, replacing the paragraph that
+    /// described all four at once and so was mostly about methods you had not chosen.</summary>
+    public string PingMethodHint => Localization.Loc.T(PingMethod switch
+    {
+        "tcp" => "S_Ping_Tcp",
+        "httpget" => "S_Ping_HttpGet",
+        "httphead" => "S_Ping_HttpHead",
+        "stability" => "S_Ping_Stability",
+        _ => "S_Ping_Moon",
+    });
 
     /// <summary>Title for the pinned settings header — one header for every sub-page.</summary>
     // Через Loc.T, а не литералами: заголовок висит в закреплённой шапке и обязан
@@ -1461,7 +1473,7 @@ public partial class MainViewModel : ObservableObject
                                   nameof(SelectedServerLabel), nameof(RuleBucketTitle), nameof(VpnDnsLabel),
                                   nameof(UpdateButtonHint), nameof(SubUpdateHint), nameof(FilterChips),
                                   nameof(CheckPingTrayText), nameof(GeoipInfo), nameof(GeositeInfo), nameof(TotalServersText),
-                                  nameof(GeoSources), nameof(LogsSizeInfo) })
+                                  nameof(GeoSources), nameof(LogsSizeInfo), nameof(PingMethodHint) })
             OnPropertyChanged(p);
         RefreshLogsInfo();
     }

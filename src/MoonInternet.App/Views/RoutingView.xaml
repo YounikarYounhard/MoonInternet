@@ -87,7 +87,7 @@
 
             <StackPanel Grid.Row="0">
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding BackToRoutingSettingsCommand}" ToolTip="{DynamicResource S_RoutingView_001}"/>
+                    <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding BackToRoutingSettingsCommand}"/>
                     <TextBlock Text="{DynamicResource S_RoutingView_002}" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
 
@@ -99,7 +99,7 @@
                                 <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
                                 <TextBlock Text="{DynamicResource S_RoutingView_003}" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right" ToolTip="{DynamicResource S_RoutingView_004}"
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72C;" HorizontalAlignment="Right"
                                     Command="{Binding RefreshGeoCommand}" IsEnabled="{Binding GeoRefreshing, Converter={StaticResource InvBool}}"/>
                         </Grid>
                         <!-- one block per distinct geoip/geosite pair: INCY and HAPP share a plate
@@ -287,7 +287,7 @@
                         <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseGeoBrowserCommand}"/>
                     </Grid>
                     <TextBox DockPanel.Dock="Top" Style="{StaticResource DarkTextBox}" Margin="0,12,0,10"
-                             Text="{Binding GeoQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="{DynamicResource S_RoutingView_019}"/>
+                             Text="{Binding GeoQuery, UpdateSourceTrigger=PropertyChanged}"/>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding GeoTags}">
                             <ItemsControl.ItemTemplate>

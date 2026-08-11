@@ -27,7 +27,6 @@
                 <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Width="36" Height="36">
                     <!-- Framed like the rest of our small buttons rather than a bare glyph. -->
                     <Button Cursor="Hand" Command="{Binding OpenUpdateDialogCommand}"
-                            ToolTip="{Binding UpdateButtonHint}"
                             >
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
@@ -125,7 +124,7 @@
                             Visibility="{Binding HasSelectedServer, Converter={StaticResource BoolVis}}">
                     <Image Source="{Binding SelectedServerFlag}" Width="20" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,7,0"/>
                     <TextBlock Text="{Binding SelectedServerLabel}" Foreground="{StaticResource AccentText}" FontSize="14.5" FontWeight="Bold"
-                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330" ToolTip="{Binding SelectedServerLabel}"/>
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
                 </StackPanel>
 
                 <!-- check connection + ping: fades + slides in when connected, out when disconnected -->
@@ -279,7 +278,7 @@
                                                 </Border>
                                                 <Grid Width="30" Height="28">
                                                     <!-- hidden while the spinner runs, or the two draw on top of each other -->
-                                                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;" ToolTip="{DynamicResource S_HomeView_009}"
+                                                    <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xEC4A;"
                                                         Visibility="{Binding NotPinging, Converter={StaticResource BoolVis}}"
                                                         Command="{Binding DataContext.PingSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                                     <Ellipse Width="13" Height="13" StrokeThickness="2" Stroke="{StaticResource AccentText}" StrokeDashArray="3 2"
@@ -293,9 +292,9 @@
                                                         </Ellipse.Triggers>
                                                     </Ellipse>
                                                 </Grid>
-                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;" ToolTip="{DynamicResource S_HomeView_010}"
+                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;"
                                                         Command="{Binding DataContext.RefreshSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
-                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;" ToolTip="{DynamicResource S_HomeView_011}"
+                                                <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;"
                                                         Command="{Binding DataContext.OpenSubSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                             </StackPanel>
                                         </Grid>
@@ -352,9 +351,9 @@
                                  scan here: that needs a camera, so it is the phone's button. -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,14,0,0">
                                 <Button Style="{StaticResource RoundAction}" Command="{Binding OpenAddDialogCommand}"
-                                        Content="&#xE710;" ToolTip="{DynamicResource S_HomeView_014}" Margin="0,0,10,0"/>
+                                        Content="&#xE710;" Margin="0,0,10,0"/>
                                 <Button Style="{StaticResource RoundAction}" Command="{Binding PasteImportCommand}"
-                                        Content="&#xE77F;" ToolTip="{DynamicResource S_HomeView_015}"/>
+                                        Content="&#xE77F;"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>

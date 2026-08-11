@@ -534,19 +534,29 @@ private fun SubsPage(
 }
 
 // ------------------------------------------------------------------- ПИНГ
+/** The one description that matches the picked method. Plain function, no composition needed. */
+@androidx.annotation.StringRes
+private fun pingHint(method: String) = when (method) {
+    "tcp" -> R.string.ping_desc_tcp
+    "httpget" -> R.string.ping_desc_httpget
+    "httphead" -> R.string.ping_desc_httphead
+    "stability" -> R.string.ping_desc_stability
+    else -> R.string.ping_desc_moon
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PingPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit) {
     Column {
-        SectionLabel(stringResource(R.string.settingsscreen_087), top = 0)
+        SectionLabel(stringResource(R.string.ping_kind), top = 0)
         ChipFlow(
             listOf("moon" to "Moon Ping", "tcp" to "TCP", "httpget" to "HTTP GET",
                    "httphead" to "HTTP HEAD"),
             state.pingMethod,
         ) { v -> onSet { copy(pingMethod = v) } }
-        Text(stringResource(R.string.settingsscreen_089) +
-             stringResource(R.string.settingsscreen_090) +
-             stringResource(R.string.settingsscreen_091),
+        // One line about the method you actually picked, instead of a paragraph covering all of
+        // them at once — that paragraph was three quarters irrelevant whatever you had selected.
+        Text(stringResource(pingHint(state.pingMethod)),
              color = Moon.TextSecondary, fontSize = 11.5.sp, lineHeight = 16.sp,
              modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 16.dp))
 
