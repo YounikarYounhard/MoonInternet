@@ -246,7 +246,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(InRoutingSub), nameof(NotInRoutingSub),
                               nameof(RoutingSubRows), nameof(RoutingSubTitle),
-                              nameof(RoutingHeader), nameof(ShowRoutingAdd),
+                              nameof(RoutingHeader), nameof(ShowRoutingAdd), nameof(CanEditRouting), nameof(CannotEditRouting),
                               nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
                               nameof(HasRoutingSubs), nameof(HasRoutingMine))]
     private string? openRoutingSub;
@@ -487,7 +487,13 @@ public partial class MainViewModel : ObservableObject
         if (parts[0] == "remote") EditRemoteDnsType = parts[1]; else EditDomesticDnsType = parts[1];
     }
 
-    public bool CanEditRouting => SelectedRouting is { Builtin: false, SubUrl: "" or null, Source: RoutingSource.Custom };
+    /// <summary>
+    /// Whether the rules on screen can be changed. It has to look at the profile the editor is
+    /// open on, not the one the tunnel is using: with a subscription's profile selected, the
+    /// editor for your own copy hid its input line and its geo button and left three headers.
+    /// </summary>
+    public bool CanEditRouting => (EditingRouting ?? SelectedRouting)
+        is { Builtin: false, SubUrl: "" or null, Source: RoutingSource.Custom };
     /// <summary>XAML has no "not" on a visibility binding, and one property is cheaper than a converter.</summary>
     public bool CannotEditRouting => !CanEditRouting;
 
@@ -619,7 +625,8 @@ public partial class MainViewModel : ObservableObject
         Fill(ProxyRules, "proxy", r?.ProxySites, r?.ProxyIp);
         Fill(BlockRules, "block", r?.BlockSites, r?.BlockIp);
         foreach (var n in new[] { nameof(DirectCount), nameof(ProxyCount), nameof(BlockCount),
-                                  nameof(DirectIpCount), nameof(ProxyIpCount), nameof(BlockIpCount) })
+                                  nameof(DirectIpCount), nameof(ProxyIpCount), nameof(BlockIpCount),
+                                  nameof(DirectEmpty), nameof(ProxyEmpty), nameof(BlockEmpty) })
             OnPropertyChanged(n);
     }
 
@@ -642,6 +649,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     // The phone shows two chips per bucket: how many site rules, and how many IP ones.
+    public bool DirectEmpty => DirectRules.Count == 0;
+    public bool ProxyEmpty => ProxyRules.Count == 0;
+    public bool BlockEmpty => BlockRules.Count == 0;
+
     private static string IpChip(int n) => string.Format(Localization.Loc.T("S_Routing_IpCount"), n);
     public string DirectIpCount => IpChip((EditingRouting ?? SelectedRouting)?.DirectIp.Count ?? 0);
     public string ProxyIpCount => IpChip((EditingRouting ?? SelectedRouting)?.ProxyIp.Count ?? 0);

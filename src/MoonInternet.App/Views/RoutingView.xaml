@@ -369,6 +369,8 @@
                             <TextBlock Text="{DynamicResource S_RoutingView_009}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
 
                             <StackPanel Visibility="{Binding DirectOpen, Converter={StaticResource BoolVis}}">
+                                <TextBlock Text="{DynamicResource S_Routing_Empty}" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,10,0,0"
+                                           Visibility="{Binding DirectEmpty, Converter={StaticResource BoolVis}}"/>
                                 <ItemsControl ItemsSource="{Binding DirectRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"/>
                                 <Grid Margin="0,10,0,0" Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -419,6 +421,8 @@
                             <TextBlock Text="{DynamicResource S_RoutingView_011}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
 
                             <StackPanel Visibility="{Binding ProxyOpen, Converter={StaticResource BoolVis}}">
+                                <TextBlock Text="{DynamicResource S_Routing_Empty}" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,10,0,0"
+                                           Visibility="{Binding ProxyEmpty, Converter={StaticResource BoolVis}}"/>
                                 <ItemsControl ItemsSource="{Binding ProxyRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"/>
                                 <Grid Margin="0,10,0,0" Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -469,6 +473,8 @@
                             <TextBlock Text="{DynamicResource S_RoutingView_013}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="28,2,0,0"/>
 
                             <StackPanel Visibility="{Binding BlockOpen, Converter={StaticResource BoolVis}}">
+                                <TextBlock Text="{DynamicResource S_Routing_Empty}" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,10,0,0"
+                                           Visibility="{Binding BlockEmpty, Converter={StaticResource BoolVis}}"/>
                                 <ItemsControl ItemsSource="{Binding BlockRules}" ItemTemplate="{StaticResource RuleChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,0"/>
                                 <Grid Margin="0,10,0,0" Visibility="{Binding CanEditRouting, Converter={StaticResource BoolVis}}">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
