@@ -578,7 +578,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // pressing Connect on a server whose ping had just come back dead dialled it anyway and
         // sat there failing. Only a measured failure counts — an unmeasured server is not a dead
         // one, and we do not overrule a choice we know nothing about.
-        if (store.state.value.autoFailover && (_pings.value[s.raw] ?: -2) == -1) {
+        // Dead means either: it answered nothing when measured (-1), or the core cannot speak its
+        // protocol at all, so it was never going to carry traffic. The first version tested only
+        // for -1 and missed the case that prompted this — a protocol that does not ping is scored
+        // -2, "unknown", and slipped through as if it were fine.
+        // A server nobody measured is not a dead one, so "-1" already implies a measurement; an
+        // unsupported protocol needs none, we would refuse to dial it anyway.
+        val dead = !XrayConfig.supports(s.protocol) || _pings.value[s.raw] == -1
+        if (store.state.value.autoFailover && dead) {
             val alt = store.allServers
                 .filter { it.raw != s.raw && XrayConfig.supports(it.protocol) && (_pings.value[it.raw] ?: -2) >= 0 }
                 .minByOrNull { _pings.value[it.raw] ?: Int.MAX_VALUE }
