@@ -520,7 +520,19 @@
 
                         <TextBlock Text="{DynamicResource S_Routing_SecGeo}" Foreground="{StaticResource TextMuted}"
                                    FontSize="10.5" FontWeight="SemiBold" Margin="4,8,0,6"/>
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10"
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}"
+                                BorderThickness="1" Margin="0,0,0,10">
+                            <StackPanel Margin="14,12">
+                                <TextBlock Text="GeoIP URL" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Margin="0,6,0,0"
+                                         Text="{Binding EditGeoip, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,12,0,12"/>
+                                <TextBlock Text="GeoSite URL" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Margin="0,6,0,0"
+                                         Text="{Binding EditGeosite, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10"
 >
                             <StackPanel>
                                 <Grid>

@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -11,11 +11,11 @@ android {
 
     defaultConfig {
         applicationId = "cc.moon.internet"
-        minSdk = 24                     // Android 7.0 — VpnService + modern TLS
+        minSdk = 24                     // Android 7.0 вЂ” VpnService + modern TLS
         targetSdk = 35
         // has to go up on every published APK, or the phone refuses to install over the old one
-        versionCode = 23
-        versionName = "0.9.3.14"
+        versionCode = 24
+        versionName = "0.9.3.15"
 
         // The core is built for arm64 only, so shipping other ABIs would just be an app that
         // crashes the moment it tries to connect.
@@ -39,7 +39,7 @@ android {
     buildTypes {
         release {
             // Attach the signing config only when the key is really there. A config with no
-            // storeFile does not yield an unsigned APK — packageRelease dies with
+            // storeFile does not yield an unsigned APK вЂ” packageRelease dies with
             // 'SigningConfig "release" is missing required property "storeFile"', which would
             // turn "no key on this machine" into a broken build.
             signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
@@ -54,7 +54,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    // buildConfig so the version lives in one place — versionName above — instead of being
+    // buildConfig so the version lives in one place вЂ” versionName above вЂ” instead of being
     // typed into the About page and the update check separately and drifting apart.
     buildFeatures { compose = true; buildConfig = true }
 
@@ -94,7 +94,8 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.4.1")
     implementation("androidx.camera:camera-view:1.4.1")
 
-    // sing-box engine (libbox AAR) — the single core that speaks every protocol we need.
+    // sing-box engine (libbox AAR) вЂ” the single core that speaks every protocol we need.
     // Dropped into app/libs by build/get-libbox.ps1
     implementation(fileTree("libs") { include("*.aar") })
 }
+

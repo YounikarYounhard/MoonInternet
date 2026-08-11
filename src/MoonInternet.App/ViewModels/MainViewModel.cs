@@ -278,7 +278,7 @@ public partial class MainViewModel : ObservableObject
     public IReadOnlyList<RoutingRow> RoutingMineRows =>
         AvailableRoutings.Where(r => !r.Builtin && r.Source == RoutingSource.Custom
                                      && string.IsNullOrEmpty(r.SubUrl))
-            .Select(r => Row(r, "", menu: true)).ToList();
+            .Select(r => Row(r, "", menu: true)).ToList();
 
     /// <summary>One row per subscription that brought routing with it — click steps inside.</summary>
     public IReadOnlyList<RoutingRow> RoutingSubscriptionRows =>
@@ -291,7 +291,7 @@ public partial class MainViewModel : ObservableObject
                 string sub = active is not null
                     ? string.Format(Localization.Loc.T("S_Routing_SubActive"), active.SourceText)
                     : string.Join(" · ", x.list.Select(r => r.SourceText));
-                return new RoutingRow(null, "", x.sub.Name, sub, active is not null, null, false, true, x.sub.Url);
+                return new RoutingRow(null, "", x.sub.Name, sub, active is not null, null, false, true, x.sub.Url);
             })
             .ToList();
 
