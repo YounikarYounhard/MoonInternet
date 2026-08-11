@@ -20,12 +20,12 @@ public sealed class RoutingProfile
     public bool GlobalProxy { get; set; } = true;
 
     // DNS
-    public string RemoteDNSType { get; set; } = "DoH";      // DoH / DoU / DoT
+    public string RemoteDNSType { get; set; } = "DoU";      // DoH / DoU / DoT
     public string RemoteDNSDomain { get; set; } = "";
-    public string RemoteDNSIP { get; set; } = "";
+    public string RemoteDNSIP { get; set; } = "1.1.1.1";
     public string DomesticDNSType { get; set; } = "DoU";
     public string DomesticDNSDomain { get; set; } = "";
-    public string DomesticDNSIP { get; set; } = "";
+    public string DomesticDNSIP { get; set; } = "8.8.8.8";
     public bool FakeDNS { get; set; }
     public Dictionary<string, string> DnsHosts { get; set; } = new();
 
