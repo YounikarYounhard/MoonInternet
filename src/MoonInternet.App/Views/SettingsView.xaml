@@ -6,6 +6,10 @@
         <!-- hub category card: icon + title + chevron -->
         <Style x:Key="HubCard" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
+            <!-- The subtitle inside the card is drawn from ToolTip, so the text and the hover popup
+                 were one and the same property. Stripping the popup took the subtitle with it; the
+                 text stays and the popup is switched off here instead. -->
+            <Setter Property="ToolTipService.IsEnabled" Value="False"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -114,17 +118,17 @@
                 </Grid>
                 <TextBlock Text="{Binding AppVersion, StringFormat=Moon Internet · {0}}" Foreground="{StaticResource TextSecondary}" FontSize="12.5" Margin="2,0,0,18"/>
 
-                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="{DynamicResource S_SettingsView_003}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="{DynamicResource S_SettingsView_005}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="{DynamicResource S_SettingsView_007}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="{DynamicResource S_SettingsView_009}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="{DynamicResource S_SettingsView_011}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="{DynamicResource S_SettingsView_013}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xEA8F;" Content="{DynamicResource S_Page_Notify}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="notify"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="{DynamicResource S_SettingsView_015}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE790;" Content="{DynamicResource S_SettingsView_003}" ToolTip="{DynamicResource S_SettingsView_004}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="appearance"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE839;" Content="{DynamicResource S_SettingsView_005}" ToolTip="{DynamicResource S_SettingsView_006}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="connection"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="{DynamicResource S_SettingsView_007}" ToolTip="{DynamicResource S_SettingsView_008}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="{DynamicResource S_SettingsView_009}" ToolTip="{DynamicResource S_SettingsView_010}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="{DynamicResource S_SettingsView_011}" ToolTip="{DynamicResource S_SettingsView_012}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="{DynamicResource S_SettingsView_013}" ToolTip="{DynamicResource S_SettingsView_014}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xEA8F;" Content="{DynamicResource S_Page_Notify}" ToolTip="{DynamicResource S_Notify_Hub_Sub}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="notify"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="{DynamicResource S_SettingsView_015}" ToolTip="{DynamicResource S_SettingsView_016}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
                 <!-- Политики конфиденциальности здесь нет: она открывается из «О приложении»,
                      где ей и место, и в хабе не занимает строку. -->
-                <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="{DynamicResource S_SettingsView_017}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE946;" Content="{DynamicResource S_SettingsView_017}" ToolTip="{DynamicResource S_SettingsView_018}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="about"/>
             </StackPanel>
         </ScrollViewer>
 
@@ -353,6 +357,25 @@
                             </Button.Template>
                         </Button>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
+                        <!-- Next to the profile picker: both rows answer "what goes through
+                             the tunnel", so the two doors into that belong side by side. -->
+                        <Button Command="{Binding OpenSettingsPageCommand}" CommandParameter="approuting" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="b" Background="Transparent" Padding="12">
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_065}" FontSize="14" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{DynamicResource S_SettingsView_066}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#12FFFFFF"/></Trigger></ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
                                 <TextBlock Text="{DynamicResource S_SettingsView_059}" FontSize="14" FontWeight="SemiBold"/>
@@ -375,25 +398,6 @@
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Sniffing}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
 
-                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
-
-                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
-                        <Button Command="{Binding OpenSettingsPageCommand}" CommandParameter="approuting" Cursor="Hand" HorizontalContentAlignment="Stretch">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="b" Background="Transparent" Padding="12">
-                                        <Grid>
-                                            <StackPanel>
-                                                <TextBlock Text="{DynamicResource S_SettingsView_065}" FontSize="14" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{DynamicResource S_SettingsView_066}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#12FFFFFF"/></Trigger></ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <StackPanel Margin="12">
                             <Grid>
