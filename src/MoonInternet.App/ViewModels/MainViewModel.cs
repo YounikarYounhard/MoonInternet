@@ -211,7 +211,11 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(RoutingName), nameof(RoutingSubtitle), nameof(DirectSites), nameof(ProxySites), nameof(BlockSites),
         nameof(DirectIps), nameof(ProxyIps), nameof(BlockIps), nameof(HasMultipleRoutings),
         nameof(IsRoutingIncy), nameof(IsRoutingHapp), nameof(IsRoutingCustom), nameof(GeoSources),
-        nameof(CanEditRouting), nameof(CannotEditRouting))]
+        nameof(CanEditRouting), nameof(CannotEditRouting),
+        // The cards are built here, so without these the click landed, the choice was saved, and
+        // the list went on drawing the old outline — which reads as "the row does not react".
+        nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
+        nameof(RoutingSubRows), nameof(RoutingHeader))]
     private RoutingProfile? selectedRouting;
     partial void OnSelectedRoutingChanged(RoutingProfile? value) => RebuildRuleChips();
 
@@ -268,7 +272,7 @@ public partial class MainViewModel : ObservableObject
 
     public IReadOnlyList<RoutingRow> RoutingBuiltinRows =>
         AvailableRoutings.Where(r => r.Builtin)
-            .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false)).ToList();
+            .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false)).ToList();
 
     /// <summary>Only profiles you made: copies and new ones. Starts out empty.</summary>
     public IReadOnlyList<RoutingRow> RoutingMineRows =>
@@ -287,7 +291,7 @@ public partial class MainViewModel : ObservableObject
                 string sub = active is not null
                     ? string.Format(Localization.Loc.T("S_Routing_SubActive"), active.SourceText)
                     : string.Join(" · ", x.list.Select(r => r.SourceText));
-                return new RoutingRow(null, "", x.sub.Name, sub, active is not null, null, false, true, x.sub.Url);
+                return new RoutingRow(null, "", x.sub.Name, sub, active is not null, null, false, true, x.sub.Url);
             })
             .ToList();
 
