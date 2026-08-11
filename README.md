@@ -13,7 +13,7 @@ Windows и Android.
 [![Скачать для Windows](https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C_%D0%B4%D0%BB%D1%8F-Windows-9D7BFF?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/YounikarYounhard/MoonInternet/releases/latest/download/MoonInternet-Setup.exe)
 [![Скачать для Android](https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C_%D0%B4%D0%BB%D1%8F-Android-9D7BFF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/YounikarYounhard/MoonInternet/releases/latest/download/MoonInternet.apk)
 
-[Все выпуски](../../releases) · [English](README-EN.md)
+[Все версии](../../releases) · [English](README-EN.md)
 
 </div>
 
