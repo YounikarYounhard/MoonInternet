@@ -467,4 +467,21 @@
     <s:String x:Key="S_Routing_DescDirect">Всё напрямую, мимо VPN</s:String>
     <s:String x:Key="S_Routing_DescRules">{0} сайтов · {1} IP</s:String>
     <s:String x:Key="S_Routing_SubActive">Выбран {0}</s:String>
+    <s:String x:Key="S_Routing_Save">Сохранить</s:String>
+    <s:String x:Key="S_Routing_SecBasic">ОСНОВНОЕ</s:String>
+    <s:String x:Key="S_Routing_SecDns">DNS</s:String>
+    <s:String x:Key="S_Routing_SecRules">ПРАВИЛА</s:String>
+    <s:String x:Key="S_Routing_SecAdv">ДОПОЛНИТЕЛЬНО</s:String>
+    <s:String x:Key="S_Routing_NameLabel">Название профиля</s:String>
+    <s:String x:Key="S_Routing_Global">Глобальный прокси</s:String>
+    <s:String x:Key="S_Routing_GlobalHint">Весь трафик через VPN, кроме перечисленного в DIRECT</s:String>
+    <s:String x:Key="S_Routing_DnsRemote">Удалённый DNS (через прокси)</s:String>
+    <s:String x:Key="S_Routing_DnsDomestic">Локальный DNS (напрямую)</s:String>
+    <s:String x:Key="S_Routing_DomainStrategy">Стратегия доменов</s:String>
+    <s:String x:Key="S_Routing_DsAsIs">Как есть</s:String>
+    <s:String x:Key="S_Routing_DsAsIsHint">Не превращать домены в IP</s:String>
+    <s:String x:Key="S_Routing_DsIfNo">IP, если не совпало</s:String>
+    <s:String x:Key="S_Routing_DsIfNoHint">Разрешать в IP, когда правила не сошлись</s:String>
+    <s:String x:Key="S_Routing_DsOnDemand">Всегда IP</s:String>
+    <s:String x:Key="S_Routing_DsOnDemandHint">Всегда превращать домены в IP</s:String>
 </ResourceDictionary>

@@ -496,4 +496,21 @@
     <s:String x:Key="S_Routing_DescDirect">Everything direct, around the VPN</s:String>
     <s:String x:Key="S_Routing_DescRules">{0} sites · {1} IPs</s:String>
     <s:String x:Key="S_Routing_SubActive">{0} selected</s:String>
+    <s:String x:Key="S_Routing_Save">Save</s:String>
+    <s:String x:Key="S_Routing_SecBasic">BASICS</s:String>
+    <s:String x:Key="S_Routing_SecDns">DNS</s:String>
+    <s:String x:Key="S_Routing_SecRules">RULES</s:String>
+    <s:String x:Key="S_Routing_SecAdv">ADVANCED</s:String>
+    <s:String x:Key="S_Routing_NameLabel">Profile name</s:String>
+    <s:String x:Key="S_Routing_Global">Global proxy</s:String>
+    <s:String x:Key="S_Routing_GlobalHint">Everything through the VPN except what DIRECT lists</s:String>
+    <s:String x:Key="S_Routing_DnsRemote">Remote DNS (through the proxy)</s:String>
+    <s:String x:Key="S_Routing_DnsDomestic">Local DNS (direct)</s:String>
+    <s:String x:Key="S_Routing_DomainStrategy">Domain strategy</s:String>
+    <s:String x:Key="S_Routing_DsAsIs">As is</s:String>
+    <s:String x:Key="S_Routing_DsAsIsHint">Do not resolve domains to IPs</s:String>
+    <s:String x:Key="S_Routing_DsIfNo">IP if no match</s:String>
+    <s:String x:Key="S_Routing_DsIfNoHint">Resolve when no rule matched</s:String>
+    <s:String x:Key="S_Routing_DsOnDemand">Always IP</s:String>
+    <s:String x:Key="S_Routing_DsOnDemandHint">Always resolve domains to IPs</s:String>
 </ResourceDictionary>

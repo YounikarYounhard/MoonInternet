@@ -308,6 +308,109 @@ public partial class MainViewModel : ObservableObject
         if (row.Profile is not null) PickRouting(row.Profile);
     }
 
+    /// <summary>
+    /// The profile the editor is open on, null when it is closed. A screen of its own, the way
+    /// RoutingEditorScreen is on the phone — the rules, DNS and geo blocks live in here, not
+    /// underneath the list where they used to sit for whatever happened to be selected.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEditingRouting), nameof(NotEditingRouting), nameof(EditName),
+                              nameof(EditGlobalProxy), nameof(EditRemoteDns), nameof(EditDomesticDns),
+                              nameof(EditRemoteDnsType), nameof(EditDomesticDnsType),
+                              nameof(EditDomainStrategy), nameof(EditGeoip), nameof(EditGeosite),
+                              nameof(IsDsAsIs), nameof(IsDsIfNoMatch), nameof(IsDsOnDemand))]
+    private RoutingProfile? editingRouting;
+
+    public bool IsEditingRouting => EditingRouting is not null;
+    public bool NotEditingRouting => !IsEditingRouting;
+
+    partial void OnEditingRoutingChanged(RoutingProfile? value) => RebuildRuleChips();
+
+    [RelayCommand]
+    private void EditRoutingProfile(RoutingProfile? p)
+    {
+        if (p is null) return;
+        EditingRouting = p;
+    }
+
+    [RelayCommand]
+    private void CloseRoutingEditor()
+    {
+        _settings.Save();
+        EditingRouting = null;
+        RebuildRouting();
+    }
+
+    /// <summary>Writes straight through to the profile; Save here only closes and persists.</summary>
+    private void EditPut(Action<RoutingProfile> set)
+    {
+        if (EditingRouting is null) return;
+        set(EditingRouting);
+        _settings.Save();
+    }
+
+    public string EditName
+    {
+        get => EditingRouting?.Name ?? "";
+        set { EditPut(r => r.Name = value); OnPropertyChanged(); }
+    }
+    public bool EditGlobalProxy
+    {
+        get => EditingRouting?.GlobalProxy ?? true;
+        set { EditPut(r => r.GlobalProxy = value); OnPropertyChanged(); }
+    }
+    public string EditRemoteDns
+    {
+        get => EditingRouting?.RemoteDNSIP ?? "";
+        set { EditPut(r => r.RemoteDNSIP = value); OnPropertyChanged(); }
+    }
+    public string EditDomesticDns
+    {
+        get => EditingRouting?.DomesticDNSIP ?? "";
+        set { EditPut(r => r.DomesticDNSIP = value); OnPropertyChanged(); }
+    }
+    public string EditRemoteDnsType
+    {
+        get => EditingRouting?.RemoteDNSType ?? "DoU";
+        set { EditPut(r => r.RemoteDNSType = value); OnPropertyChanged(); }
+    }
+    public string EditDomesticDnsType
+    {
+        get => EditingRouting?.DomesticDNSType ?? "DoU";
+        set { EditPut(r => r.DomesticDNSType = value); OnPropertyChanged(); }
+    }
+    public string EditDomainStrategy
+    {
+        get => EditingRouting?.DomainStrategy ?? "IPIfNonMatch";
+        set
+        {
+            EditPut(r => r.DomainStrategy = value);
+            foreach (var n in new[] { nameof(IsDsAsIs), nameof(IsDsIfNoMatch), nameof(IsDsOnDemand) })
+                OnPropertyChanged(n);
+        }
+    }
+    public string EditGeoip
+    {
+        get => EditingRouting?.Geoipurl ?? "";
+        set { EditPut(r => r.Geoipurl = value); OnPropertyChanged(); }
+    }
+    public string EditGeosite
+    {
+        get => EditingRouting?.Geositeurl ?? "";
+        set { EditPut(r => r.Geositeurl = value); OnPropertyChanged(); }
+    }
+
+    public bool IsDsAsIs => EditDomainStrategy == "AsIs";
+    public bool IsDsIfNoMatch => EditDomainStrategy == "IPIfNonMatch";
+    public bool IsDsOnDemand => EditDomainStrategy == "IPOnDemand";
+    [RelayCommand] private void SetDomainStrategy(string v) => EditDomainStrategy = v;
+    [RelayCommand] private void SetEditDnsType(string v)
+    {
+        var parts = v.Split(':');            // "remote:DoH" / "domestic:DoU"
+        if (parts.Length != 2) return;
+        if (parts[0] == "remote") EditRemoteDnsType = parts[1]; else EditDomesticDnsType = parts[1];
+    }
+
     public bool CanEditRouting => SelectedRouting is { Builtin: false, SubUrl: "" or null, Source: RoutingSource.Custom };
     /// <summary>XAML has no "not" on a visibility binding, and one property is cheaper than a converter.</summary>
     public bool CannotEditRouting => !CanEditRouting;
@@ -376,7 +479,7 @@ public partial class MainViewModel : ObservableObject
         RebuildRouting();
         PickRouting(p);
     }
-    public IEnumerable<string> DirectSites => SelectedRouting?.DirectSites ?? Enumerable.Empty<string>();
+    public IEnumerable<string> DirectSites => (EditingRouting ?? SelectedRouting)?.DirectSites ?? Enumerable.Empty<string>();
     public IEnumerable<string> ProxySites => SelectedRouting?.ProxySites ?? Enumerable.Empty<string>();
     public IEnumerable<string> BlockSites => SelectedRouting?.BlockSites ?? Enumerable.Empty<string>();
     public IEnumerable<string> DirectIps => SelectedRouting?.DirectIp ?? Enumerable.Empty<string>();
@@ -433,7 +536,7 @@ public partial class MainViewModel : ObservableObject
             foreach (var s in (sites ?? new()).Concat(ips ?? new()))
                 if (q.Length == 0 || s.Contains(q, StringComparison.OrdinalIgnoreCase)) c.Add(new RuleChip(bucket, s));
         }
-        var r = SelectedRouting;
+        var r = EditingRouting ?? SelectedRouting;
         Fill(DirectRules, "direct", r?.DirectSites, r?.DirectIp);
         Fill(ProxyRules, "proxy", r?.ProxySites, r?.ProxyIp);
         Fill(BlockRules, "block", r?.BlockSites, r?.BlockIp);
@@ -446,7 +549,7 @@ public partial class MainViewModel : ObservableObject
     private void AddToBucket(string bucket, string raw)
     {
         var v = raw.Trim();
-        if (v.Length == 0 || SelectedRouting is not { Source: RoutingSource.Custom } r) return;
+        if (v.Length == 0 || (EditingRouting ?? SelectedRouting) is not { Source: RoutingSource.Custom } r) return;
         var (sites, ips) = bucket switch
         {
             "proxy" => (r.ProxySites, r.ProxyIp),
@@ -1582,7 +1685,7 @@ public partial class MainViewModel : ObservableObject
         };
         // Skip a round rather than queue up: with "стабильность" a pass can outlast the interval,
         // and stacking them would leave several cores running at once.
-        t.Tick += async (_, _) => { if (!_autoPingBusy) { _autoPingBusy = true; try { await PingAll(); } finally { _autoPingBusy = false; } } };
+        t.Tick += async (_, _) => { if (!_autoPingBusy) { _autoPingBusy = true; try { await PingAll(auto: true); } finally { _autoPingBusy = false; } } };
         t.Start();
         _autoPingTimer = new TimerHandle(t);
     }
@@ -2214,11 +2317,11 @@ public partial class MainViewModel : ObservableObject
         if (AutoConnectOnStart && !_autoConnectTried && ConnectionState == ConnectionState.Disconnected && sub.Servers.Count > 0)
         {
             _autoConnectTried = true;
-            await PingSub(sub);
+            await PingSub(sub, auto: true);
             if (PickAutoServer() is { } target) { SelectedServer = target; await Connect(); }
             else Status = Localization.Loc.T("S_VM_221");
         }
-        else if (PingOnStart) _ = PingSub(sub);
+        else if (PingOnStart) _ = PingSub(sub, auto: true);
     }
 
     [RelayCommand]
@@ -2264,7 +2367,7 @@ public partial class MainViewModel : ObservableObject
             RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
             SelectedServer ??= wsub.Servers.FirstOrDefault();
             Status = Localization.Loc.T("S_VM_224");
-            _ = PingSub(wsub);
+            _ = PingSub(wsub, auto: true);
             return;
         }
         var content = SubscriptionParser.ParseFull(text);
@@ -2280,7 +2383,7 @@ public partial class MainViewModel : ObservableObject
         NotifyServerListChanged();
         SelectedServer ??= sub.Servers.FirstOrDefault();
         Status = $"Импортировано из буфера: {content.Servers.Count}";
-        _ = PingSub(sub);
+        _ = PingSub(sub, auto: true);
     }
 
     [RelayCommand]
@@ -2452,9 +2555,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task PingAll()
+    private async Task PingAll(bool auto = false)
     {
-        foreach (var s in Subscriptions.ToList()) await PingSub(s);
+        foreach (var s in Subscriptions.ToList()) await PingSub(s, auto);
     }
 
     // "Проверить соединение" (shown only while connected): ping the active server, show its latency next to the button.
@@ -2498,12 +2601,18 @@ public partial class MainViewModel : ObservableObject
         finally { CheckPinging = false; }
     }
 
-    private async Task PingSub(SubscriptionVM sub)
+    /// <param name="auto">
+    /// True when nobody asked: the pass after a refresh, the one at startup, and the timer.
+    /// "Стабильность" is not a probe but a real session per server, so running it unprompted
+    /// across a whole subscription is dozens of real sessions on the provider's machine, over and
+    /// over. Automatic passes take the cheap handshake; стабильность stays for a deliberate press.
+    /// </param>
+    private async Task PingSub(SubscriptionVM sub, bool auto = false)
     {
         sub.Pinging = true;
         try
         {
-            if (PingMethod == "stability") { await StabilitySub(sub); return; }
+            if (!auto && PingMethod == "stability") { await StabilitySub(sub); return; }
 
             var servers = sub.Servers.ToList();
             foreach (var s in servers) s.Pinging = true;

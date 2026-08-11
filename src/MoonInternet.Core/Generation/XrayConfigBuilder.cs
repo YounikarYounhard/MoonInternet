@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using MoonInternet.Core.Models;
 
 namespace MoonInternet.Core.Generation;
@@ -56,8 +56,15 @@ public static class XrayConfigBuilder
         // Level 0 is what ordinary traffic runs at, so this is where the priority mode bites:
         // a smaller buffer means the core stops a bulk transfer running ahead, and the queue
         // everything else waits behind stays short.
-        if (XrayTuning.BufferSizeKb is { } buf)
-            levels["0"] = new Dictionary<string, object?> { ["bufferSize"] = buf };
+        // Ordinary traffic runs at level 0 and had no timeouts of its own, so a connection the
+        // client had finished with was held for xray's default five minutes. On a server carrying
+        // a whole subscription those pile up. Same figures the Android build writes.
+        var level0 = new Dictionary<string, object?>
+        {
+            ["handshake"] = 4, ["connIdle"] = 120, ["uplinkOnly"] = 1, ["downlinkOnly"] = 1,
+        };
+        if (XrayTuning.BufferSizeKb is { } buf) level0["bufferSize"] = buf;
+        levels["0"] = level0;
 
         var policy = new Dictionary<string, object?> { ["levels"] = levels };
         var routingCfg = BuildRouting(routing);

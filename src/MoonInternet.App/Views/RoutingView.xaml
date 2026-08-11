@@ -67,7 +67,7 @@
                                     <Button.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="{DynamicResource S_Routing_Edit}"
-                                                      Command="{Binding PlacementTarget.DataContext.EditRoutingCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                      Command="{Binding PlacementTarget.DataContext.EditRoutingProfileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                       CommandParameter="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                       Visibility="{Binding PlacementTarget.DataContext.CanEditRouting, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolVis}}"/>
                                             <MenuItem Header="{DynamicResource S_Routing_Duplicate}"
@@ -109,13 +109,28 @@
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0">
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Visibility="{Binding NotEditingRouting, Converter={StaticResource BoolVis}}">
                     <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding BackToRoutingSettingsCommand}"/>
                     <TextBlock Text="{DynamicResource S_RoutingView_002}" FontSize="24" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- geo files -->
-                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                <!-- The editor's own header: ✕, the profile's name, and Save on the right. -->
+                <Grid Margin="0,4,0,10" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                      Visibility="{Binding IsEditingRouting, Converter={StaticResource BoolVis}}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,110,0">
+                        <Button Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseRoutingEditorCommand}"/>
+                        <TextBlock Text="{Binding EditName}" FontSize="21" FontWeight="Bold" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource PrimaryButton}"
+                            Padding="16,7" FontSize="13" Content="{DynamicResource S_Routing_Save}"
+                            Command="{Binding CloseRoutingEditorCommand}"/>
+                </Grid>
+
+                <!-- geo files: part of the editor, the way ГЕО-ДАННЫЕ is on the phone -->
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="14,12" Margin="0,0,0,10"
+                        Visibility="{Binding IsEditingRouting, Converter={StaticResource BoolVis}}">
                     <StackPanel>
                         <Grid>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -159,6 +174,8 @@
                     <!-- Profiles: what we ship, then each subscription's own, then yours. A
                          subscription's routing sits under the subscription because that is where
                          it arrives from — and that is where INCY and HAPP sit side by side. -->
+                    <!-- The two list levels; both step aside while the editor is open. -->
+                    <StackPanel Visibility="{Binding NotEditingRouting, Converter={StaticResource BoolVis}}">
                     <!-- Top level, the same three blocks the phone shows: the shipped pair, a row
                          per subscription you step into, then your own copies. -->
                     <StackPanel Visibility="{Binding NotInRoutingSub, Converter={StaticResource BoolVis}}">
@@ -200,6 +217,65 @@
                         <ItemsControl ItemsSource="{Binding RoutingSubRows}" ItemTemplate="{StaticResource RoutingCard}"/>
                     </StackPanel>
 
+                    </StackPanel>
+
+                    <!-- ===== profile editor: its own screen, like RoutingEditorScreen.kt ===== -->
+                    <StackPanel Visibility="{Binding IsEditingRouting, Converter={StaticResource BoolVis}}">
+
+                        <TextBlock Text="{DynamicResource S_Routing_SecBasic}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,6"/>
+                        <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}"
+                                BorderThickness="1" Margin="0,0,0,10">
+                            <StackPanel Margin="14,12">
+                                <TextBlock Text="{DynamicResource S_Routing_NameLabel}" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                                <TextBox Style="{StaticResource DarkTextBox}" Margin="0,6,0,0"
+                                         Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,12,0,12"/>
+                                <Grid>
+                                    <StackPanel Margin="0,0,58,0">
+                                        <TextBlock Text="{DynamicResource S_Routing_Global}" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{DynamicResource S_Routing_GlobalHint}" Foreground="{StaticResource TextSecondary}"
+                                                   FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding EditGlobalProxy}"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="{DynamicResource S_Routing_SecDns}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,6"/>
+                        <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}"
+                                BorderThickness="1" Margin="0,0,0,10">
+                            <StackPanel Margin="14,12">
+                                <TextBlock Text="{DynamicResource S_Routing_DnsRemote}" Foreground="{StaticResource AccentText}"
+                                           FontSize="12" FontWeight="SemiBold"/>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoH" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoH"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoT" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoT"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="DoU" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:DoU"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="rdns" Content="TCP" Margin="0,0,0,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="remote:TCP"/>
+                                </WrapPanel>
+                                <TextBox Style="{StaticResource DarkTextBox}" Margin="0,4,0,0"
+                                         Text="{Binding EditRemoteDns, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,14,0,12"/>
+
+                                <TextBlock Text="{DynamicResource S_Routing_DnsDomestic}" Foreground="#4ED8A0"
+                                           FontSize="12" FontWeight="SemiBold"/>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoH" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoH"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoT" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoT"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="DoU" Margin="0,0,6,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:DoU"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="ddns" Content="TCP" Margin="0,0,0,6" Command="{Binding SetEditDnsTypeCommand}" CommandParameter="domestic:TCP"/>
+                                </WrapPanel>
+                                <TextBox Style="{StaticResource DarkTextBox}" Margin="0,4,0,0"
+                                         Text="{Binding EditDomesticDns, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="{DynamicResource S_Routing_SecRules}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,6"/>
                     <!-- a subscription's rules are read-only: the next fetch overwrites them -->
                     <Border CornerRadius="11" Background="#14FFFFFF" Padding="12,9" Margin="0,0,0,10"
                             Visibility="{Binding CannotEditRouting, Converter={StaticResource BoolVis}}">
@@ -288,6 +364,26 @@
                                           Visibility="{Binding BlockOpen, Converter={StaticResource BoolVis}}"/>
                         </StackPanel>
                     </Border>
+
+                        <TextBlock Text="{DynamicResource S_Routing_SecAdv}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" FontWeight="SemiBold" Margin="4,8,0,6"/>
+                        <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}"
+                                BorderThickness="1" Margin="0,0,0,10">
+                            <StackPanel Margin="14,12">
+                                <TextBlock Text="{DynamicResource S_Routing_DomainStrategy}" FontSize="13.5" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <RadioButton GroupName="ds" Content="{DynamicResource S_Routing_DsAsIs}"
+                                             IsChecked="{Binding IsDsAsIs, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="AsIs" Margin="0,0,0,2"/>
+                                <TextBlock Text="{DynamicResource S_Routing_DsAsIsHint}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="22,0,0,8"/>
+                                <RadioButton GroupName="ds" Content="{DynamicResource S_Routing_DsIfNo}"
+                                             IsChecked="{Binding IsDsIfNoMatch, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="IPIfNonMatch" Margin="0,0,0,2"/>
+                                <TextBlock Text="{DynamicResource S_Routing_DsIfNoHint}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="22,0,0,8"/>
+                                <RadioButton GroupName="ds" Content="{DynamicResource S_Routing_DsOnDemand}"
+                                             IsChecked="{Binding IsDsOnDemand, Mode=OneWay}" Command="{Binding SetDomainStrategyCommand}" CommandParameter="IPOnDemand" Margin="0,0,0,2"/>
+                                <TextBlock Text="{DynamicResource S_Routing_DsOnDemandHint}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="22,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
                 </StackPanel>
             </ScrollViewer>
         </Grid>
