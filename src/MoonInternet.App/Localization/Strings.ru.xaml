@@ -452,4 +452,8 @@
     <s:String x:Key="S_Ping_HttpHead">HTTP HEAD — это метод проверки сетевой задержки, при котором серверу отправляется запрос заголовков без тела ответа, что сокращает объём передаваемых данных при том же измерении.</s:String>
     <s:String x:Key="S_Ping_Stability">Стабильность — это метод проверки соединения, при котором через выбранный протокол устанавливается полноценное подключение и выполняется запрос сквозь него, что подтверждает работоспособность самого протокола, а не только доступность порта.</s:String>
     <s:String x:Key="S_VM_Failover">Сервер не отвечал — переключаюсь на {0}</s:String>
+    <s:String x:Key="S_Routing_SubCount">Профилей: {0}</s:String>
+    <s:String x:Key="S_Routing_SubPicked">Выбран {0}</s:String>
+    <s:String x:Key="S_Routing_FromSubs">ИЗ ПОДПИСОК</s:String>
+    <s:String x:Key="S_Routing_Mine2">МОИ ПРОФИЛИ</s:String>
 </ResourceDictionary>

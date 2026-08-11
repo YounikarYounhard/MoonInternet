@@ -141,24 +141,60 @@
                         <Button HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Padding="10,4" FontSize="12"
                                 Content="{DynamicResource S_Routing_New}" Command="{Binding NewRoutingCommand}"/>
                     </Grid>
-                    <ItemsControl ItemsSource="{Binding RoutingGroups}" Margin="0,0,0,10">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextMuted}" FontSize="10.5" FontWeight="SemiBold" Margin="2,6,0,4">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Title}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <ItemsControl ItemsSource="{Binding Profiles}" ItemTemplate="{StaticResource RoutingCard}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <!-- Top level: what we ship, then a row per subscription you step into, then
+                         your own. Stepping in is what puts INCY and HAPP side by side under the
+                         subscription that actually carries them. -->
+                    <StackPanel Visibility="{Binding NotInRoutingSub, Converter={StaticResource BoolVis}}">
+                        <ItemsControl ItemsSource="{Binding RoutingBuiltins}" ItemTemplate="{StaticResource RoutingCard}"/>
+
+                        <TextBlock Text="{DynamicResource S_Routing_FromSubs}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" FontWeight="SemiBold" Margin="2,10,0,4"
+                                   Visibility="{Binding HasRoutingSubs, Converter={StaticResource BoolVis}}"/>
+                        <ItemsControl ItemsSource="{Binding RoutingSubs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Cursor="Hand" Margin="0,0,0,6" HorizontalContentAlignment="Stretch"
+                                            Command="{Binding DataContext.OpenRoutingSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Url}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="row" CornerRadius="12" Padding="14,10" Background="{StaticResource Card}"
+                                                        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+                                                    <Grid>
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding Selected}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                                                   Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="row" Property="Background" Value="#18FFFFFF"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{DynamicResource S_Routing_Mine2}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" FontWeight="SemiBold" Margin="2,10,0,4"
+                                   Visibility="{Binding HasRoutingMine, Converter={StaticResource BoolVis}}"/>
+                        <ItemsControl ItemsSource="{Binding RoutingMine}" ItemTemplate="{StaticResource RoutingCard}"/>
+                    </StackPanel>
+
+                    <!-- One subscription's profiles: this is where INCY and HAPP are chosen between -->
+                    <StackPanel Visibility="{Binding InRoutingSub, Converter={StaticResource BoolVis}}" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Style="{StaticResource GlyphButton}" Content="&#xE72B;" Command="{Binding CloseRoutingSubscriptionCommand}"/>
+                            <TextBlock Text="{Binding RoutingSubTitle}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding RoutingSubProfiles}" ItemTemplate="{StaticResource RoutingCard}"/>
+                    </StackPanel>
 
                     <!-- a subscription's rules are read-only: the next fetch overwrites them -->
                     <Border CornerRadius="11" Background="#14FFFFFF" Padding="12,9" Margin="0,0,0,10"

@@ -222,42 +222,57 @@ public partial class MainViewModel : ObservableObject
     public bool HasMultipleRoutings => AvailableRoutings.Count > 1;
     public bool HasRoutings => AvailableRoutings.Count > 0;
 
-    /// <summary>One block of the routing page: the shipped profiles, one per subscription, and yours.</summary>
-    public sealed record RoutingGroup(string Title, IReadOnlyList<RoutingProfile> Profiles);
+    /// <summary>One row on the routing page for a subscription you can step into.</summary>
+    public sealed record RoutingSubRow(string Url, string Name, string Selected);
 
     /// <summary>
-    /// Routing grouped the way it arrives: what we ship, then each subscription's own profiles
-    /// (that is where the INCY/HAPP choice lives — inside the subscription that carries both),
-    /// then the profiles you made yourself.
+    /// The routing page has two levels, the same as the phone's: the shipped profiles and your own
+    /// on top, and a row per subscription that opens that subscription's profiles. INCY and HAPP
+    /// belong inside the subscription that brought them, not in a flat list beside everything else.
+    /// Null means we are on the top level.
     /// </summary>
-    public IReadOnlyList<RoutingGroup> RoutingGroups
-    {
-        get
-        {
-            var groups = new List<RoutingGroup>();
-            var builtins = AvailableRoutings.Where(r => r.Builtin).ToList();
-            if (builtins.Count > 0) groups.Add(new RoutingGroup("", builtins));
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InRoutingSub), nameof(NotInRoutingSub),
+                              nameof(RoutingSubProfiles), nameof(RoutingSubTitle))]
+    private string? openRoutingSub;
 
-            foreach (var sub in Subscriptions)
+    public bool InRoutingSub => !string.IsNullOrEmpty(OpenRoutingSub);
+    public bool NotInRoutingSub => !InRoutingSub;
+
+    public string RoutingSubTitle =>
+        Subscriptions.FirstOrDefault(s => s.Url == OpenRoutingSub)?.Name ?? "";
+
+    public IReadOnlyList<RoutingProfile> RoutingSubProfiles =>
+        AvailableRoutings.Where(r => r.SubUrl == OpenRoutingSub).ToList();
+
+    public IReadOnlyList<RoutingProfile> RoutingBuiltins =>
+        AvailableRoutings.Where(r => r.Builtin).ToList();
+
+    /// <summary>Your own profiles, plus anything imported that carries no subscription of its own.</summary>
+    public IReadOnlyList<RoutingProfile> RoutingMine =>
+        AvailableRoutings.Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl)).ToList();
+
+    /// <summary>One row per subscription that actually brought a routing profile with it.</summary>
+    public IReadOnlyList<RoutingSubRow> RoutingSubs =>
+        Subscriptions
+            .Where(sub => AvailableRoutings.Any(r => r.SubUrl == sub.Url))
+            .Select(sub =>
             {
-                var list = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
-                if (list.Count > 0) groups.Add(new RoutingGroup(sub.Name, list));
-            }
+                var mine = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
+                var picked = mine.FirstOrDefault(r => r.Id == SelectedRouting?.Id);
+                return new RoutingSubRow(
+                    sub.Url, sub.Name,
+                    picked is null ? string.Format(Localization.Loc.T("S_Routing_SubCount"), mine.Count)
+                                   : string.Format(Localization.Loc.T("S_Routing_SubPicked"), picked.SourceText));
+            })
+            .ToList();
 
-            var loose = AvailableRoutings
-                .Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl) && r.Source != RoutingSource.Custom)
-                .ToList();
-            if (loose.Count > 0) groups.Add(new RoutingGroup(Localization.Loc.T("S_Routing_Installed"), loose));
+    public bool HasRoutingSubs => RoutingSubs.Count > 0;
+    public bool HasRoutingMine => RoutingMine.Count > 0;
 
-            var mine = AvailableRoutings
-                .Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl) && r.Source == RoutingSource.Custom)
-                .ToList();
-            if (mine.Count > 0) groups.Add(new RoutingGroup(Localization.Loc.T("S_Routing_Mine"), mine));
-            return groups;
-        }
-    }
+    [RelayCommand] private void OpenRoutingSubscription(string? url) => OpenRoutingSub = url;
+    [RelayCommand] private void CloseRoutingSubscription() => OpenRoutingSub = null;
 
-    /// <summary>Rules are editable only on your own profiles. See <see cref="DuplicateRouting"/>.</summary>
     public bool CanEditRouting => SelectedRouting is { Builtin: false, SubUrl: "" or null, Source: RoutingSource.Custom };
     /// <summary>XAML has no "not" on a visibility binding, and one property is cheaper than a converter.</summary>
     public bool CannotEditRouting => !CanEditRouting;
@@ -2266,7 +2281,10 @@ public partial class MainViewModel : ObservableObject
                           ?? AvailableRoutings.FirstOrDefault();
         OnPropertyChanged(nameof(HasMultipleRoutings));
         OnPropertyChanged(nameof(HasRoutings));
-        OnPropertyChanged(nameof(RoutingGroups));
+        foreach (var n in new[] { nameof(RoutingBuiltins), nameof(RoutingMine), nameof(RoutingSubs),
+                                  nameof(RoutingSubProfiles), nameof(RoutingSubTitle),
+                                  nameof(HasRoutingSubs), nameof(HasRoutingMine) })
+            OnPropertyChanged(n);
     }
 
     private void RefreshHomeSummary()
