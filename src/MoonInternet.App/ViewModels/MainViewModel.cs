@@ -2298,6 +2298,22 @@ public partial class MainViewModel : ObservableObject
         }
         if (SelectedServer is null) { Status = Localization.Loc.T("S_VM_230"); CurrentPage = AppPage.Servers; return; }
         if (!_conn.CoreAvailable) { Status = Localization.Loc.T("S_VM_231"); return; }
+
+        // "The chosen server is silent -> take the fastest live one" only ever applied when
+        // auto-connect picked a server at startup. Pressing Connect on a server whose probe had
+        // just come back dead dialled it anyway and sat there failing, which is the one case the
+        // setting is named after. A measured failure only: a server nobody measured is not a dead
+        // one, and we do not overrule a choice we know nothing about.
+        if (AutoFailover && SelectedServer.Ping == -1)
+        {
+            var alive = AllServers.Where(s => s != SelectedServer && Reachable(s))
+                                  .OrderBy(s => s.Ping).FirstOrDefault();
+            if (alive is not null)
+            {
+                SelectedServer = alive;
+                Status = string.Format(Localization.Loc.T("S_VM_Failover"), alive.Label);
+            }
+        }
         try
         {
             var routing = UseRouting ? SelectedRouting : null;

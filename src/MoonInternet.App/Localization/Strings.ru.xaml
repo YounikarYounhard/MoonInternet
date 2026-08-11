@@ -131,9 +131,9 @@
     <s:String x:Key="S_SettingsView_078">Запускать Moon Internet при входе в систему</s:String>
     <s:String x:Key="S_SettingsView_079">Авто-скрытие в трее</s:String>
     <s:String x:Key="S_SettingsView_080">Запускать сразу свёрнутым в системном трее</s:String>
-    <s:String x:Key="S_SettingsView_081">Авто-подключение при запуске</s:String>
-    <s:String x:Key="S_SettingsView_082">Подключаться автоматически при старте приложения</s:String>
-    <s:String x:Key="S_SettingsView_083">Какой сервер подключать</s:String>
+    <s:String x:Key="S_SettingsView_081">Подключаться при запуске</s:String>
+    <s:String x:Key="S_SettingsView_082">Поднимать туннель сразу, как только приложение открыли</s:String>
+    <s:String x:Key="S_SettingsView_083">К какому серверу подключаться</s:String>
     <s:String x:Key="S_SettingsView_084">Первый</s:String>
     <s:String x:Key="S_SettingsView_085">Последний</s:String>
     <s:String x:Key="S_SettingsView_086">Мин. пинг</s:String>
@@ -294,13 +294,13 @@
     <s:String x:Key="S_Page_Notify">Уведомления</s:String>
     <s:String x:Key="S_Notify_Hub_Sub">Трей, всплывающие подсказки</s:String>
     <s:String x:Key="S_Notify_Master">Показывать уведомления</s:String>
-    <s:String x:Key="S_Notify_Master_Sub">Главный выключатель — при выключении не всплывает ничего</s:String>
-    <s:String x:Key="S_Notify_Balloon">Всплывать над треем</s:String>
-    <s:String x:Key="S_Notify_Balloon_Sub">Windows покажет подсказку у часов. Выключите, чтобы уведомления были только внутри приложения</s:String>
-    <s:String x:Key="S_Notify_Conn">Подключение и отключение</s:String>
-    <s:String x:Key="S_Notify_Conn_Sub">Сообщать каждый раз, когда туннель поднялся или упал</s:String>
-    <s:String x:Key="S_Notify_Upd">Новая версия приложения</s:String>
-    <s:String x:Key="S_Notify_Upd_Sub">Проверка GitHub при запуске — сообщить, если вышла свежая сборка</s:String>
+    <s:String x:Key="S_Notify_Master_Sub">Общий выключатель. При выключении приложение не показывает ничего</s:String>
+    <s:String x:Key="S_Notify_Balloon">Показывать у часов</s:String>
+    <s:String x:Key="S_Notify_Balloon_Sub">Windows покажет подсказку в углу экрана. Выключите, чтобы уведомления оставались только внутри приложения</s:String>
+    <s:String x:Key="S_Notify_Conn">Туннель поднялся или упал</s:String>
+    <s:String x:Key="S_Notify_Conn_Sub">Сообщать о каждом подключении и отключении</s:String>
+    <s:String x:Key="S_Notify_Upd">Вышла новая версия</s:String>
+    <s:String x:Key="S_Notify_Upd_Sub">При запуске проверять GitHub и сообщать, если появилась свежая сборка</s:String>
     <s:String x:Key="S_Notify_Section">ЧТО ПОКАЗЫВАТЬ</s:String>
     <s:String x:Key="S_SubMeter_Title">Трафик и срок подписки</s:String>
     <s:String x:Key="S_SubMeter_Sub">Как показывать остаток на плашке подписки</s:String>
@@ -418,8 +418,8 @@
     <s:String x:Key="S_Auto_Failover_Sub">Если выбранный сервер не отвечает — подключиться к самому быстрому из живых. Ваш выбор при этом сохраняется</s:String>
     <s:String x:Key="S_VM_130">{0}: подписка кончается через {1} дн.</s:String>
     <s:String x:Key="S_VM_131">{0}: осталось {1}% трафика</s:String>
-    <s:String x:Key="S_Notify_Traffic">Трафик на исходе</s:String>
-    <s:String x:Key="S_Notify_Traffic_Sub">Предупредить, когда останется меньше 10% трафика подписки</s:String>
+    <s:String x:Key="S_Notify_Traffic">Трафик заканчивается</s:String>
+    <s:String x:Key="S_Notify_Traffic_Sub">Предупредить, когда от лимита подписки останется меньше 10%</s:String>
     <s:String x:Key="S_Welcome_Sub">Доступ к интернету без границ</s:String>
     <s:String x:Key="S_Welcome_Body">Приложению нужна ссылка-подписка от вашего провайдера — из неё приедет список серверов. Всё остальное уже настроено, менять ничего не нужно.</s:String>
     <s:String x:Key="S_Welcome_Add">Добавить подписку</s:String>
@@ -451,4 +451,5 @@
     <s:String x:Key="S_Ping_HttpGet">HTTP GET — это метод проверки сетевой задержки, при котором серверу отправляется HTTP-запрос и измеряется время до получения первого байта ответа.</s:String>
     <s:String x:Key="S_Ping_HttpHead">HTTP HEAD — это метод проверки сетевой задержки, при котором серверу отправляется запрос заголовков без тела ответа, что сокращает объём передаваемых данных при том же измерении.</s:String>
     <s:String x:Key="S_Ping_Stability">Стабильность — это метод проверки соединения, при котором через выбранный протокол устанавливается полноценное подключение и выполняется запрос сквозь него, что подтверждает работоспособность самого протокола, а не только доступность порта.</s:String>
+    <s:String x:Key="S_VM_Failover">Сервер не отвечал — переключаюсь на {0}</s:String>
 </ResourceDictionary>

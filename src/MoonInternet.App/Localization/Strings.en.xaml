@@ -148,7 +148,7 @@
     <s:String x:Key="S_SettingsView_079">Start hidden in the tray</s:String>
     <s:String x:Key="S_SettingsView_080">Open minimised to the system tray</s:String>
     <s:String x:Key="S_SettingsView_081">Connect on startup</s:String>
-    <s:String x:Key="S_SettingsView_082">Connect automatically when the app starts</s:String>
+    <s:String x:Key="S_SettingsView_082">Bring the tunnel up as soon as the app opens</s:String>
     <s:String x:Key="S_SettingsView_083">Which server to connect to</s:String>
     <s:String x:Key="S_SettingsView_084">First</s:String>
     <s:String x:Key="S_SettingsView_085">Last used</s:String>
@@ -324,13 +324,13 @@
     <s:String x:Key="S_Page_Notify">Notifications</s:String>
     <s:String x:Key="S_Notify_Hub_Sub">Tray, pop-ups</s:String>
     <s:String x:Key="S_Notify_Master">Show notifications</s:String>
-    <s:String x:Key="S_Notify_Master_Sub">Master switch — with this off nothing pops up at all</s:String>
-    <s:String x:Key="S_Notify_Balloon">Pop up over the tray</s:String>
-    <s:String x:Key="S_Notify_Balloon_Sub">Windows shows a tip by the clock. Turn off to keep notifications inside the app</s:String>
-    <s:String x:Key="S_Notify_Conn">Connect and disconnect</s:String>
-    <s:String x:Key="S_Notify_Conn_Sub">Say something every time the tunnel comes up or goes down</s:String>
-    <s:String x:Key="S_Notify_Upd">New app version</s:String>
-    <s:String x:Key="S_Notify_Upd_Sub">Checks GitHub at launch — tell me when a newer build is out</s:String>
+    <s:String x:Key="S_Notify_Master_Sub">The master switch. Turned off, the app shows nothing at all</s:String>
+    <s:String x:Key="S_Notify_Balloon">Show near the clock</s:String>
+    <s:String x:Key="S_Notify_Balloon_Sub">Windows shows a tip in the corner. Turn it off to keep notifications inside the app</s:String>
+    <s:String x:Key="S_Notify_Conn">Tunnel up or down</s:String>
+    <s:String x:Key="S_Notify_Conn_Sub">Say something on every connect and disconnect</s:String>
+    <s:String x:Key="S_Notify_Upd">A new version is out</s:String>
+    <s:String x:Key="S_Notify_Upd_Sub">Check GitHub at startup and say when a newer build appears</s:String>
     <s:String x:Key="S_Notify_Section">WHAT TO SHOW</s:String>
     <s:String x:Key="S_SubMeter_Title">Traffic and expiry</s:String>
     <s:String x:Key="S_SubMeter_Sub">How the subscription plate shows what is left</s:String>
@@ -449,7 +449,7 @@
     <s:String x:Key="S_VM_130">{0}: the subscription runs out in {1} d.</s:String>
     <s:String x:Key="S_VM_131">{0}: {1}% of the traffic is left</s:String>
     <s:String x:Key="S_Notify_Traffic">Traffic running out</s:String>
-    <s:String x:Key="S_Notify_Traffic_Sub">Warn when under 10% of the subscription traffic is left</s:String>
+    <s:String x:Key="S_Notify_Traffic_Sub">Warn when less than 10% of the subscription's allowance is left</s:String>
     <s:String x:Key="S_Welcome_Sub">The internet, without the walls</s:String>
     <s:String x:Key="S_Welcome_Body">The app needs a subscription link from your provider — the server list arrives with it. Everything else is already set up; nothing to change.</s:String>
     <s:String x:Key="S_Welcome_Add">Add a subscription</s:String>
@@ -480,4 +480,5 @@
     <s:String x:Key="S_Ping_HttpGet">HTTP GET is a network latency test in which an HTTP request is sent to the server and the time to the first byte of the response is measured.</s:String>
     <s:String x:Key="S_Ping_HttpHead">HTTP HEAD is a network latency test in which the server is asked for headers only, without a response body, reducing the data transferred for the same measurement.</s:String>
     <s:String x:Key="S_Ping_Stability">Stability is a connection test in which a full connection is established over the selected protocol and a request is made through it, confirming that the protocol itself works rather than only that the port is reachable.</s:String>
+    <s:String x:Key="S_VM_Failover">That server did not answer — switching to {0}</s:String>
 </ResourceDictionary>
