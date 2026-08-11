@@ -393,6 +393,11 @@ public partial class MainViewModel : ObservableObject
                               nameof(EditGlobalProxy), nameof(EditRemoteDns), nameof(EditDomesticDns),
                               nameof(EditRemoteDnsType), nameof(EditDomesticDnsType),
                               nameof(EditDomainStrategy), nameof(EditGeoip), nameof(EditGeosite),
+                              // Without these the editor opens holding the value CanEditRouting had
+                              // at startup — false, because a subscription's profile was selected —
+                              // and every control that lets you change a rule stays hidden.
+                              nameof(CanEditRouting), nameof(CannotEditRouting),
+                              nameof(RoutingHeader), nameof(ShowRoutingAdd),
                               nameof(RoutingHeader), nameof(ShowRoutingAdd),
                               nameof(IsDsAsIs), nameof(IsDsIfNoMatch), nameof(IsDsOnDemand))]
     private RoutingProfile? editingRouting;
