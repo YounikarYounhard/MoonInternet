@@ -39,14 +39,14 @@
     <s:String x:Key="S_RoutingView_005">Профиль:</s:String>
     <s:String x:Key="S_RoutingView_006">Свой</s:String>
     <s:String x:Key="S_RoutingView_007">Поиск по правилам…</s:String>
-    <s:String x:Key="S_RoutingView_008">+ Добавить</s:String>
+    <s:String x:Key="S_RoutingView_008">Добавить</s:String>
     <s:String x:Key="S_RoutingView_009">Идёт напрямую, мимо VPN</s:String>
     <s:String x:Key="S_RoutingView_010">+ Добавить</s:String>
     <s:String x:Key="S_RoutingView_011">Пусто — всё остальное идёт через VPN</s:String>
     <s:String x:Key="S_RoutingView_012">+ Добавить</s:String>
     <s:String x:Key="S_RoutingView_013">Полностью блокируется</s:String>
-    <s:String x:Key="S_RoutingView_014">Домен, IP/CIDR или тег geosite: / geoip:</s:String>
-    <s:String x:Key="S_RoutingView_015">Из гео-файла</s:String>
+    <s:String x:Key="S_RoutingView_014">example.com или geosite:CATEGORY-RU</s:String>
+    <s:String x:Key="S_RoutingView_015">Категории из гео-файлов</s:String>
     <s:String x:Key="S_RoutingView_016">Отмена</s:String>
     <s:String x:Key="S_RoutingView_017">Добавить</s:String>
     <s:String x:Key="S_RoutingView_018">Гео-файл</s:String>

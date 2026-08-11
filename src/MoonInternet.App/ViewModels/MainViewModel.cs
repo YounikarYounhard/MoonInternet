@@ -607,9 +607,10 @@ public partial class MainViewModel : ObservableObject
     public string BlockCount => $"{BlockRules.Count}";
     [ObservableProperty] private string ruleSearch = "";
     partial void OnRuleSearchChanged(string value) => RebuildRuleChips();
+    // Only DIRECT starts open — the phone opens that one and leaves the other two shut.
     [ObservableProperty] private bool directOpen = true;
-    [ObservableProperty] private bool proxyOpen = true;
-    [ObservableProperty] private bool blockOpen = true;
+    [ObservableProperty] private bool proxyOpen;
+    [ObservableProperty] private bool blockOpen;
     [RelayCommand] private void ToggleBucket(string b)
     {
         if (b == "proxy") ProxyOpen = !ProxyOpen;

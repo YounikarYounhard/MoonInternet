@@ -327,26 +327,6 @@
                         <TextBlock Text="{DynamicResource S_Routing_SecRules}" Foreground="{StaticResource TextMuted}"
                                    FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,6"/>
 
-                    <!-- search across all three buckets -->
-                    <Border CornerRadius="11" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10">
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                            <Grid Grid.Column="1">
-                                <TextBlock Text="{DynamicResource S_RoutingView_007}" Foreground="{StaticResource TextMuted}" FontSize="13" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers><DataTrigger Binding="{Binding RuleSearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBox Text="{Binding RuleSearch, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0"
-                                         Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource TextPrimary}" VerticalContentAlignment="Center" FontSize="13" Padding="10,8"/>
-                            </Grid>
-                        </Grid>
-                    </Border>
-
                     <!-- DIRECT — Bucket() from RoutingEditor.kt: the counts as two chips, the hint
                          under the name, and inside the open bucket the chips, a line to type a rule
                          into with its Добавить, and the geo-category button across the width. -->

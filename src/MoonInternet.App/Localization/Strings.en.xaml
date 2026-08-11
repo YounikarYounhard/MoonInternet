@@ -45,14 +45,14 @@
     <s:String x:Key="S_RoutingView_005">Profile:</s:String>
     <s:String x:Key="S_RoutingView_006">Custom</s:String>
     <s:String x:Key="S_RoutingView_007">Search rules…</s:String>
-    <s:String x:Key="S_RoutingView_008">+ Add</s:String>
+    <s:String x:Key="S_RoutingView_008">Add</s:String>
     <s:String x:Key="S_RoutingView_009">Goes direct, around the VPN</s:String>
     <s:String x:Key="S_RoutingView_010">+ Add</s:String>
     <s:String x:Key="S_RoutingView_011">Empty — everything else goes through the VPN</s:String>
     <s:String x:Key="S_RoutingView_012">+ Add</s:String>
     <s:String x:Key="S_RoutingView_013">Blocked outright</s:String>
-    <s:String x:Key="S_RoutingView_014">Domain, IP/CIDR, or a geosite: / geoip: tag</s:String>
-    <s:String x:Key="S_RoutingView_015">From a geo file</s:String>
+    <s:String x:Key="S_RoutingView_014">example.com or geosite:CATEGORY-RU</s:String>
+    <s:String x:Key="S_RoutingView_015">Categories from the geo files</s:String>
     <s:String x:Key="S_RoutingView_016">Cancel</s:String>
     <s:String x:Key="S_RoutingView_017">Add</s:String>
     <s:String x:Key="S_RoutingView_018">Geo file</s:String>
