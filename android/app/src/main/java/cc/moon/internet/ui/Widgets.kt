@@ -159,7 +159,7 @@ private fun MeterBar(fraction: Double, color: Color, height: androidx.compose.ui
  */
 @Composable
 fun PingIndicator(ping: Int?, busy: Boolean, style: String) {
-    if (busy) { SpinnerRing(13.dp, Moon.Accent); return }
+    if (busy) { SpinnerRing(color = Moon.Accent); return }
     val ms = ping ?: return
     val color = pingColorOf(ms)
     val signal = when {
@@ -200,21 +200,33 @@ fun PingIndicator(ping: Int?, busy: Boolean, style: String) {
  * button's icon rather than being drawn over it, which is what made the two overlap before.
  */
 @Composable
-fun SpinnerRing(size: androidx.compose.ui.unit.Dp = 15.dp, color: Color = Moon.AccentText) {
+fun SpinnerRing(size: androidx.compose.ui.unit.Dp = 13.dp, color: Color = Moon.AccentText) {
     val turn = rememberInfiniteTransition(label = "spin")
     val angle by turn.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
         label = "angle",
     )
-    Canvas(Modifier.size(size).graphicsLayer { rotationZ = angle }) {
+    // Matching the desktop Ellipse exactly, which took reading its markup twice. WPF measures
+    // StrokeDashArray in multiples of the stroke width, so "3 2" at thickness 2 is a 6-long dash
+    // and a 4-long gap — taking those numbers literally, as this did, drew dashes half the size.
+    // And WPF caps dashes flat by default; rounding them turned the short dashes into beads.
+    val stroke = 2.dp
+    Canvas(
+        Modifier.size(size)
+            // the stroke straddles the path, so without room for half of it the ring is clipped
+            .padding(stroke / 2)
+            .graphicsLayer { rotationZ = angle },
+    ) {
         drawArc(
             color = color,
             startAngle = 0f, sweepAngle = 360f, useCenter = false,
             style = Stroke(
-                width = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 2.dp.toPx())),
+                width = stroke.toPx(),
+                cap = StrokeCap.Butt,
+                pathEffect = PathEffect.dashPathEffect(
+                    floatArrayOf(3 * stroke.toPx(), 2 * stroke.toPx()),
+                ),
             ),
         )
     }

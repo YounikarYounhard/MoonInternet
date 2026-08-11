@@ -196,7 +196,7 @@ fun RoutingEditorScreen(
                     Row(Modifier.fillMaxWidth().padding(14.dp, 6.dp, 14.dp, 12.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Text(geoStatus, color = Moon.AccentText, fontSize = 11.5.sp, modifier = Modifier.weight(1f))
-                        if (geoBusy) SpinnerRing(16.dp)
+                        if (geoBusy) SpinnerRing()
                         else Text(stringResource(R.string.routing_geo_refresh),
                                   Modifier.clickable(onClick = onRefreshGeo).padding(4.dp),
                                   color = Moon.AccentText, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
