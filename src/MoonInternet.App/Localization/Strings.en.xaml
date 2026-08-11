@@ -474,7 +474,7 @@
     <s:String x:Key="S_Routing_CopySuffix">(copy)</s:String>
     <s:String x:Key="S_Routing_NewName">New profile</s:String>
     <s:String x:Key="S_Routing_Exported">Profile link copied</s:String>
-    <s:String x:Key="S_Routing_ReadOnly">This profile comes from a subscription and the next fetch overwrites it, so it cannot be changed. Right-click and pick Duplicate — the copy is yours.</s:String>
+    <s:String x:Key="S_Routing_ReadOnly">A subscription's profile: the next fetch overwrites it. Duplicate it to make changes.</s:String>
     <s:String x:Key="S_Ping_Moon">Moon Ping is a latency test in which the TCP connection to the server is established outside the active tunnel, giving the latency to the server itself rather than to the VPN connection.</s:String>
     <s:String x:Key="S_Ping_Tcp">TCP ping is a network latency test that measures the time required to establish a full TCP connection with the target server.</s:String>
     <s:String x:Key="S_Ping_HttpGet">HTTP GET is a network latency test in which an HTTP request is sent to the server and the time to the first byte of the response is measured.</s:String>

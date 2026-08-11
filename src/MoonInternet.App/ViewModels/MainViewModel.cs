@@ -270,14 +270,10 @@ public partial class MainViewModel : ObservableObject
         AvailableRoutings.Where(r => r.Builtin)
             .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false)).ToList();
 
-    /// <summary>
-    /// Only profiles you made. A subscription's import that arrived before profiles had a SubUrl
-    /// has no subscription to sit under, but it is still not yours — listing it here put two
-    /// copies of the provider's "РФ" in a section that should start out empty.
-    /// </summary>
+    /// <summary>Only profiles you made: copies and new ones. Starts out empty.</summary>
     public IReadOnlyList<RoutingRow> RoutingMineRows =>
-        AvailableRoutings.Where(r => !r.Builtin && string.IsNullOrEmpty(r.SubUrl)
-                                     && r.Source == RoutingSource.Custom)
+        AvailableRoutings.Where(r => !r.Builtin && r.Source == RoutingSource.Custom
+                                     && string.IsNullOrEmpty(r.SubUrl))
             .Select(r => Row(r, "", menu: true)).ToList();
 
     /// <summary>One row per subscription that brought routing with it — click steps inside.</summary>
@@ -316,6 +312,56 @@ public partial class MainViewModel : ObservableObject
         if (IsEditingRouting) { CloseRoutingEditor(); return; }
         if (InRoutingSub) { OpenRoutingSub = null; return; }
         BackToRoutingSettings();
+    }
+
+    /// <summary>
+    /// The profile the bottom sheet is open on. The phone opens a sheet from "⋮" — a name, what
+    /// the profile does, and the actions with their icons — not a context menu, so neither does
+    /// this. Null when it is closed.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSheetOpen), nameof(SheetTitle), nameof(SheetSubtitle),
+                              nameof(SheetEditable), nameof(SheetReadOnly))]
+    private RoutingProfile? sheetProfile;
+
+    public bool IsSheetOpen => SheetProfile is not null;
+    public string SheetTitle => SheetProfile?.Name ?? "";
+    public string SheetSubtitle => SheetProfile is null ? "" : Describe(SheetProfile);
+
+    /// <summary>Editing is offered for your own profiles only; a subscription's is overwritten.</summary>
+    public bool SheetEditable => SheetProfile is { Builtin: false, Source: RoutingSource.Custom }
+                                 && string.IsNullOrEmpty(SheetProfile.SubUrl);
+    public bool SheetReadOnly => IsSheetOpen && !SheetEditable;
+
+    [RelayCommand] private void OpenRoutingSheet(RoutingProfile? p) { if (p is not null) SheetProfile = p; }
+    [RelayCommand] private void CloseRoutingSheet() => SheetProfile = null;
+
+    [RelayCommand]
+    private void SheetEdit()
+    {
+        var p = SheetProfile; SheetProfile = null;
+        EditingRouting = p;
+    }
+
+    [RelayCommand]
+    private void SheetDuplicate()
+    {
+        var p = SheetProfile; SheetProfile = null;
+        DuplicateRouting(p);
+    }
+
+    [RelayCommand]
+    private void SheetExport()
+    {
+        var p = SheetProfile; SheetProfile = null;
+        ExportRouting(p);
+    }
+
+    [RelayCommand]
+    private void SheetDelete()
+    {
+        var p = SheetProfile; SheetProfile = null;
+        DeleteRouting(p);
     }
 
     public bool HasRoutingSubs => RoutingSubscriptionRows.Count > 0;
@@ -503,7 +549,9 @@ public partial class MainViewModel : ObservableObject
         };
         _settings.MyRoutings.Add(p); _settings.Save();
         RebuildRouting();
-        PickRouting(p);
+        // Straight into the editor: the phone's "+" opens Новый профиль, it does not silently
+        // add a row and leave you looking at the list wondering what happened.
+        EditingRouting = p;
     }
     public IEnumerable<string> DirectSites => (EditingRouting ?? SelectedRouting)?.DirectSites ?? Enumerable.Empty<string>();
     public IEnumerable<string> ProxySites => SelectedRouting?.ProxySites ?? Enumerable.Empty<string>();
@@ -2419,6 +2467,22 @@ public partial class MainViewModel : ObservableObject
 
     private void RebuildRouting()
     {
+        // An import made before profiles carried a subscription has an empty SubUrl. It is not
+        // yours, so it does not belong in "мои профили", and hiding it lost the HAPP half of the
+        // pair outright — the choice between INCY and HAPP disappeared. Give it the subscription
+        // it came from instead. With more than one subscription there is nothing to go on, so
+        // those are left alone rather than guessed at.
+        if (Subscriptions.Count == 1)
+        {
+            foreach (var orphan in _settings.MyRoutings
+                         .Where(r => r.IsImported && string.IsNullOrEmpty(r.SubUrl)).ToList())
+            {
+                orphan.SubUrl = Subscriptions[0].Url;
+                orphan.Id = RoutingProfiles.ImportedId(orphan.SubUrl, orphan.Source);
+            }
+            _settings.Save();
+        }
+
         AvailableRoutings.Clear();
         foreach (var b in RoutingProfiles.Builtins()) AvailableRoutings.Add(b);      // the two we ship
 

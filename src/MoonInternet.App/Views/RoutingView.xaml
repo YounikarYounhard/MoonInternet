@@ -24,6 +24,33 @@
              accent when the row is picked, the name with an optional source badge, the line saying
              what the profile does, and the trailing chevron or menu. Selection is the accent
              outline we use for the active server, not a radio column. -->
+        <!-- SheetItem() from Sheets.kt: a glyph, a label, the whole row is the button. -->
+        <Style x:Key="SheetItem" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="r" Background="Transparent" Padding="20,11">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{TemplateBinding Tag}" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                           Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" Width="26"/>
+                                <TextBlock Text="{TemplateBinding Content}" FontSize="14"
+                                           Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="r" Property="Background" Value="#14FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <DataTemplate x:Key="RoutingCard">
             <Button Cursor="Hand" Margin="0,0,0,10" HorizontalContentAlignment="Stretch"
                     Command="{Binding DataContext.ActivateRoutingRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -63,24 +90,8 @@
                                 <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE712;" FontSize="15"
                                         VerticalAlignment="Center"
                                         Visibility="{Binding HasMenu, Converter={StaticResource BoolVis}}"
-                                        Click="RoutingMenu_Click" Tag="{Binding Profile}">
-                                    <Button.ContextMenu>
-                                        <!-- A ContextMenu lives in its own visual tree, so a binding
-                                             to the UserControl's DataContext finds nothing and every
-                                             item comes up greyed. The profile rides in on Tag and the
-                                             handler looks the view model up itself. -->
-                                        <ContextMenu>
-                                            <MenuItem Header="{DynamicResource S_Routing_Edit}" Click="MenuEdit_Click"
-                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                            <MenuItem Header="{DynamicResource S_Routing_Duplicate}" Click="MenuDuplicate_Click"
-                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                            <MenuItem Header="{DynamicResource S_Routing_Export}" Click="MenuExport_Click"
-                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                            <MenuItem Header="{DynamicResource S_Routing_Delete}" Click="MenuDelete_Click"
-                                                      Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                        </ContextMenu>
-                                    </Button.ContextMenu>
-                                </Button>
+                                        Command="{Binding DataContext.OpenRoutingSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Profile}"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -434,5 +445,49 @@
                 </DockPanel>
             </Border>
         </Border>
+
+        <!-- ===== profile sheet =====
+             What "⋮" opens on the phone: a panel up from the bottom with the profile's name, the
+             line saying what it does, the actions with their icons, and — for a subscription's
+             profile — the note explaining why editing is not among them. -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="80" Background="#99060410"
+                Visibility="{Binding IsSheetOpen, Converter={StaticResource BoolVis}}">
+            <Border.InputBindings>
+                <MouseBinding MouseAction="LeftClick" Command="{Binding CloseRoutingSheetCommand}"/>
+            </Border.InputBindings>
+            <Border VerticalAlignment="Bottom" Background="{StaticResource Card}" CornerRadius="18,18,0,0"
+                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,1,1,0" Padding="0,10,0,18">
+                <StackPanel>
+                    <Border Width="34" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}"
+                            HorizontalAlignment="Center" Margin="0,0,0,12"/>
+
+                    <StackPanel Margin="20,0,20,10">
+                        <TextBlock Text="{Binding SheetTitle}" FontSize="15" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding SheetSubtitle}" Foreground="{StaticResource TextSecondary}"
+                                   FontSize="11.5" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <Button Style="{StaticResource SheetItem}" Tag="&#xE70F;" Content="{DynamicResource S_Routing_Edit}"
+                            Visibility="{Binding SheetEditable, Converter={StaticResource BoolVis}}"
+                            Command="{Binding SheetEditCommand}"/>
+                    <Button Style="{StaticResource SheetItem}" Tag="&#xE8C8;" Content="{DynamicResource S_Routing_Duplicate}"
+                            Command="{Binding SheetDuplicateCommand}"/>
+                    <Button Style="{StaticResource SheetItem}" Tag="&#xE72D;" Content="{DynamicResource S_Routing_Export}"
+                            Command="{Binding SheetExportCommand}"/>
+
+                    <StackPanel Visibility="{Binding SheetEditable, Converter={StaticResource BoolVis}}">
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,6"/>
+                        <Button Style="{StaticResource SheetItem}" Tag="&#xE74D;" Content="{DynamicResource S_Routing_Delete}"
+                                Foreground="{StaticResource Danger}" Command="{Binding SheetDeleteCommand}"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{DynamicResource S_Routing_ReadOnly}" Foreground="{StaticResource TextMuted}"
+                               FontSize="11.5" TextWrapping="Wrap" Margin="20,6,20,0"
+                               Visibility="{Binding SheetReadOnly, Converter={StaticResource BoolVis}}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
     </Grid>
 </UserControl>
