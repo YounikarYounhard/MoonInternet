@@ -578,7 +578,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun checkConnection() = viewModelScope.launch(Dispatchers.IO) {
         _checkPing.value = "…"
-        val ms = MoonVpnService.runner?.measureDelay()
+        // The core's own measureDelay is tried first, but it is not the last word: it came back
+        // empty on a tunnel that was demonstrably carrying hundreds of kilobytes, and a check that
+        // says "нет ответа" over a working connection is worse than no check at all. Falling back
+        // to a real request through our own SOCKS listener measures the same path the apps use.
+        val ms = MoonVpnService.runner?.measureDelay()?.takeIf { it >= 0 } ?: socksCheck()
         _checkPing.value = when {
             ms == null -> s(R.string.vm_no_reply)
             ms < 0 -> s(R.string.vm_no_reply)
@@ -589,6 +593,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (ms != null && ms >= 0) store.selectedServer()?.let { sel ->
             _pings.update { it + (sel.pingKey to ms.toInt()) }
         }
+    }
+
+    /**
+     * A HEAD request to the test URL through the local SOCKS port — the same route every other app
+     * on the phone takes while the tunnel is up. Returns the round trip in ms, or -1.
+     */
+    private fun socksCheck(): Long {
+        val st = store.state.value
+        return runCatching {
+            val proxy = java.net.Proxy(
+                java.net.Proxy.Type.SOCKS,
+                InetSocketAddress("127.0.0.1", st.socksPort),
+            )
+            val t0 = System.currentTimeMillis()
+            (java.net.URL(st.pingTestUrl).openConnection(proxy) as java.net.HttpURLConnection).run {
+                connectTimeout = 6000; readTimeout = 6000
+                requestMethod = "HEAD"
+                instanceFollowRedirects = false
+                responseCode
+                disconnect()
+            }
+            System.currentTimeMillis() - t0
+        }.getOrDefault(-1L)
     }
 
     // ---- connection ------------------------------------------------------
