@@ -720,6 +720,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _geoStatus = MutableStateFlow("")
     val geoStatus = _geoStatus.asStateFlow()
 
+    /** What "Авто" would use right now — the routing of the current server's subscription. */
+    fun autoRouting(): RoutingProfile? = store.autoRoutingPublic()
+
+    /** Name of the subscription that profile came from, for the line under "Авто". */
+    fun autoSubName(): String {
+        val p = autoRouting() ?: return ""
+        return store.state.value.subscriptions.firstOrNull { it.url == p.subUrl }?.name.orEmpty()
+    }
+
     fun activeRouting(): RoutingProfile? = store.activeRouting()
 
     /** Categories present in the downloaded geo files, for the rule picker. Off the main thread. */

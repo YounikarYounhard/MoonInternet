@@ -517,4 +517,6 @@
     <s:String x:Key="S_Routing_SecGeo">GEO DATA</s:String>
     <s:String x:Key="S_Routing_IpCount">{0} IP</s:String>
     <s:String x:Key="S_Routing_Empty">Empty</s:String>
+    <s:String x:Key="S_Routing_Auto">Auto — by the server's subscription</s:String>
+    <s:String x:Key="S_Routing_AutoNone">The current server's subscription profile</s:String>
 </ResourceDictionary>

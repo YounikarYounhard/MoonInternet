@@ -276,9 +276,29 @@ public partial class MainViewModel : ObservableObject
     private RoutingRow Row(RoutingProfile p, string glyph, bool menu, string? badge = null) =>
         new(p, glyph, p.Name, Describe(p), p.Id == SelectedRouting?.Id, badge, menu, false, null);
 
+    /// <summary>True while no profile has been chosen by hand — routing follows the server.</summary>
+    public bool IsRoutingAuto => string.IsNullOrEmpty(_settings.RoutingChoice);
+
+    /// <summary>
+    /// The "Авто" card, first in the list. Its second line names the profile it lands on right
+    /// now, so the mode is not something you have to take on trust.
+    /// </summary>
+    private RoutingRow AutoRow()
+    {
+        var picked = AutoRouting();
+        string sub = picked is null
+            ? Localization.Loc.T("S_Routing_AutoNone")
+            : $"{SubscriptionNameFor(picked)} · {picked.SourceText}";
+        return new RoutingRow(null, "", Localization.Loc.T("S_Routing_Auto"), sub,
+                              IsRoutingAuto, null, false, false, null);
+    }
+
+    private string SubscriptionNameFor(RoutingProfile p) =>
+        Subscriptions.FirstOrDefault(s => s.Url == p.SubUrl)?.Name ?? p.Name;
+
     public IReadOnlyList<RoutingRow> RoutingBuiltinRows =>
-        AvailableRoutings.Where(r => r.Builtin)
-            .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false)).ToList();
+        new[] { AutoRow() }.Concat(AvailableRoutings.Where(r => r.Builtin)
+            .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false))).ToList();
 
     /// <summary>Only profiles you made: copies and new ones. Starts out empty.</summary>
     public IReadOnlyList<RoutingRow> RoutingMineRows =>
@@ -386,7 +406,18 @@ public partial class MainViewModel : ObservableObject
     {
         if (row is null) return;
         if (row.SubUrl is not null) { OpenRoutingSub = row.SubUrl; return; }
-        if (row.Profile is not null) PickRouting(row.Profile);
+        if (row.Profile is null)
+        {
+            // The Авто card. Forgetting the choice is the whole mechanism — with nothing stored,
+            // routing goes back to following whichever subscription the server belongs to.
+            _settings.RoutingChoice = null; _settings.Save();
+            SelectedRouting = AutoRouting() ?? AvailableRoutings.FirstOrDefault();
+            OnPropertyChanged(nameof(IsRoutingAuto));
+            RebuildRouting();
+            ReconnectIfConnected();
+            return;
+        }
+        PickRouting(row.Profile);
     }
 
     /// <summary>
@@ -514,6 +545,7 @@ public partial class MainViewModel : ObservableObject
         if (p is null || ReferenceEquals(p, SelectedRouting)) return;
         SelectedRouting = p;
         _settings.RoutingChoice = p.Id; _settings.Save();
+        OnPropertyChanged(nameof(IsRoutingAuto));
         ReconnectIfConnected();
     }
 

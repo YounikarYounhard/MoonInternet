@@ -357,7 +357,10 @@ class MainActivity : ComponentActivity() {
                                 else -> RoutingScreen(
                                     profiles = state.routings,
                                     subscriptions = state.subscriptions,
-                                    selectedId = vm.activeRouting()?.id.orEmpty(),
+                                    // the stored choice, not the resolved one: blank means Авто
+                                    selectedId = state.selectedRoutingId,
+                                    autoPick = vm.autoRouting(),
+                                    autoSubName = vm.autoSubName(),
                                     onBack = { page = Page.Settings; settingsPage = SettingsPage.Routing },
                                     onSelect = vm::selectRouting,
                                     onOpenSub = { routingSub = it },

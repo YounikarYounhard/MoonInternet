@@ -217,6 +217,9 @@ class Store(private val ctx: Context) {
             ?: st.routings.firstOrNull()
     }
 
+    /** Same answer the tunnel uses, for the "Авто" card to show. */
+    fun autoRoutingPublic(): RoutingProfile? = autoRouting(_state.value)
+
     private fun autoRouting(st: AppState): RoutingProfile? {
         val raw = st.selectedServerRaw ?: return null
         val sub = st.subscriptions.firstOrNull { s -> s.servers.any { it.raw == raw } } ?: return null

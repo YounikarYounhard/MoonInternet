@@ -35,6 +35,9 @@ fun RoutingScreen(
     profiles: List<RoutingProfile>,
     subscriptions: List<Subscription>,
     selectedId: String,
+    /** What "Авто" resolves to right now, and the subscription it came from. */
+    autoPick: RoutingProfile?,
+    autoSubName: String,
     onBack: () -> Unit,
     onSelect: (String) -> Unit,
     onOpenSub: (String) -> Unit,
@@ -66,6 +69,19 @@ fun RoutingScreen(
             contentPadding = PaddingValues(bottom = bottomNavSpace()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            // Авто first: routing follows the subscription the current server came from, and the
+            // second line names the profile that lands on right now — the mode is not a promise.
+            item {
+                RoutingRow(
+                    icon = Icons.Filled.AutoAwesome,
+                    title = stringResource(R.string.routing_auto),
+                    subtitle = autoPick?.let { "$autoSubName · ${it.source.uppercase()}" }
+                        ?: stringResource(R.string.routing_auto_none),
+                    selected = selectedId.isBlank(),
+                    onClick = { onSelect("") },
+                )
+            }
+
             items(builtins.size) { i ->
                 val p = builtins[i]
                 RoutingRow(
