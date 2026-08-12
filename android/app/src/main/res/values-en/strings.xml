@@ -448,4 +448,5 @@
     <string name="add_paste_sub">"Whatever is on the clipboard is added at once"</string>
     <string name="routing_prefer">"Prefer"</string>
     <string name="routing_prefer_hint">"When a subscription carries both, this is the one taken"</string>
+    <string name="routing_auto_short">"Auto"</string>
 </resources>

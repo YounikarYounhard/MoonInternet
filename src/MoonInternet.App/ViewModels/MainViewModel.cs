@@ -225,7 +225,13 @@ public partial class MainViewModel : ObservableObject
     private RoutingProfile? selectedRouting;
     partial void OnSelectedRoutingChanged(RoutingProfile? value) => RebuildRuleChips();
 
-    public string RoutingName => SelectedRouting?.Name ?? Localization.Loc.T("S_None");
+    /// <summary>
+    /// What the settings row says routing is set to. In automatic mode that is "Авто" — naming the
+    /// profile it happens to have resolved to reads as a profile someone chose.
+    /// </summary>
+    public string RoutingName => IsRoutingAuto
+        ? Localization.Loc.T("S_Routing_AutoShort")
+        : SelectedRouting?.Name ?? Localization.Loc.T("S_None");
     /// <summary>StringFormat cannot take a DynamicResource, so the whole line is built here.</summary>
     public string TotalServersText => string.Format(Localization.Loc.T("S_VM_120"), TotalServers);
     public string RoutingSubtitle => string.Format(Localization.Loc.T("S_Routing_Sub_Fmt"), RoutingName);
@@ -580,7 +586,8 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private void RefreshRoutingCards()
     {
-        foreach (var n in new[] { nameof(IsRoutingAuto), nameof(RoutingAutoRow), nameof(RoutingBuiltinRows),
+        foreach (var n in new[] { nameof(IsRoutingAuto), nameof(RoutingName), nameof(RoutingSubtitle),
+                                  nameof(RoutingAutoRow), nameof(RoutingBuiltinRows),
                                   nameof(RoutingSubscriptionRows), nameof(RoutingMineRows), nameof(RoutingSubRows) })
             OnPropertyChanged(n);
     }

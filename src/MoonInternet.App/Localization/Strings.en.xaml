@@ -522,4 +522,5 @@
     <s:String x:Key="S_Paste_Long">Paste from the clipboard</s:String>
     <s:String x:Key="S_Routing_Prefer">Prefer</s:String>
     <s:String x:Key="S_Routing_PreferHint">When a subscription carries both, this is the one taken</s:String>
+    <s:String x:Key="S_Routing_AutoShort">Auto</s:String>
 </ResourceDictionary>

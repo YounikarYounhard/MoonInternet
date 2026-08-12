@@ -493,4 +493,5 @@
     <s:String x:Key="S_Paste_Long">Вставить из буфера</s:String>
     <s:String x:Key="S_Routing_Prefer">Предпочтение</s:String>
     <s:String x:Key="S_Routing_PreferHint">Если в подписке две маршрутизации, будет выбрана эта</s:String>
+    <s:String x:Key="S_Routing_AutoShort">Авто</s:String>
 </ResourceDictionary>

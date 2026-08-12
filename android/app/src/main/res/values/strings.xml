@@ -451,4 +451,5 @@
     <string name="add_paste_sub">"Ссылка из буфера добавится сразу"</string>
     <string name="routing_prefer">"Предпочтение"</string>
     <string name="routing_prefer_hint">"Если в подписке две маршрутизации, будет выбрана эта"</string>
+    <string name="routing_auto_short">"Авто"</string>
 </resources>

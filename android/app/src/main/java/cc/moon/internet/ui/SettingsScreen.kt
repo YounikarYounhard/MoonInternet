@@ -295,7 +295,14 @@ private fun RoutingSettingsPage(
             state.useRouting) { v -> onSet { copy(useRouting = v) } }
         RowDivider()
         NavRow(stringResource(R.string.settingsscreen_040),
-               stringResource(R.string.fmt_routing_sub, routing?.name ?: stringResource(R.string.none)), onOpenRouting)
+               // In automatic mode the row says "Авто". Naming the profile it happens to have
+               // resolved to would read as a profile somebody chose.
+               stringResource(
+                   R.string.fmt_routing_sub,
+                   if (state.selectedRoutingId.isBlank()) stringResource(R.string.routing_auto_short)
+                   else routing?.name ?: stringResource(R.string.none),
+               ),
+               onOpenRouting)
         // Next to the profile picker, not below the tunnel switches: both rows answer "what goes
         // through the tunnel", so the two doors into that belong side by side.
         NavRow(stringResource(R.string.settingsscreen_047), stringResource(R.string.settingsscreen_048)) {
