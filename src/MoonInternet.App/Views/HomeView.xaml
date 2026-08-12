@@ -227,7 +227,7 @@
                                 <Border x:Name="b" CornerRadius="10" Background="{StaticResource ChipBg}" Padding="14,9">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                        <TextBlock Text="{DynamicResource S_HomeView_008}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{DynamicResource S_Paste_Long}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                                 <ControlTemplate.Triggers>

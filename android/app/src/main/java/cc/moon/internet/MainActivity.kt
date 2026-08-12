@@ -399,7 +399,7 @@ class MainActivity : ComponentActivity() {
 
                         if (showAdd) AddDialog(
                             onDismiss = { showAdd = false },
-                            onConfirm = { url -> vm.addSubscription(url); showAdd = false },
+                            onConfirm = { url, name -> vm.addSubscription(url, name); showAdd = false },
                             onScan = { showAdd = false; scanQr.launch(Unit) },
                         )
 

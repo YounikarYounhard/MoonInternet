@@ -945,8 +945,15 @@ private fun AboutPage(
 }
 
 @Composable
-fun AddDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit, onScan: () -> Unit) {
+fun AddDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (url: String, name: String) -> Unit,
+    onScan: () -> Unit,
+) {
     var text by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settingsscreen_195), color = Moon.TextPrimary) },
@@ -955,24 +962,57 @@ fun AddDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit, onScan: () -> 
                 Text(stringResource(R.string.settingsscreen_196), fontSize = 12.sp, color = Moon.TextSecondary)
                 Spacer(Modifier.height(8.dp))
                 MoonTextField(text, { text = it }, stringResource(R.string.settingsscreen_197))
+                Spacer(Modifier.height(8.dp))
+                // Optional, same as on the desktop: a name of your own beats whatever the panel
+                // calls itself, and with two subscriptions from one provider that is the only way
+                // to tell them apart.
+                MoonTextField(name, { name = it }, stringResource(R.string.add_name_hint))
                 Spacer(Modifier.height(12.dp))
-                Row(
-                    Modifier.fillMaxWidth().clickable(onClick = onScan)
-                        .background(Moon.ChipBg, RoundedCornerShape(11.dp))
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+
+                // Paste does not fill the field for you to press Добавить afterwards — there is
+                // nothing to decide between those two taps, so it adds.
+                AddDialogRow(
+                    Icons.Filled.ContentPaste,
+                    stringResource(R.string.add_paste),
+                    stringResource(R.string.add_paste_sub),
                 ) {
-                    Icon(Icons.Filled.QrCodeScanner, null, tint = Moon.AccentText, modifier = Modifier.size(19.dp))
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text(stringResource(R.string.settingsscreen_198), color = Moon.TextPrimary, fontSize = 13.5.sp)
-                        Text(stringResource(R.string.settingsscreen_199), color = Moon.TextSecondary, fontSize = 11.sp)
-                    }
+                    val fromClip = clipboard.getText()?.text?.trim().orEmpty()
+                    if (fromClip.isNotEmpty()) onConfirm(fromClip, name)
                 }
+                Spacer(Modifier.height(8.dp))
+                AddDialogRow(
+                    Icons.Filled.QrCodeScanner,
+                    stringResource(R.string.settingsscreen_198),
+                    stringResource(R.string.settingsscreen_199),
+                    onScan,
+                )
             }
         },
-        confirmButton = { TextButton({ onConfirm(text) }) { Text(stringResource(R.string.settingsscreen_195)) } },
+        confirmButton = { TextButton({ onConfirm(text, name) }) { Text(stringResource(R.string.settingsscreen_195)) } },
         dismissButton = { TextButton(onDismiss) { Text(stringResource(R.string.settingsscreen_200), color = Moon.TextSecondary) } },
         containerColor = Moon.Card,
     )
+}
+
+/** Full-width row inside the add dialog: icon, title, one line of explanation. */
+@Composable
+private fun AddDialogRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .background(Moon.ChipBg, RoundedCornerShape(11.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = Moon.AccentText, modifier = Modifier.size(19.dp))
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(title, color = Moon.TextPrimary, fontSize = 13.5.sp)
+            Text(subtitle, color = Moon.TextSecondary, fontSize = 11.sp)
+        }
+    }
 }

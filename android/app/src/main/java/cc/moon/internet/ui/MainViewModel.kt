@@ -238,14 +238,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- subscriptions ---------------------------------------------------
-    fun addSubscription(url: String) = viewModelScope.launch {
+    /** @param name what you called it yourself; blank keeps whatever the panel sends. */
+    fun addSubscription(url: String, name: String = "") = viewModelScope.launch {
         val u = url.trim()
         if (u.isBlank()) return@launch
         // a bare share link is a single server, not a subscription
         if (!u.startsWith("http", true)) {
             ShareLinkParser.parse(u)?.let { p ->
                 store.update { st ->
-                    val sub = Subscription(url = "clipboard:${UUID.randomUUID()}", name = p.label.ifBlank { "Сервер" }, servers = listOf(p))
+                    val sub = Subscription(url = "clipboard:${UUID.randomUUID()}", name = name.ifBlank { p.label }.ifBlank { "Сервер" }, servers = listOf(p))
                     st.copy(subscriptions = st.subscriptions + sub, selectedServerRaw = st.selectedServerRaw ?: p.raw)
                 }
                 _status.value = s(R.string.vm_server_added)
@@ -258,7 +259,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 store.update { st ->
                     val sub = Subscription(
                         url = u,
-                        name = f.title ?: hostOf(u),
+                        name = name.ifBlank { f.title ?: hostOf(u) },
                         servers = f.servers,
                         announcement = f.announcement,
                         trafficText = f.trafficText,

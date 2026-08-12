@@ -443,4 +443,7 @@
     <string name="ping_desc_stability">"Stability is a connection test in which a full connection is established over the selected protocol and a request is made through it, confirming that the protocol itself works rather than only that the port is reachable."</string>
     <string name="routing_auto">"Auto — by the server's subscription"</string>
     <string name="routing_auto_none">"The current server's subscription profile"</string>
+    <string name="add_name_hint">"Name (optional)"</string>
+    <string name="add_paste">"Paste from the clipboard"</string>
+    <string name="add_paste_sub">"Whatever is on the clipboard is added at once"</string>
 </resources>
