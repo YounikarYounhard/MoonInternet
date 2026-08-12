@@ -2631,8 +2631,13 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private RoutingProfile? AutoRouting()
     {
-        var server = SelectedServer?.Profile;
-        if (server is null) return null;
+        // SelectedServer is the live selection and it is not always set yet — the routing page can
+        // be opened before the list has restored it, and then Авто had nothing to go on and fell
+        // through to Глобальный while a server was plainly chosen. The remembered name is the
+        // same answer, one step later.
+        var server = SelectedServer?.Profile
+                     ?? AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName)?.Profile;
+        if (server is null) return AvailableRoutings.FirstOrDefault(r => r.Id == "builtin-global");
 
         var sub = Subscriptions.FirstOrDefault(s => s.Servers.Any(x => ReferenceEquals(x.Profile, server)))
                   ?? Subscriptions.FirstOrDefault(s => s.Servers.Any(x => x.Profile.Raw == server.Raw));
