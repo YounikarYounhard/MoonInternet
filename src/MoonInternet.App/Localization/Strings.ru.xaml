@@ -53,7 +53,7 @@
     <s:String x:Key="S_RoutingView_019">Поиск тегов</s:String>
     <s:String x:Key="S_SettingsView_001">Назад</s:String>
     <s:String x:Key="S_SettingsView_002">Настройки</s:String>
-    <s:String x:Key="S_SettingsView_003">Оформление</s:String>
+    <s:String x:Key="S_SettingsView_003">Кастомизация</s:String>
     <s:String x:Key="S_SettingsView_004">Шрифт</s:String>
     <s:String x:Key="S_SettingsView_005">Подключение</s:String>
     <s:String x:Key="S_SettingsView_006">TUN, авто-переподключение, kill-switch</s:String>

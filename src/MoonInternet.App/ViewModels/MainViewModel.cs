@@ -57,7 +57,13 @@ public partial class ServerItem : ObservableObject
             && (!string.IsNullOrEmpty(w.Jc) || !string.IsNullOrEmpty(w.S1) || !string.IsNullOrEmpty(w.H1)) ? "AmneziaWG" : "WireGuard",
         _ => Profile.Protocol.ToString()
     };
-    public string Network => Profile.Network.ToUpperInvariant();
+    /// <summary>
+    /// What the connection rides on. Profile.Network only means anything for the protocols that
+    /// can pick one — VLESS, VMess, Trojan. Hysteria2 is QUIC and WireGuard is WireGuard, both
+    /// UDP always; neither reads that field, so it kept its default and the row said "TCP".
+    /// </summary>
+    public string Network => Profile.Protocol is ProtocolType.Hysteria2 or ProtocolType.Wireguard
+        ? "UDP" : Profile.Network.ToUpperInvariant();
     public string Security => Profile.Security.ToUpperInvariant();
     public bool HasSecurity => Profile.Security is not ("none" or "");
     // Pretty JSON of this server's outbound — shown in the per-server "⋯" config dialog.
@@ -1222,6 +1228,15 @@ public partial class MainViewModel : ObservableObject
             return;
         }
         _settings.LastServerName = value.Label; _settings.Save();   // remember the choice even without connecting
+
+        // With no profile picked by hand, routing follows the subscription this server came from —
+        // so moving between subscriptions moves the rules too. A saved choice is left alone.
+        if (string.IsNullOrEmpty(_settings.RoutingChoice))
+        {
+            var auto = AutoRouting();
+            if (auto is not null && !ReferenceEquals(auto, SelectedRouting)) SelectedRouting = auto;
+        }
+
         ReconnectIfConnected();                                     // switching server while connected → reconnect to it
     }
     partial void OnFilterChanged(string value) => RefreshFilters();
@@ -2512,6 +2527,30 @@ public partial class MainViewModel : ObservableObject
         // ponytail: QR-image decoding needs a decoder library that can't be fetched in this offline build.
         Status = Localization.Loc.T("S_VM_226");
 
+    /// <summary>
+    /// The routing to use while the user has not picked one: the profile that came with the
+    /// subscription the current server belongs to. INCY when a subscription carries both, since
+    /// that is the one those panels keep current; HAPP when it is all there is.
+    ///
+    /// So two subscriptions each keep their own rules, and switching servers switches rules with
+    /// them — without anybody choosing anything. The moment a profile is picked by hand that
+    /// choice is stored and this stops being consulted.
+    /// </summary>
+    private RoutingProfile? AutoRouting()
+    {
+        var server = SelectedServer?.Profile;
+        if (server is null) return null;
+
+        var sub = Subscriptions.FirstOrDefault(s => s.Servers.Any(x => ReferenceEquals(x.Profile, server)))
+                  ?? Subscriptions.FirstOrDefault(s => s.Servers.Any(x => x.Profile.Raw == server.Raw));
+        if (sub is null) return null;
+
+        var mine = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
+        return mine.FirstOrDefault(r => r.Source == RoutingSource.Incy)
+               ?? mine.FirstOrDefault(r => r.Source == RoutingSource.Happ)
+               ?? mine.FirstOrDefault();
+    }
+
     private void RebuildRouting()
     {
         // An import made before profiles carried a subscription has an empty SubUrl. It is not
@@ -2550,9 +2589,10 @@ public partial class MainViewModel : ObservableObject
         }
         foreach (var r in _settings.MyRoutings) AvailableRoutings.Add(r);            // yours, editable
 
-        // Honour the user's saved choice; otherwise the first shipped profile.
+        // A saved choice wins. Without one we follow the server: see AutoRouting.
         SelectedRouting = AvailableRoutings.FirstOrDefault(r => r.Id == _settings.RoutingChoice)
                           ?? AvailableRoutings.FirstOrDefault(r => $"{r.Source}:{r.Name}" == _settings.RoutingChoice)
+                          ?? AutoRouting()
                           ?? AvailableRoutings.FirstOrDefault();
         OnPropertyChanged(nameof(HasMultipleRoutings));
         OnPropertyChanged(nameof(HasRoutings));

@@ -103,7 +103,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 5;
+    private const int CurrentVersion = 6;
 
     private void Migrate()
     {
@@ -121,6 +121,12 @@ public sealed class AppSettings
             c.Source = MoonInternet.Core.Models.RoutingSource.Custom;
             MyRoutings.Add(c);
         }
+        // v6: a routing choice pointing at a subscription's own profile is exactly what following
+        // the server would pick, so let it go — the setting becomes automatic rather than frozen on
+        // one subscription. A built-in or one of your own is a real decision and stays.
+        if (SettingsVersion < 6 && RoutingChoice is { Length: > 0 } rc && rc.StartsWith("sub:"))
+            RoutingChoice = null;
+
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }
 

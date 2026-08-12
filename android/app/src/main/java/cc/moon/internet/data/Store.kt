@@ -127,7 +127,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 6 }
+    private companion object { const val CURRENT_VERSION = 7 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -162,7 +162,7 @@ class Store(private val ctx: Context) {
                 subMeter = "text",
                 welcomeShown = loaded.welcomeShown || loaded.subscriptions.isNotEmpty(),
                 routings = routings,
-                selectedRoutingId = migratedSelection(loaded, routings),
+                selectedRoutingId = releaseAutoSelection(migratedSelection(loaded, routings), routings),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
         // Ids handed out here must survive the next launch, or the selection points at nothing.
@@ -202,8 +202,28 @@ class Store(private val ctx: Context) {
         update { it.copy(subscriptions = it.subscriptions.filterNot { s -> s.url == url }) }
 
     /** The routing profile currently in effect. */
+    /**
+     * The routing the tunnel will use.
+     *
+     * A profile picked by hand wins. With nothing picked we follow the server: the routing that
+     * came with the subscription this server belongs to — INCY when a subscription carries both,
+     * since that is the one those panels keep current, HAPP when it is all there is. So two
+     * subscriptions keep their own rules and switching servers switches rules with them, without
+     * anybody choosing anything.
+     */
     fun activeRouting(): RoutingProfile? = _state.value.let { st ->
-        st.routings.firstOrNull { it.id == st.selectedRoutingId } ?: st.routings.firstOrNull()
+        st.routings.firstOrNull { it.id == st.selectedRoutingId }
+            ?: autoRouting(st)
+            ?: st.routings.firstOrNull()
+    }
+
+    private fun autoRouting(st: AppState): RoutingProfile? {
+        val raw = st.selectedServerRaw ?: return null
+        val sub = st.subscriptions.firstOrNull { s -> s.servers.any { it.raw == raw } } ?: return null
+        val mine = st.routings.filter { it.subUrl == sub.url }
+        return mine.firstOrNull { it.source == "incy" }
+            ?: mine.firstOrNull { it.source == "happ" }
+            ?: mine.firstOrNull()
     }
 
     /** Saves an edited profile in place, or appends it when the id is new. */
@@ -212,7 +232,9 @@ class Store(private val ctx: Context) {
         val list = if (st.routings.any { it.id == p.id })
             st.routings.map { if (it.id == p.id) p else it }
         else st.routings + p
-        st.copy(routings = list, selectedRoutingId = st.selectedRoutingId.ifBlank { p.id })
+        // Deliberately does not pick the profile it just stored. A subscription refresh calls this,
+        // and making the import the chosen profile would end "follow the server" on the first fetch.
+        st.copy(routings = list)
     }
 
     suspend fun selectRouting(id: String) = update { it.copy(selectedRoutingId = id) }
@@ -262,6 +284,14 @@ class Store(private val ctx: Context) {
 
     /** A subscription carries at most one profile per source, so that pair is the identity. */
     fun importedId(subUrl: String, source: String) = "sub:$subUrl:$source"
+
+    /**
+     * A selection pointing at a subscription's own profile is what "follow the server" would pick
+     * anyway, so it is cleared: the setting becomes automatic instead of frozen on one
+     * subscription. A built-in or a profile of your own is a real decision and stays.
+     */
+    private fun releaseAutoSelection(id: String, routings: List<RoutingProfile>): String =
+        if (routings.any { it.id == id && it.subUrl.isNotBlank() }) "" else id
 
     private fun migrateRoutings(list: List<RoutingProfile>, subs: List<String>): List<RoutingProfile> {
         val withIds = list.map {

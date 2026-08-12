@@ -10,7 +10,7 @@
     <string name="fmt_config_error">"— ошибка: %1$s"</string>
     <string name="none">"нет"</string>
     <string name="qr_hint">"Наведите камеру на QR-код"</string>
-    <string name="page_appearance">"Оформление"</string>
+    <string name="page_appearance">"Кастомизация"</string>
     <string name="page_appearance_sub">"Шрифт"</string>
     <string name="page_connection">"Подключение"</string>
     <string name="page_connection_sub">"Локальный прокси, LAN, UDP"</string>

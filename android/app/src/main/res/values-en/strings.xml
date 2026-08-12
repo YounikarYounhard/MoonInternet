@@ -8,7 +8,7 @@
     <string name="fmt_config_error">"— error: %1$s"</string>
     <string name="none">"none"</string>
     <string name="qr_hint">"Point the camera at a QR code"</string>
-    <string name="page_appearance">"Appearance"</string>
+    <string name="page_appearance">"Customisation"</string>
     <string name="page_appearance_sub">"Font"</string>
     <string name="page_connection">"Connection"</string>
     <string name="page_connection_sub">"Local proxy, LAN, UDP"</string>
