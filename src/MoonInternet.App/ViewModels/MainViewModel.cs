@@ -220,7 +220,7 @@ public partial class MainViewModel : ObservableObject
         nameof(CanEditRouting), nameof(CannotEditRouting),
         // The cards are built here, so without these the click landed, the choice was saved, and
         // the list went on drawing the old outline — which reads as "the row does not react".
-        nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
+        nameof(RoutingAutoRow), nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
         nameof(RoutingSubRows), nameof(RoutingHeader))]
     private RoutingProfile? selectedRouting;
     partial void OnSelectedRoutingChanged(RoutingProfile? value) => RebuildRuleChips();
@@ -253,7 +253,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(InRoutingSub), nameof(NotInRoutingSub),
                               nameof(RoutingSubRows), nameof(RoutingSubTitle),
                               nameof(RoutingHeader), nameof(ShowRoutingAdd), nameof(CanEditRouting), nameof(CannotEditRouting),
-                              nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
+                              nameof(RoutingAutoRow), nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows), nameof(RoutingMineRows),
                               nameof(HasRoutingSubs), nameof(HasRoutingMine))]
     private string? openRoutingSub;
 
@@ -293,7 +293,7 @@ public partial class MainViewModel : ObservableObject
         if (_settings.AutoRoutingPreference == source) return;
         _settings.AutoRoutingPreference = source; _settings.Save();
         foreach (var n in new[] { nameof(AutoPrefersHapp), nameof(AutoPrefersIncy),
-                                  nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows) })
+                                  nameof(RoutingAutoRow), nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows) })
             OnPropertyChanged(n);
         if (IsRoutingAuto)
         {
@@ -322,9 +322,12 @@ public partial class MainViewModel : ObservableObject
     private string SubscriptionNameFor(RoutingProfile p) =>
         Subscriptions.FirstOrDefault(s => s.Url == p.SubUrl)?.Name ?? p.Name;
 
+    /// <summary>The Авто card on its own: the preference card goes between it and the shipped pair.</summary>
+    public IReadOnlyList<RoutingRow> RoutingAutoRow => new[] { AutoRow() };
+
     public IReadOnlyList<RoutingRow> RoutingBuiltinRows =>
-        new[] { AutoRow() }.Concat(AvailableRoutings.Where(r => r.Builtin)
-            .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false))).ToList();
+        AvailableRoutings.Where(r => r.Builtin)
+            .Select(r => Row(r, r.Id == "builtin-lan" ? "" : "", menu: false)).ToList();
 
     /// <summary>Only profiles you made: copies and new ones. Starts out empty.</summary>
     public IReadOnlyList<RoutingRow> RoutingMineRows =>
@@ -2662,7 +2665,7 @@ public partial class MainViewModel : ObservableObject
                           ?? AvailableRoutings.FirstOrDefault();
         OnPropertyChanged(nameof(HasMultipleRoutings));
         OnPropertyChanged(nameof(HasRoutings));
-        foreach (var n in new[] { nameof(RoutingBuiltinRows), nameof(RoutingMineRows),
+        foreach (var n in new[] { nameof(RoutingAutoRow), nameof(RoutingBuiltinRows), nameof(RoutingMineRows),
                                   nameof(RoutingSubscriptionRows), nameof(RoutingSubRows),
                                   nameof(RoutingSubTitle), nameof(HasRoutingSubs), nameof(HasRoutingMine) })
             OnPropertyChanged(n);

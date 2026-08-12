@@ -192,7 +192,7 @@
                     <!-- Top level, the same three blocks the phone shows: the shipped pair, a row
                          per subscription you step into, then your own copies. -->
                     <StackPanel Visibility="{Binding NotInRoutingSub, Converter={StaticResource BoolVis}}">
-                        <ItemsControl ItemsSource="{Binding RoutingBuiltinRows}" ItemTemplate="{StaticResource RoutingCard}"/>
+                        <ItemsControl ItemsSource="{Binding RoutingAutoRow}" ItemTemplate="{StaticResource RoutingCard}"/>
 
                         <!-- Which of a subscription's pair Авто reaches for. Only while the mode is
                              on: with a profile pinned by hand there is nothing for it to decide. -->
@@ -213,6 +213,8 @@
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
+
+                        <ItemsControl ItemsSource="{Binding RoutingBuiltinRows}" ItemTemplate="{StaticResource RoutingCard}"/>
 
                         <TextBlock Text="{DynamicResource S_Routing_SecSubs}" Foreground="{StaticResource TextMuted}"
                                    FontSize="10.5" FontWeight="SemiBold" Margin="4,8,0,6"
