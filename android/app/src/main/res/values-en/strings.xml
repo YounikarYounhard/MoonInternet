@@ -442,7 +442,7 @@
     <string name="ping_desc_httphead">"HTTP HEAD is a network latency test in which the server is asked for headers only, without a response body, reducing the data transferred for the same measurement."</string>
     <string name="ping_desc_stability">"Stability is a connection test in which a full connection is established over the selected protocol and a request is made through it, confirming that the protocol itself works rather than only that the port is reachable."</string>
     <string name="routing_auto">"Auto — by the server's subscription"</string>
-    <string name="routing_auto_none">"The subscription has none — Глобальный"</string>
+    <string name="routing_auto_none">"Use the subscription's routing"</string>
     <string name="add_name_hint">"Name (optional)"</string>
     <string name="add_paste">"Paste from the clipboard"</string>
     <string name="add_paste_sub">"Whatever is on the clipboard is added at once"</string>

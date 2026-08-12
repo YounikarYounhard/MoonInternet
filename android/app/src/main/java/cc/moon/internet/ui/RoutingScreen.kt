@@ -89,8 +89,18 @@ fun RoutingScreen(
 
             // Which of a subscription's pair Авто reaches for. Only while the mode is on: with a
             // profile pinned by hand there is nothing for it to decide.
-            if (selectedId.isBlank()) {
-                item {
+            item {
+                // Fades and folds instead of blinking in and out: the card sits between two others,
+                // so appearing between frames looks like the list jumped.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = selectedId.isBlank(),
+                    enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
+                            androidx.compose.animation.expandVertically(
+                                androidx.compose.animation.core.tween(
+                                    240, easing = androidx.compose.animation.core.CubicBezierEasing(0.215f, 0.61f, 0.355f, 1f))),
+                    exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)) +
+                           androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(160)),
+                ) {
                     Surface(
                         shape = RoundedCornerShape(12.dp), color = Moon.Card,
                         border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),

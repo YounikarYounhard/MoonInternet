@@ -518,7 +518,7 @@
     <s:String x:Key="S_Routing_IpCount">{0} IP</s:String>
     <s:String x:Key="S_Routing_Empty">Empty</s:String>
     <s:String x:Key="S_Routing_Auto">Auto — by the server's subscription</s:String>
-    <s:String x:Key="S_Routing_AutoNone">The subscription has none — Глобальный</s:String>
+    <s:String x:Key="S_Routing_AutoNone">Use the subscription's routing</s:String>
     <s:String x:Key="S_Paste_Long">Paste from the clipboard</s:String>
     <s:String x:Key="S_Routing_Prefer">Prefer</s:String>
     <s:String x:Key="S_Routing_PreferHint">When a subscription carries both, this is the one taken</s:String>

@@ -489,7 +489,7 @@
     <s:String x:Key="S_Routing_IpCount">{0} IP</s:String>
     <s:String x:Key="S_Routing_Empty">Пусто</s:String>
     <s:String x:Key="S_Routing_Auto">Авто — по подписке сервера</s:String>
-    <s:String x:Key="S_Routing_AutoNone">У подписки нет своей — «Глобальный»</s:String>
+    <s:String x:Key="S_Routing_AutoNone">Использовать маршрутизацию подписки</s:String>
     <s:String x:Key="S_Paste_Long">Вставить из буфера</s:String>
     <s:String x:Key="S_Routing_Prefer">Предпочтение</s:String>
     <s:String x:Key="S_Routing_PreferHint">Если в подписке две маршрутизации, будет выбрана эта</s:String>

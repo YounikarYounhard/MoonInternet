@@ -196,9 +196,41 @@
 
                         <!-- Which of a subscription's pair Авто reaches for. Only while the mode is
                              on: with a profile pinned by hand there is nothing for it to decide. -->
-                        <Border CornerRadius="12" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}"
-                                BorderThickness="1" Padding="14,10" Margin="0,0,0,10"
-                                Visibility="{Binding IsRoutingAuto, Converter={StaticResource BoolVis}}">
+                        <!-- Folds open and shut rather than blinking: it sits between two cards,
+                             and appearing between frames reads as the list jumping. -->
+                        <Border x:Name="prefCard" CornerRadius="12" Background="{StaticResource Card}"
+                                BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+                                Padding="14,10" Margin="0,0,0,10" ClipToBounds="True">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Opacity" Value="0"/>
+                                    <Setter Property="MaxHeight" Value="0"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRoutingAuto}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="MaxHeight" To="140" Duration="0:0:0.24">
+                                                            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                                        </DoubleAnimation>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.22"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                            <DataTrigger.ExitActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.12"/>
+                                                        <DoubleAnimation Storyboard.TargetProperty="MaxHeight" To="0" Duration="0:0:0.16"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.ExitActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource S_Routing_Prefer}" FontSize="13" FontWeight="SemiBold"/>
                                 <TextBlock Text="{DynamicResource S_Routing_PreferHint}" Foreground="{StaticResource TextMuted}"
