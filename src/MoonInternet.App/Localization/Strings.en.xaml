@@ -462,7 +462,7 @@
     <s:String x:Key="S_Notify_After">What's new in this version</s:String>
     <s:String x:Key="S_Notify_After_Sub">After an update installs, say once what changed</s:String>
     <s:String x:Key="S_Upd_Installed">Updated to {0}. {1}</s:String>
-    <s:String x:Key="S_Upd_WhatsNew">Routing on Windows moved into profiles, the way it works on the phone. Stability no longer probes servers on its own — only when you press it.</s:String>
+    <s:String x:Key="S_Upd_WhatsNew">Routing follows the server's subscription until you pick a profile yourself. The Android notification is the system's own, and Windows tells you about a new version again.</s:String>
     <s:String x:Key="S_Routing_Profiles">PROFILES</s:String>
     <s:String x:Key="S_Routing_New">New</s:String>
     <s:String x:Key="S_Routing_Builtin">Built-in</s:String>

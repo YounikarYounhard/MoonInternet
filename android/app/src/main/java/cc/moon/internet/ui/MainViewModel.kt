@@ -216,7 +216,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Re-measures in the background on the interval the user picked, off by default.
+     * Re-measures in the background on the interval the user picked; a quarter of an hour to
+     * start with, which is often enough that the numbers stay fresh and rare enough that
+     * nobody's provider notices.
      *
      * Checks the setting every minute rather than sleeping for the whole interval, so changing it
      * takes effect now instead of after the old one finally elapses. Skips a round while the

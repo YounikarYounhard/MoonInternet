@@ -33,6 +33,12 @@ fun ServersScreen(
     pinging: Set<String>,
     pingDisplay: String,
     refreshing: Set<String>,
+    /**
+     * Read as a parameter, not only through [isFavorite]: the row order is worked out one level
+     * above the row, and a lambda that quietly returns something new does not make that level
+     * recompose. Passing the set means the list is rebuilt the moment a star is added.
+     */
+    favorites: Set<String>,
     isFavorite: (ServerProfile) -> Boolean,
     collapsed: Set<String>,
     sort: String,
