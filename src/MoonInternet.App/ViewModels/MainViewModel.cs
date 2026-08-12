@@ -574,7 +574,12 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void PickRouting(RoutingProfile? p)
     {
-        if (p is null || ReferenceEquals(p, SelectedRouting)) return;
+        if (p is null) return;
+        // Not just "is this already the active profile". In automatic mode the active profile is
+        // whatever Авто resolved to — often Глобальный — while nothing is stored, so picking that
+        // same card was dismissed as a no-op and the mode never turned off. What matters is
+        // whether the stored choice is about to change.
+        if (_settings.RoutingChoice == p.Id && ReferenceEquals(p, SelectedRouting)) return;
         SelectedRouting = p;
         _settings.RoutingChoice = p.Id; _settings.Save();
         OnPropertyChanged(nameof(IsRoutingAuto));
