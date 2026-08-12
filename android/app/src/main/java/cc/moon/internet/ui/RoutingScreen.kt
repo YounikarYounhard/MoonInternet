@@ -77,7 +77,10 @@ fun RoutingScreen(
                 RoutingRow(
                     icon = Icons.Filled.AutoAwesome,
                     title = stringResource(R.string.routing_auto),
-                    subtitle = autoPick?.let { "$autoSubName · ${it.source.uppercase()}" }
+                    // Only a subscription's own profile is worth naming. A fallback to Глобальный
+                    // has no subscription and no source, so it says so instead of printing " · ".
+                    subtitle = autoPick?.takeIf { it.subUrl.isNotBlank() }
+                        ?.let { "$autoSubName · ${it.source.uppercase()}" }
                         ?: stringResource(R.string.routing_auto_none),
                     selected = selectedId.isBlank(),
                     onClick = { onSelect("") },

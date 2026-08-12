@@ -223,9 +223,14 @@ class Store(private val ctx: Context) {
     fun autoRoutingPublic(): RoutingProfile? = autoRouting(_state.value)
 
     private fun autoRouting(st: AppState): RoutingProfile? {
-        val raw = st.selectedServerRaw ?: return null
-        val sub = st.subscriptions.firstOrNull { s -> s.servers.any { it.raw == raw } } ?: return null
+        // A subscription need not carry routing at all, and a server can come from none. Falling
+        // through to "whatever is first" would make those cases depend on list order; the shipped
+        // Глобальный is the answer, and the card under Авто says so.
+        val global = st.routings.firstOrNull { it.id == "builtin-global" }
+        val raw = st.selectedServerRaw ?: return global
+        val sub = st.subscriptions.firstOrNull { s -> s.servers.any { it.raw == raw } } ?: return global
         val mine = st.routings.filter { it.subUrl == sub.url }
+        if (mine.isEmpty()) return global
         // A preference, not a rule: a subscription that only ships HAPP gets HAPP even when INCY
         // is preferred. Refusing the only profile there is would help nobody.
         val first = st.autoRoutingPref

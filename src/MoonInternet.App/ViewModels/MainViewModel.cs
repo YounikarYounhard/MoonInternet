@@ -312,7 +312,10 @@ public partial class MainViewModel : ObservableObject
     private RoutingRow AutoRow()
     {
         var picked = AutoRouting();
-        string sub = picked is null
+        // Only a subscription's own profile is worth naming here. When Авто has fallen back to
+        // Глобальный there is no subscription and no source to print — saying "Глобальный · " with
+        // an empty tail would be worse than saying plainly that the subscription has none.
+        string sub = picked is null || string.IsNullOrEmpty(picked.SubUrl)
             ? Localization.Loc.T("S_Routing_AutoNone")
             : $"{SubscriptionNameFor(picked)} · {picked.SourceText}";
         return new RoutingRow(null, "", Localization.Loc.T("S_Routing_Auto"), sub,
@@ -2608,9 +2611,12 @@ public partial class MainViewModel : ObservableObject
 
         var sub = Subscriptions.FirstOrDefault(s => s.Servers.Any(x => ReferenceEquals(x.Profile, server)))
                   ?? Subscriptions.FirstOrDefault(s => s.Servers.Any(x => x.Profile.Raw == server.Raw));
-        if (sub is null) return null;
+        if (sub is null) return AvailableRoutings.FirstOrDefault(r => r.Id == "builtin-global");
 
         var mine = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
+        // A subscription need not carry routing at all. Falling through to "whatever is first in
+        // the list" would make that case depend on ordering; the shipped Глобальный is the answer.
+        if (mine.Count == 0) return AvailableRoutings.FirstOrDefault(r => r.Id == "builtin-global");
         // A preference, not a rule: a subscription that only ships HAPP gets HAPP even when INCY
         // is preferred. There is nothing to be gained by refusing the only profile there is.
         var first = AutoPrefersHapp ? RoutingSource.Happ : RoutingSource.Incy;
