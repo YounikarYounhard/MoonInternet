@@ -446,4 +446,6 @@
     <string name="add_name_hint">"Name (optional)"</string>
     <string name="add_paste">"Paste from the clipboard"</string>
     <string name="add_paste_sub">"Whatever is on the clipboard is added at once"</string>
+    <string name="routing_prefer">"Prefer"</string>
+    <string name="routing_prefer_hint">"A subscription with only one gets that one"</string>
 </resources>

@@ -491,4 +491,6 @@
     <s:String x:Key="S_Routing_Auto">Авто — по подписке сервера</s:String>
     <s:String x:Key="S_Routing_AutoNone">Профиль подписки текущего сервера</s:String>
     <s:String x:Key="S_Paste_Long">Вставить из буфера</s:String>
+    <s:String x:Key="S_Routing_Prefer">Предпочтение</s:String>
+    <s:String x:Key="S_Routing_PreferHint">Если в подписке только один — берётся он</s:String>
 </ResourceDictionary>

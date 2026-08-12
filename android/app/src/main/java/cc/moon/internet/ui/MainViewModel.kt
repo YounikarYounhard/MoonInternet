@@ -748,6 +748,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _geoStatus = MutableStateFlow("")
     val geoStatus = _geoStatus.asStateFlow()
 
+    /** Which of a subscription's pair "Авто" reaches for; reconnects if it is what we are on. */
+    fun setAutoRoutingPref(source: String) = viewModelScope.launch {
+        store.update { it.copy(autoRoutingPref = source) }
+        if (store.state.value.selectedRoutingId.isBlank()) reconnectIfConnected()
+    }
+
     /** What "Авто" would use right now — the routing of the current server's subscription. */
     fun autoRouting(): RoutingProfile? = store.autoRoutingPublic()
 

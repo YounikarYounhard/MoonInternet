@@ -360,6 +360,8 @@ class MainActivity : ComponentActivity() {
                                     selectedId = state.selectedRoutingId,
                                     autoPick = vm.autoRouting(),
                                     autoSubName = vm.autoSubName(),
+                                    autoPref = state.autoRoutingPref,
+                                    onAutoPref = vm::setAutoRoutingPref,
                                     onBack = { page = Page.Settings; settingsPage = SettingsPage.Routing },
                                     onSelect = vm::selectRouting,
                                     onOpenSub = { routingSub = it },

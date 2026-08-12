@@ -194,6 +194,26 @@
                     <StackPanel Visibility="{Binding NotInRoutingSub, Converter={StaticResource BoolVis}}">
                         <ItemsControl ItemsSource="{Binding RoutingBuiltinRows}" ItemTemplate="{StaticResource RoutingCard}"/>
 
+                        <!-- Which of a subscription's pair Авто reaches for. Only while the mode is
+                             on: with a profile pinned by hand there is nothing for it to decide. -->
+                        <Border CornerRadius="12" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}"
+                                BorderThickness="1" Padding="14,10" Margin="0,0,0,10"
+                                Visibility="{Binding IsRoutingAuto, Converter={StaticResource BoolVis}}">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource S_Routing_Prefer}" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_Routing_PreferHint}" Foreground="{StaticResource TextMuted}"
+                                           FontSize="11" Margin="0,2,0,8" TextWrapping="Wrap"/>
+                                <WrapPanel>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autopref" Content="INCY" Margin="0,0,8,0"
+                                                 IsChecked="{Binding AutoPrefersIncy, Mode=OneWay}"
+                                                 Command="{Binding SetAutoPreferenceCommand}" CommandParameter="incy"/>
+                                    <RadioButton Style="{StaticResource Chip}" GroupName="autopref" Content="HAPP"
+                                                 IsChecked="{Binding AutoPrefersHapp, Mode=OneWay}"
+                                                 Command="{Binding SetAutoPreferenceCommand}" CommandParameter="happ"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Text="{DynamicResource S_Routing_SecSubs}" Foreground="{StaticResource TextMuted}"
                                    FontSize="10.5" FontWeight="SemiBold" Margin="4,8,0,6"
                                    Visibility="{Binding HasRoutingSubs, Converter={StaticResource BoolVis}}"/>

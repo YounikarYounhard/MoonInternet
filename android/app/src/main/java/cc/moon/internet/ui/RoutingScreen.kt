@@ -38,6 +38,8 @@ fun RoutingScreen(
     /** What "Авто" resolves to right now, and the subscription it came from. */
     autoPick: RoutingProfile?,
     autoSubName: String,
+    autoPref: String,
+    onAutoPref: (String) -> Unit,
     onBack: () -> Unit,
     onSelect: (String) -> Unit,
     onOpenSub: (String) -> Unit,
@@ -82,6 +84,41 @@ fun RoutingScreen(
                 )
             }
 
+            // Which of a subscription's pair Авто reaches for. Only while the mode is on: with a
+            // profile pinned by hand there is nothing for it to decide.
+            if (selectedId.isBlank()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp), color = Moon.Card,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(Modifier.padding(14.dp, 10.dp)) {
+                            Text(stringResource(R.string.routing_prefer), color = Moon.TextPrimary,
+                                 fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.routing_prefer_hint), color = Moon.TextMuted,
+                                 fontSize = 11.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+                            Row {
+                                listOf("incy" to "INCY", "happ" to "HAPP").forEach { (id, label) ->
+                                    val on = autoPref == id
+                                    Surface(
+                                        onClick = { onAutoPref(id) },
+                                        shape = RoundedCornerShape(9.dp),
+                                        color = if (on) Moon.Accent.copy(alpha = 0.18f) else Moon.ChipBg,
+                                        border = if (on) androidx.compose.foundation.BorderStroke(1.dp, Moon.Accent) else null,
+                                        modifier = Modifier.padding(end = 8.dp),
+                                    ) {
+                                        Text(label, Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                                             color = if (on) Moon.AccentText else Moon.TextSecondary,
+                                             fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+            }
+            }
+
             items(builtins.size) { i ->
                 val p = builtins[i]
                 RoutingRow(
@@ -105,7 +142,7 @@ fun RoutingScreen(
                             title = sub.name,
                             subtitle = active?.let { stringResource(R.string.routing_sub_active, it.source.uppercase()) }
                                 ?: list.joinToString(" · ") { it.source.uppercase() },
-                            selected = active != null,
+                            selected = selectedId.isNotBlank() && active != null,
                             onClick = { onOpenSub(sub.url) },
                             trailing = {
                                 Icon(Icons.Filled.ChevronRight, null, tint = Moon.TextSecondary,

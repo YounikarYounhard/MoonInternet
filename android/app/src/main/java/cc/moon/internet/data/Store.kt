@@ -43,6 +43,8 @@ data class AppState(
     val routings: List<RoutingProfile> = emptyList(),
     /** Which profile is in effect. Empty falls back to the first in the list. */
     val selectedRoutingId: String = "",
+    /** Which of a subscription's pair "Авто" reaches for first: incy | happ. */
+    val autoRoutingPref: String = "incy",
     /** Pre-v6 selection: one profile per source. Read once by the migration, never written. */
     val routingSource: String = "",
     // connection tuning, same switches as the desktop settings page
@@ -224,8 +226,12 @@ class Store(private val ctx: Context) {
         val raw = st.selectedServerRaw ?: return null
         val sub = st.subscriptions.firstOrNull { s -> s.servers.any { it.raw == raw } } ?: return null
         val mine = st.routings.filter { it.subUrl == sub.url }
-        return mine.firstOrNull { it.source == "incy" }
-            ?: mine.firstOrNull { it.source == "happ" }
+        // A preference, not a rule: a subscription that only ships HAPP gets HAPP even when INCY
+        // is preferred. Refusing the only profile there is would help nobody.
+        val first = st.autoRoutingPref
+        val second = if (first == "happ") "incy" else "happ"
+        return mine.firstOrNull { it.source == first }
+            ?: mine.firstOrNull { it.source == second }
             ?: mine.firstOrNull()
     }
 

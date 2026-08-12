@@ -28,6 +28,8 @@ public sealed class AppSettings
     public bool AutoReconnect { get; set; } = true;
     public bool KillSwitch { get; set; }
     public bool UseRouting { get; set; } = true;
+    /// <summary>Which of a subscription's two profiles "Авто" reaches for first: incy | happ.</summary>
+    public string AutoRoutingPreference { get; set; } = "incy";
     public string? RoutingChoice { get; set; }             // "Source:Name" of the chosen routing profile (default: INCY)
     public string ServerSort { get; set; } = "default";    // default | ping | name
     public bool AutoConnectOnStart { get; set; }           // off by default

@@ -449,4 +449,6 @@
     <string name="add_name_hint">"Название (необязательно)"</string>
     <string name="add_paste">"Вставить из буфера"</string>
     <string name="add_paste_sub">"Ссылка из буфера добавится сразу"</string>
+    <string name="routing_prefer">"Предпочтение"</string>
+    <string name="routing_prefer_hint">"Если в подписке только один — берётся он"</string>
 </resources>

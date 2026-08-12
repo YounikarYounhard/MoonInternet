@@ -273,8 +273,34 @@ public partial class MainViewModel : ObservableObject
         return string.Format(Localization.Loc.T("S_Routing_DescRules"), sites, ips);
     }
 
+    /// <summary>
+    /// In automatic mode only the Авто card is marked. Outlining the profile it resolved to as
+    /// well put two cards in the selected state at once, which reads as a broken list.
+    /// </summary>
     private RoutingRow Row(RoutingProfile p, string glyph, bool menu, string? badge = null) =>
-        new(p, glyph, p.Name, Describe(p), p.Id == SelectedRouting?.Id, badge, menu, false, null);
+        new(p, glyph, p.Name, Describe(p), !IsRoutingAuto && p.Id == SelectedRouting?.Id, badge, menu, false, null);
+
+    public bool AutoPrefersHapp => _settings.AutoRoutingPreference == "happ";
+    public bool AutoPrefersIncy => !AutoPrefersHapp;
+
+    /// <summary>
+    /// Which of the pair Авто reaches for. Shown under the card only while the mode is on — it
+    /// means nothing when a profile has been pinned by hand.
+    /// </summary>
+    [RelayCommand]
+    private void SetAutoPreference(string source)
+    {
+        if (_settings.AutoRoutingPreference == source) return;
+        _settings.AutoRoutingPreference = source; _settings.Save();
+        foreach (var n in new[] { nameof(AutoPrefersHapp), nameof(AutoPrefersIncy),
+                                  nameof(RoutingBuiltinRows), nameof(RoutingSubscriptionRows) })
+            OnPropertyChanged(n);
+        if (IsRoutingAuto)
+        {
+            SelectedRouting = AutoRouting() ?? SelectedRouting;
+            ReconnectIfConnected();
+        }
+    }
 
     /// <summary>True while no profile has been chosen by hand — routing follows the server.</summary>
     public bool IsRoutingAuto => string.IsNullOrEmpty(_settings.RoutingChoice);
@@ -2582,8 +2608,12 @@ public partial class MainViewModel : ObservableObject
         if (sub is null) return null;
 
         var mine = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
-        return mine.FirstOrDefault(r => r.Source == RoutingSource.Incy)
-               ?? mine.FirstOrDefault(r => r.Source == RoutingSource.Happ)
+        // A preference, not a rule: a subscription that only ships HAPP gets HAPP even when INCY
+        // is preferred. There is nothing to be gained by refusing the only profile there is.
+        var first = AutoPrefersHapp ? RoutingSource.Happ : RoutingSource.Incy;
+        var second = AutoPrefersHapp ? RoutingSource.Incy : RoutingSource.Happ;
+        return mine.FirstOrDefault(r => r.Source == first)
+               ?? mine.FirstOrDefault(r => r.Source == second)
                ?? mine.FirstOrDefault();
     }
 
