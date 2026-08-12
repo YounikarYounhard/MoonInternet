@@ -444,7 +444,7 @@ public partial class MainViewModel : ObservableObject
             // routing goes back to following whichever subscription the server belongs to.
             _settings.RoutingChoice = null; _settings.Save();
             SelectedRouting = AutoRouting() ?? AvailableRoutings.FirstOrDefault();
-            OnPropertyChanged(nameof(IsRoutingAuto));
+            RefreshRoutingCards();
             RebuildRouting();
             ReconnectIfConnected();
             return;
@@ -572,6 +572,19 @@ public partial class MainViewModel : ObservableObject
     public bool CannotEditRouting => !CanEditRouting;
 
     [RelayCommand]
+    /// <summary>
+    /// Redraws the four card lists. They are computed properties, and the only thing that used to
+    /// notify them was SelectedRouting changing — but leaving automatic mode by picking the very
+    /// profile Авто had resolved to changes no profile at all, only which card is marked. The list
+    /// then kept drawing the old outline.
+    /// </summary>
+    private void RefreshRoutingCards()
+    {
+        foreach (var n in new[] { nameof(IsRoutingAuto), nameof(RoutingAutoRow), nameof(RoutingBuiltinRows),
+                                  nameof(RoutingSubscriptionRows), nameof(RoutingMineRows), nameof(RoutingSubRows) })
+            OnPropertyChanged(n);
+    }
+
     private void PickRouting(RoutingProfile? p)
     {
         if (p is null) return;
@@ -582,7 +595,7 @@ public partial class MainViewModel : ObservableObject
         if (_settings.RoutingChoice == p.Id && ReferenceEquals(p, SelectedRouting)) return;
         SelectedRouting = p;
         _settings.RoutingChoice = p.Id; _settings.Save();
-        OnPropertyChanged(nameof(IsRoutingAuto));
+        RefreshRoutingCards();
         ReconnectIfConnected();
     }
 
