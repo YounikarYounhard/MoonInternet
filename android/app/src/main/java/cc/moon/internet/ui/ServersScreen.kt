@@ -71,8 +71,11 @@ fun ServersScreen(
     // Ordering (and the protocol filter) comes from the store, the same call Home makes — this
     // screen used to sort its own way, which is why the connected server floated to the top on
     // Home and stayed put here. Only the search box is local: it belongs to this screen.
-    fun visible(sub: Subscription) = sortedIn(sub).filter { s ->
-        query.isBlank() || s.label.contains(query, ignoreCase = true)
+    // Worked out here and not inside the LazyColumn below. An item is its own little composition:
+    // it kept the list it was handed the first time, so a new star repainted the row but never
+    // moved it. Sorting in the screen's own scope means the item gets an already-ordered list.
+    val groups = subscriptions.map { sub ->
+        sub to sortedIn(sub).filter { s -> query.isBlank() || s.label.contains(query, ignoreCase = true) }
     }
 
     LazyColumn(
@@ -143,9 +146,8 @@ fun ServersScreen(
             Spacer(Modifier.height(4.dp))
         }
 
-        items(subscriptions.size) { i ->
-            val sub = subscriptions[i]
-            val shown = visible(sub)
+        items(groups.size) { i ->
+            val (sub, shown) = groups[i]
             if (shown.isNotEmpty() || query.isBlank()) {
                 SubGroup(
                     showServerCount = showServerCount,

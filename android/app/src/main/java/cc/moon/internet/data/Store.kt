@@ -398,19 +398,36 @@ class Store(private val ctx: Context) {
     }
 
     private fun order(list: List<ServerProfile>, pings: Map<String, Int>): List<ServerProfile> {
-        // The one you are connected through goes first — it is the row you look for, and hunting
-        // for it in thirty others while it is live is the whole complaint.
-        val active = if (_state.value.pinActive) _state.value.selectedServerRaw else null
-        val pinned = { s: ServerProfile -> if (active != null && s.raw == active) 0 else 1 }
-        val fav = { s: ServerProfile -> if (isFavorite(s)) 0 else 1 }
-        val proto = _state.value.protocol
-        @Suppress("NAME_SHADOWING")
-        val list = if (proto.isEmpty()) list else list.filter { it.protocolLabel == proto }
-        return when (_state.value.sort) {
-            "ping" -> list.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
-            "name" -> list.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))
-            "favorite" -> list.filter { isFavorite(it) }.ifEmpty { list }.sortedWith(compareBy(pinned))
-            else -> list.sortedBy(fav)
-        }
+        val st = _state.value
+        return orderServers(list, pings, st.favorites, st.sort, st.protocol,
+                            if (st.pinActive) st.selectedServerRaw else null)
+    }
+}
+
+/**
+ * Who goes above whom in a server list. Free of the store on purpose: the ordering is the part
+ * that is easy to get quietly wrong, and this way it can be checked without a phone — see
+ * ServerOrderTest.
+ *
+ * @param activeRaw the connected server, or null when it should not be pinned to the top.
+ */
+internal fun orderServers(
+    list: List<ServerProfile>,
+    pings: Map<String, Int>,
+    favorites: List<String>,
+    sort: String,
+    protocol: String,
+    activeRaw: String?,
+): List<ServerProfile> {
+    // The one you are connected through goes first — it is the row you look for, and hunting
+    // for it in thirty others while it is live is the whole complaint.
+    val pinned = { s: ServerProfile -> if (activeRaw != null && s.raw == activeRaw) 0 else 1 }
+    val fav = { s: ServerProfile -> if (s.raw != null && s.raw in favorites) 0 else 1 }
+    val kept = if (protocol.isEmpty()) list else list.filter { it.protocolLabel == protocol }
+    return when (sort) {
+        "ping" -> kept.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
+        "name" -> kept.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))
+        "favorite" -> kept.filter { fav(it) == 0 }.ifEmpty { kept }.sortedWith(compareBy(pinned))
+        else -> kept.sortedBy(fav)
     }
 }

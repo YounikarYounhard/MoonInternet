@@ -75,6 +75,10 @@ fun HomeScreen(
     onUpdates: () -> Unit,
     listState: androidx.compose.foundation.lazy.LazyListState,
 ) {
+    // Ordered here rather than inside the list below: an item is its own little composition and
+    // keeps the list it was first handed, so a new star would repaint a row without moving it.
+    val groups = subscriptions.map { it to sortedIn(it) }
+
     LazyColumn(
         state = listState,
         // the gradient is painted by the activity, behind the window insets — see BottomNav
@@ -236,8 +240,8 @@ fun HomeScreen(
         // ---- subscriptions ----------------------------------------------------
         item { Spacer(Modifier.height(12.dp)) }
 
-        items(subscriptions.size) { i ->
-            val sub = subscriptions[i]
+        items(groups.size) { i ->
+            val (sub, shown) = groups[i]
             SubscriptionCard(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -249,10 +253,10 @@ fun HomeScreen(
                 pinging = pinging,
                 pingDisplay = pingDisplay,
                 isFavorite = isFavorite,
-                servers = sortedIn(sub),
+                servers = shown,
                 onToggleCollapse = { onToggleCollapse(sub.url) },
                 onMenu = { onSubMenu(sub) },
-                pingBusy = sortedIn(sub).any { it.pingKey in pinging },
+                pingBusy = shown.any { it.pingKey in pinging },
                 refreshBusy = sub.url in refreshing,
                 onPing = { onPingSub(sub) },
                 onRefresh = { onRefreshSub(sub) },
