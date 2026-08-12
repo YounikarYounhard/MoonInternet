@@ -46,12 +46,12 @@ fun HomeScreen(
     pingDisplay: String,
     refreshing: Set<String>,
     /**
-     * Read as a parameter, not only through [isFavorite]: the row order is worked out one level
-     * above the row, and a lambda that quietly returns something new does not make that level
-     * recompose. Passing the set means the list is rebuilt the moment a star is added.
+     * The starred servers, as data. This used to be a `(ServerProfile) -> Boolean` and that is
+     * exactly how the bug hid: Compose skips a screen whose arguments all look unchanged, and a
+     * lambda looks unchanged even when the answer it gives is different. The star still repainted,
+     * because the row called the lambda itself — but the order, worked out here, never did.
      */
     favorites: Set<String>,
-    isFavorite: (ServerProfile) -> Boolean,
     checkPing: String,
     showSubHeader: Boolean,
     upSpeed: String,
@@ -252,7 +252,7 @@ fun HomeScreen(
                 pings = pings,
                 pinging = pinging,
                 pingDisplay = pingDisplay,
-                isFavorite = isFavorite,
+                favorites = favorites,
                 servers = shown,
                 onToggleCollapse = { onToggleCollapse(sub.url) },
                 onMenu = { onSubMenu(sub) },
@@ -384,7 +384,7 @@ private fun SubscriptionCard(
     pings: Map<String, Int>,
     pinging: Set<String>,
     pingDisplay: String,
-    isFavorite: (ServerProfile) -> Boolean,
+    favorites: Set<String>,
     onToggleCollapse: () -> Unit,
     onMenu: () -> Unit,
     pingBusy: Boolean,
@@ -455,7 +455,7 @@ private fun SubscriptionCard(
                             ping = pings[s.pingKey],
                             pinging = s.pingKey in pinging,
                             pingDisplay = pingDisplay,
-                            favorite = isFavorite(s),
+                            favorite = s.raw in favorites,
                             onClick = { onSelect(s) },
                             onMenu = { onServerMenu(s) },
                         )

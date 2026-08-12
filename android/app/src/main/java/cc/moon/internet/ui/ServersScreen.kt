@@ -34,12 +34,12 @@ fun ServersScreen(
     pingDisplay: String,
     refreshing: Set<String>,
     /**
-     * Read as a parameter, not only through [isFavorite]: the row order is worked out one level
-     * above the row, and a lambda that quietly returns something new does not make that level
-     * recompose. Passing the set means the list is rebuilt the moment a star is added.
+     * The starred servers, as data. This used to be a `(ServerProfile) -> Boolean` and that is
+     * exactly how the bug hid: Compose skips a screen whose arguments all look unchanged, and a
+     * lambda looks unchanged even when the answer it gives is different. The star still repainted,
+     * because the row called the lambda itself — but the order, worked out here, never did.
      */
     favorites: Set<String>,
-    isFavorite: (ServerProfile) -> Boolean,
     collapsed: Set<String>,
     sort: String,
     protocol: String,
@@ -154,7 +154,7 @@ fun ServersScreen(
                     subMeter = subMeter,
                     sub = sub, servers = shown, collapsed = sub.url in collapsed, showHeader = showSubHeader,
                     selected = selected, pings = pings, pinging = pinging,
-                    pingDisplay = pingDisplay, isFavorite = isFavorite,
+                    pingDisplay = pingDisplay, favorites = favorites,
                     onToggleCollapse = { onToggleCollapse(sub.url) },
                     onMenu = { onSubMenu(sub) },
                     pingBusy = shown.any { it.pingKey in pinging },
@@ -201,7 +201,7 @@ private fun SubGroup(
     pings: Map<String, Int>,
     pinging: Set<String>,
     pingDisplay: String,
-    isFavorite: (ServerProfile) -> Boolean,
+    favorites: Set<String>,
     onToggleCollapse: () -> Unit,
     onMenu: () -> Unit,
     pingBusy: Boolean,
@@ -266,7 +266,7 @@ private fun SubGroup(
                             ping = pings[s.pingKey],
                             pinging = s.pingKey in pinging,
                             pingDisplay = pingDisplay,
-                            favorite = isFavorite(s),
+                            favorite = s.raw in favorites,
                             onClick = { onSelect(s) },
                             onMenu = { onServerMenu(s) },
                         )

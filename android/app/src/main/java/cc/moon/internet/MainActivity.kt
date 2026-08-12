@@ -279,12 +279,7 @@ class MainActivity : ComponentActivity() {
                                 pinging = pinging,
                                 pingDisplay = state.pingDisplay,
                                 refreshing = refreshing,
-                                // Reads state.favorites here on purpose. As a method reference this
-                                // was a parameter that never changed, so Compose saw identical
-                                // arguments and skipped the screen: the star and the reordering only
-                                // showed up after leaving the page and coming back.
                                 favorites = state.favorites.toSet(),
-                                isFavorite = { s -> s.raw != null && s.raw in state.favorites },
                                 checkPing = checkPing,
                                 showSubHeader = state.showSubHeader,
                                 upSpeed = up, downSpeed = down, elapsed = elapsed, traffic = traffic,
@@ -313,12 +308,7 @@ class MainActivity : ComponentActivity() {
                                 pinging = pinging,
                                 pingDisplay = state.pingDisplay,
                                 refreshing = refreshing,
-                                // Reads state.favorites here on purpose. As a method reference this
-                                // was a parameter that never changed, so Compose saw identical
-                                // arguments and skipped the screen: the star and the reordering only
-                                // showed up after leaving the page and coming back.
                                 favorites = state.favorites.toSet(),
-                                isFavorite = { s -> s.raw != null && s.raw in state.favorites },
                                 collapsed = collapsed,
                                 sort = state.sort,
                                 protocol = state.protocol,
@@ -429,7 +419,10 @@ class MainActivity : ComponentActivity() {
                         serverMenu?.let { s ->
                             ServerSheet(
                                 server = s,
-                                favorite = vm.isFavorite(s),
+                                // state.favorites, not vm.isFavorite(s): the store's value is read
+                                // outside Compose's sight, so the sheet could offer «В избранное»
+                                // for a server that already had a star.
+                                favorite = s.raw in state.favorites,
                                 onDismiss = { serverMenu = null },
                                 onConnect = { vm.selectServer(s); serverMenu = null; onToggleIfIdle() },
                                 onFavorite = { vm.toggleFavorite(s); serverMenu = null },
