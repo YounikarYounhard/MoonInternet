@@ -206,7 +206,15 @@ jobs:
           gh api "repos/$REPO/git/tags/$sha" --jq .message > notes.md 2>/dev/null || : > notes.md
           cat notes.md
 
-          gh release create "$TAG" --repo "$REPO" \
-            --title "Moon Internet $TAG" \
-            --notes-file notes.md \
-            rel/MoonInternet-Setup.exe rel/MoonInternet.apk
+          # Create, or update if the tag was moved: `create` alone fails on a release that
+          # already exists, which left a published release with no way to correct it.
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$REPO" --title "Moon Internet $TAG" --notes-file notes.md
+            gh release upload "$TAG" --repo "$REPO" --clobber \
+              rel/MoonInternet-Setup.exe rel/MoonInternet.apk
+          else
+            gh release create "$TAG" --repo "$REPO" \
+              --title "Moon Internet $TAG" \
+              --notes-file notes.md \
+              rel/MoonInternet-Setup.exe rel/MoonInternet.apk
+          fi
