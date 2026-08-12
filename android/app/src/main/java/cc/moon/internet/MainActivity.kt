@@ -249,12 +249,11 @@ class MainActivity : ComponentActivity() {
                     },
                 ) { pad ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                    // A centred column, not the full width. Letting it stretch was the earlier
-                    // call and it does not survive a tablet in landscape: the traffic figures end
-                    // up at one edge, the buttons at the other, and every server row becomes a
-                    // metre of empty space with a flag at the far left. The background still runs
-                    // edge to edge, so the screen does not look boxed in.
-                    Box(Modifier.padding(pad).widthIn(max = 480.dp).fillMaxSize()) {
+                    // Full width again. Capping the page to a phone column left a tablet looking
+                    // like a phone screenshot pasted into the middle of the screen. Only the nav
+                    // card is bounded — see BottomNav — so it keeps its shape instead of
+                    // stretching into a bar the width of the display.
+                    Box(Modifier.padding(pad).fillMaxSize()) {
                         // The desktop's PageTransition, matched: opacity over 220ms plus a 16px
                         // lift over 280ms on a cubic ease-out. A plain crossfade between two dark
                         // screens is invisible — the lift is what you actually see.

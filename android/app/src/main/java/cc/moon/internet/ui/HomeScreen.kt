@@ -157,7 +157,16 @@ fun HomeScreen(
 
         // ---- connection check (only while connected) -------------------------
         item {
-            if (state == State.Connected) {
+            // Fades and grows in when the tunnel comes up, the way the desktop reveals it —
+            // popping into existence mid-list read as the layout jumping.
+            androidx.compose.animation.AnimatedVisibility(
+                visible = state == State.Connected,
+                enter = androidx.compose.animation.fadeIn(tween(260)) +
+                        androidx.compose.animation.expandVertically(tween(260, easing = CubicBezierEasing(0.215f, 0.61f, 0.355f, 1f))),
+                exit = androidx.compose.animation.fadeOut(tween(140)) +
+                       androidx.compose.animation.shrinkVertically(tween(180)),
+            ) {
+                Column {
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
@@ -190,6 +199,7 @@ fun HomeScreen(
                     }
                 }
             }
+                }
         }
 
         // ---- stats + add/paste ----------------------------------------------
