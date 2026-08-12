@@ -208,17 +208,10 @@
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Style.Triggers>
-                                        <EventTrigger RoutedEvent="Border.IsVisibleChanged">
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.22"/>
-                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                                                                     From="-8" To="0" Duration="0:0:0.24">
-                                                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
-                                                    </DoubleAnimation>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
+                                        <!-- EnterActions replay every time the mode comes back, which
+                                             is what an EventTrigger on Loaded could not do (once per
+                                             window) and IsVisibleChanged must not do: it is a plain
+                                             CLR event, and XAML refuses it — the window would not open. -->
                                         <DataTrigger Binding="{Binding IsRoutingAuto}" Value="True">
                                             <DataTrigger.EnterActions>
                                                 <BeginStoryboard>
