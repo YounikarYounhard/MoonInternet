@@ -48,7 +48,9 @@ public sealed class AppSettings
     public bool ShowServerCount { get; set; } = true;   // badge with the number of servers on a subscription
     public bool PingStagger { get; set; } = true;              // space the probes out instead of all at once
     public int PingStaggerMs { get; set; } = 150;              // gap between them when staggering
-    public int PingEveryMinutes { get; set; }                  // 0 = off; re-ping in the background this often
+    // On by default. Fifteen minutes keeps the list honest without probing every server every
+    // few minutes — automatic passes take the cheap probe, but they are still traffic.
+    public int PingEveryMinutes { get; set; } = 15;             // 0 = off
     // Subscription settings
     public bool AutoUpdateSubs { get; set; } = true;           // periodic auto-refresh (subscriptions ship an interval)
     public int AutoUpdateSubsMinutes { get; set; }             // 0 = use the subscription's own interval; else 30|60|120|360|720|1440
@@ -105,7 +107,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 6;
+    private const int CurrentVersion = 7;
 
     private void Migrate()
     {
@@ -128,6 +130,10 @@ public sealed class AppSettings
         // one subscription. A built-in or one of your own is a real decision and stays.
         if (SettingsVersion < 6 && RoutingChoice is { Length: > 0 } rc && rc.StartsWith("sub:"))
             RoutingChoice = null;
+
+        // v7: the automatic ping check is on by default. Switch it on for installs that never
+        // touched it, rather than leaving them on the old "off".
+        if (SettingsVersion < 7 && PingEveryMinutes == 0) PingEveryMinutes = 15;
 
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }

@@ -58,7 +58,9 @@ data class AppState(
     val pingMethod: String = "moon",    // moon | tcp | httpget | httphead | stability
     val pingStagger: Boolean = true,    // space the probes out instead of firing them all at once
     val pingStaggerMs: Int = 150,       // gap between them when staggering
-    val pingEveryMinutes: Int = 0,      // 0 = off; otherwise re-ping in the background this often
+    // On by default. Fifteen minutes keeps the list honest without a probe to every server
+    // every few minutes — automatic passes use the cheap probe, but they are still traffic.
+    val pingEveryMinutes: Int = 15,     // 0 = off; otherwise re-ping in the background this often
     val pingDisplay: String = "num",    // num | dot | both | off
     val pingTestUrl: String = "https://www.gstatic.com/generate_204",
     val pingTimeoutMs: Int = 4000,
@@ -129,7 +131,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 7 }
+    private companion object { const val CURRENT_VERSION = 8 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -165,6 +167,9 @@ class Store(private val ctx: Context) {
                 welcomeShown = loaded.welcomeShown || loaded.subscriptions.isNotEmpty(),
                 routings = routings,
                 selectedRoutingId = releaseAutoSelection(migratedSelection(loaded, routings), routings),
+                // v8: the automatic check is on by default now; switch it on for installs
+                // that never touched it rather than leaving them on the old off.
+                pingEveryMinutes = if (loaded.pingEveryMinutes == 0) 15 else loaded.pingEveryMinutes,
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
         // Ids handed out here must survive the next launch, or the selection points at nothing.

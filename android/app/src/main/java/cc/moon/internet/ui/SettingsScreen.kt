@@ -968,12 +968,11 @@ fun AddDialog(
             Column {
                 Text(stringResource(R.string.settingsscreen_196), fontSize = 12.sp, color = Moon.TextSecondary)
                 Spacer(Modifier.height(8.dp))
-                MoonTextField(text, { text = it }, stringResource(R.string.settingsscreen_197))
-                Spacer(Modifier.height(8.dp))
-                // Optional, same as on the desktop: a name of your own beats whatever the panel
-                // calls itself, and with two subscriptions from one provider that is the only way
-                // to tell them apart.
+                // Name first: it is the thing you decide, and the link is usually pasted rather
+                // than typed. Asking for the link first put the cursor where nobody types.
                 MoonTextField(name, { name = it }, stringResource(R.string.add_name_hint))
+                Spacer(Modifier.height(8.dp))
+                MoonTextField(text, { text = it }, stringResource(R.string.settingsscreen_197))
                 Spacer(Modifier.height(12.dp))
 
                 // Paste does not fill the field for you to press Добавить afterwards — there is

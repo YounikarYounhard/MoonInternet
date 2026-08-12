@@ -2631,22 +2631,23 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private RoutingProfile? AutoRouting()
     {
-        // SelectedServer is the live selection and it is not always set yet — the routing page can
-        // be opened before the list has restored it, and then Авто had nothing to go on and fell
-        // through to Глобальный while a server was plainly chosen. The remembered name is the
-        // same answer, one step later.
-        var server = SelectedServer?.Profile
-                     ?? AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName)?.Profile;
-        if (server is null) return AvailableRoutings.FirstOrDefault(r => r.Id == "builtin-global");
+        var global = AvailableRoutings.FirstOrDefault(r => r.Id == "builtin-global");
 
-        var sub = Subscriptions.FirstOrDefault(s => s.Servers.Any(x => ReferenceEquals(x.Profile, server)))
-                  ?? Subscriptions.FirstOrDefault(s => s.Servers.Any(x => x.Profile.Raw == server.Raw));
-        if (sub is null) return AvailableRoutings.FirstOrDefault(r => r.Id == "builtin-global");
+        // The row itself, not the profile inside it: a ServerItem carries the name of the
+        // subscription it came from, and matching on that is exact. Matching profile objects was
+        // not — the list is rebuilt on every refresh, so the instance the selection holds need not
+        // be the instance a subscription holds, and Авто quietly fell through to Глобальный.
+        var item = SelectedServer
+                   ?? AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName);
+        if (item is null) return global;
+
+        var sub = Subscriptions.FirstOrDefault(s => s.Name == item.SubscriptionName)
+                  ?? Subscriptions.FirstOrDefault(s => s.Servers.Contains(item));
+        if (sub is null) return global;
 
         var mine = AvailableRoutings.Where(r => r.SubUrl == sub.Url).ToList();
-        // A subscription need not carry routing at all. Falling through to "whatever is first in
-        // the list" would make that case depend on ordering; the shipped Глобальный is the answer.
-        if (mine.Count == 0) return AvailableRoutings.FirstOrDefault(r => r.Id == "builtin-global");
+        if (mine.Count == 0) return global;
+
         // A preference, not a rule: a subscription that only ships HAPP gets HAPP even when INCY
         // is preferred. There is nothing to be gained by refusing the only profile there is.
         var first = AutoPrefersHapp ? RoutingSource.Happ : RoutingSource.Incy;
