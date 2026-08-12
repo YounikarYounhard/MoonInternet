@@ -1,3 +1,5 @@
+﻿using System.Collections.Generic;
+
 namespace MoonInternet.App;
 
 /// <summary>
@@ -9,8 +11,26 @@ namespace MoonInternet.App;
 /// </summary>
 public static class Notifier
 {
-    /// <summary>Set by MainWindow once the tray icon exists.</summary>
-    public static Action<string, string>? Balloon;
+    private static Action<string, string>? _balloon;
+    private static readonly List<(string Title, string Text)> _pending = new();
+
+    /// <summary>
+    /// Set by MainWindow once the tray icon exists — which is *after* the view model has run its
+    /// startup update check. That check is the one time a new version gets announced, and its
+    /// notification used to be dropped on the floor because there was nothing to show it with yet.
+    /// Anything raised before the tray is ready waits here and goes out the moment it is.
+    /// </summary>
+    public static Action<string, string>? Balloon
+    {
+        get => _balloon;
+        set
+        {
+            _balloon = value;
+            if (value is null) return;
+            foreach (var (title, text) in _pending) value(title, text);
+            _pending.Clear();
+        }
+    }
 
     public static bool Enabled { get; set; } = true;
     public static bool UseBalloons { get; set; } = true;
@@ -20,7 +40,9 @@ public static class Notifier
 
     public static void Show(string title, string text)
     {
-        if (Enabled && UseBalloons) Balloon?.Invoke(title, text);
+        if (!Enabled || !UseBalloons) return;
+        if (_balloon is { } show) show(title, text);
+        else _pending.Add((title, text));   // the tray is not up yet; see Balloon
     }
 
     public static void Connection(string title, string text)

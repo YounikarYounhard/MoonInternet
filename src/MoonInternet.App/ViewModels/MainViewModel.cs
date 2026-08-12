@@ -1330,6 +1330,10 @@ public partial class MainViewModel : ObservableObject
         AutoFailover = _settings.AutoFailover; ReconnectDelaySec = _settings.ReconnectDelaySec;
         NotificationsEnabled = _settings.NotificationsEnabled; TrayBalloons = _settings.TrayBalloons;
         NotifyConnection = _settings.NotifyConnection; NotifyAppUpdate = _settings.NotifyAppUpdate;
+        // Assigning the properties only runs the On…Changed hooks when the value actually differs
+        // from the default, so a setting that matches never reached Notifier at all. Push them.
+        Notifier.Enabled = NotificationsEnabled; Notifier.UseBalloons = TrayBalloons;
+        Notifier.OnConnection = NotifyConnection; Notifier.OnAppUpdate = NotifyAppUpdate;
         ApplyHwid();
         AnnounceIfUpdated();
         TlsFragment = _settings.TlsFragment; Mux = _settings.Mux; Sniffing = _settings.Sniffing;
