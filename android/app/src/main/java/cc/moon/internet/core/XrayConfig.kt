@@ -113,6 +113,13 @@ object XrayConfig {
         cfg.put("routing", JSONObject().put("rules", JSONArray()
             .put(JSONObject().put("type", "field").put("network", "udp").put("outboundTag", "direct"))))
 
+        // Counters. Left out at first, and then the speed and traffic readouts sat at zero for the
+        // whole session — xray does not count anything unless it is asked to.
+        cfg.put("stats", JSONObject())
+        cfg.put("policy", JSONObject().put("system", JSONObject()
+            .put("statsOutboundUplink", true)
+            .put("statsOutboundDownlink", true)))
+
         return cfg.toString(2)
     }
 

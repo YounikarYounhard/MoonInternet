@@ -850,7 +850,11 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<ZapretStrategy> ZapretStrategies { get; } = new();
 
     [ObservableProperty] private ZapretStrategy? selectedZapret;
-    [ObservableProperty] private string zapretGameFilter = "off";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGameFilterOff), nameof(IsGameFilterAll),
+                              nameof(IsGameFilterTcp), nameof(IsGameFilterUdp))]
+    private string zapretGameFilter = "off";
 
     public bool ZapretAvailable => ZapretStrategies.Count > 0;
 
@@ -894,6 +898,65 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex) { Status = Localization.Loc.T("S_VM_ZapretFailed") + ": " + ex.Message; }
     }
 
+    // ---- Zapret: checking and picking -------------------------------------
+
+    [ObservableProperty] private string zapretPing = "—";
+    [ObservableProperty] private bool zapretBusy;
+    [ObservableProperty] private string zapretCheckUrl = ZapretCheck.DefaultUrl;
+
+    public bool IsGameFilterOff => ZapretGameFilter == "off";
+    public bool IsGameFilterAll => ZapretGameFilter == "all";
+    public bool IsGameFilterTcp => ZapretGameFilter == "tcp";
+    public bool IsGameFilterUdp => ZapretGameFilter == "udp";
+
+    /// <summary>Fetches a blocked page and reports how long it took, or that it never arrived.</summary>
+    [RelayCommand]
+    private async Task CheckZapret()
+    {
+        if (ZapretBusy) return;
+        ZapretBusy = true;
+        ZapretPing = Localization.Loc.T("S_Zapret_Checking");
+        var ms = await ZapretCheck.MeasureAsync(ZapretCheckUrl);
+        ZapretPing = ms < 0 ? Localization.Loc.T("S_Zapret_NoAnswer") : $"{ms} ms";
+        ZapretBusy = false;
+    }
+
+    /// <summary>
+    /// Runs down the list until something opens.
+    ///
+    /// This is the whole reason there are twenty-one of them: which one works depends on the ISP,
+    /// and the only way to find out is to try. Doing that by hand is twenty-one connects and
+    /// twenty-one page loads, which is what made the mode feel broken rather than fiddly.
+    /// </summary>
+    [RelayCommand]
+    private async Task AutoPickZapret()
+    {
+        if (ZapretBusy) return;
+        ZapretBusy = true;
+        try
+        {
+            for (var i = 0; i < ZapretStrategies.Count; i++)
+            {
+                var s = ZapretStrategies[i];
+                ZapretPing = string.Format(Localization.Loc.T("S_Zapret_Trying"), i + 1, ZapretStrategies.Count, s.Name);
+                try { await _conn.ConnectZapretAsync(s.Id, ZapretGameFilter); }
+                catch { continue; }                       // this one will not even start — next
+                await Task.Delay(600);                    // let the driver settle before asking
+                var ms = await ZapretCheck.MeasureAsync(ZapretCheckUrl, timeoutMs: 4000);
+                if (ms >= 0)
+                {
+                    SelectedZapret = s;
+                    _settings.ZapretStrategy = s.Id;
+                    _settings.Save();
+                    ZapretPing = string.Format(Localization.Loc.T("S_Zapret_Found"), s.Name, ms);
+                    return;
+                }
+            }
+            ZapretPing = Localization.Loc.T("S_Zapret_NoneWorked");
+        }
+        finally { ZapretBusy = false; }
+    }
+
     /// <summary>Reads the strategies off disk. Cheap, and the folder only changes on an update.</summary>
     private void LoadZapretStrategies()
     {
@@ -928,7 +991,7 @@ public partial class MainViewModel : ObservableObject
     {
         // Count via xray's own INBOUND stats = exact user payload (like INCY); Hysteria2 TUN → sing-box Clash API.
         // The TUN/gvisor adapter's Windows counters over-report badly under load, so we don't use them for the numbers.
-        var t = _conn.XrayTraffic() ?? _conn.SingBoxTraffic();
+        var t = ZapretTraffic() ?? _conn.XrayTraffic() ?? _conn.SingBoxTraffic();
         _baseRecv = _lastRecv = t?.recv ?? 0;
         _baseSent = _lastSent = t?.sent ?? 0;
         _lastSampleAt = DateTime.UtcNow;
@@ -940,7 +1003,7 @@ public partial class MainViewModel : ObservableObject
         _sampling = true;
         Task.Run(() =>
         {
-            var b = _conn.XrayTraffic() ?? _conn.SingBoxTraffic();
+            var b = ZapretTraffic() ?? _conn.XrayTraffic() ?? _conn.SingBoxTraffic();
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 if (b is { } v) ApplyBytes(v.recv, v.sent);   // null (WG, or a transient miss) → keep the last shown value
@@ -948,6 +1011,32 @@ public partial class MainViewModel : ObservableObject
             });
         });
     }
+    /// <summary>
+    /// Bytes for Zapret mode, read off the network adapters themselves.
+    ///
+    /// There is no tunnel to count here — nothing is wrapped or forwarded, the packets go out of
+    /// the ordinary adapter with their handshake rewritten. So the honest number is the machine's
+    /// own traffic, which in this mode is exactly the traffic the strategy is working on. Null in
+    /// every other mode, where the core's own counters are both available and more precise.
+    /// </summary>
+    private (long recv, long sent)? ZapretTraffic()
+    {
+        if (!IsZapretMode) return null;
+        try
+        {
+            long r = 0, s = 0;
+            foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                if (ni.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
+                var st = ni.GetIPStatistics();
+                r += st.BytesReceived; s += st.BytesSent;
+            }
+            return (r, s);
+        }
+        catch { return null; }
+    }
+
     private DateTime _lastSampleAt = DateTime.UtcNow;
     private void ApplyBytes(long recv, long sent)
     {
@@ -1894,6 +1983,7 @@ public partial class MainViewModel : ObservableObject
     // переключаться вместе с остальным текстом.
     public string SettingsPageTitle => Localization.Loc.T(SettingsPage switch
     {
+        "zapret" => "S_Zapret_PageTitle",
         "appearance" => "S_SettingsView_003",
         "connection" => "S_SettingsView_005",
         "routing" => "S_SettingsView_007",

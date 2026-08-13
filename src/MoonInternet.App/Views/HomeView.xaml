@@ -198,7 +198,7 @@
             </StackPanel>
 
             <!-- compact stats + add / paste -->
-            <Grid Grid.Row="2" Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}" Margin="0,12,0,0">
+            <Grid Grid.Row="2" Margin="0,12,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="104"/>   <!-- Отдача / Приём (fixed → no shift) -->
                     <ColumnDefinition Width="90"/>    <!-- Время / Трафик (fixed) -->
@@ -233,7 +233,10 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <!-- Adding and pasting are about subscriptions; the readouts to their left are not,
+                     which is why only this column goes away in Zapret. -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                            Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}">
                     <Button Command="{Binding OpenAddDialogCommand}" Cursor="Hand" Margin="0,0,0,6" HorizontalAlignment="Stretch">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">

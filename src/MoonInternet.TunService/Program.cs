@@ -303,6 +303,22 @@ string StartZapret(string id, string filter)
     var strategy = MoonInternet.Core.Parsing.ZapretStrategyParser.Load(dir, mode).FirstOrDefault(s => s.Id == id);
     if (strategy is null) return "ERR no such strategy: " + id;
 
+    // zapret ships ipset-all.txt holding one placeholder address and keeps the real 32000 subnets
+    // in ipset-all.txt.backup; service.bat swaps them on the way past. Without the swap every
+    // --ipset rule matches nothing, which leaves only the two small hostlists doing any work —
+    // the strategies all start and none of them appear to do anything.
+    var ipsetAll = Path.Combine(dir, "lists", "ipset-all.txt");
+    var ipsetBackup = ipsetAll + ".backup";
+    try
+    {
+        if (File.Exists(ipsetBackup) && new FileInfo(ipsetBackup).Length > new FileInfo(ipsetAll).Length * 10)
+        {
+            File.Copy(ipsetBackup, ipsetAll, overwrite: true);
+            Log($"ipset-all.txt restored from backup ({new FileInfo(ipsetAll).Length / 1024} KB)");
+        }
+    }
+    catch (Exception e) { Log("ipset restore: " + e.Message); }
+
     // Every strategy names three lists that are not in the archive: the *-user ones, where you put
     // your own domains. zapret's own service.bat creates them on the way past; we do not run it, so
     // nobody did — and winws treats a list it cannot open as fatal and quits. Empty is the right
