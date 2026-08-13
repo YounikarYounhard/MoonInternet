@@ -1,0 +1,64 @@
+package cc.moon.internet.vpn
+
+import android.content.Context
+import cc.moon.internet.core.ZapretStrategies
+import java.io.File
+
+/**
+ * Runs byedpi — the запрет mode's engine on the phone.
+ *
+ * It is a separate process, not a linked library, because that is what it is: a whole program with
+ * its own main(). Android will only execute a file that came out of jniLibs, which is why it is
+ * called libbyedpi.so and not ciadpi.
+ *
+ * It listens on 127.0.0.1 and speaks SOCKS5; the tunnel dials it. Nothing outside this app can
+ * reach it — the port is bound to loopback, and on Android loopback is per-app.
+ */
+class ByedpiRunner(private val ctx: Context) {
+
+    private var proc: Process? = null
+
+    val isRunning: Boolean get() = proc?.isAlive == true
+
+    private fun exe(): File = File(ctx.applicationInfo.nativeLibraryDir, "libbyedpi.so")
+
+    /**
+     * Starts the strategy. Returns null on success, otherwise what went wrong in the user's words.
+     *
+     * A bad flag makes byedpi print usage and quit immediately, so we wait a moment and check that
+     * it is still alive rather than reporting success for a process that has already gone.
+     */
+    fun start(strategyId: String?): String? {
+        stop()
+        val bin = exe()
+        if (!bin.exists()) return "byedpi не найден в сборке"
+
+        val cmd = ZapretStrategies.commandLine(bin.absolutePath, strategyId)
+        return try {
+            proc = ProcessBuilder(cmd).redirectErrorStream(true).start()
+            // Drain the pipe: a process whose output nobody reads blocks once the buffer fills.
+            Thread {
+                runCatching {
+                    proc?.inputStream?.bufferedReader()?.forEachLine {
+                        android.util.Log.i("byedpi", it)
+                    }
+                }
+            }.apply { isDaemon = true }.start()
+
+            Thread.sleep(400)
+            if (proc?.isAlive != true) {
+                val code = runCatching { proc?.exitValue() }.getOrNull()
+                proc = null
+                "byedpi не запустился (код $code)"
+            } else null
+        } catch (e: Exception) {
+            proc = null
+            e.message ?: "byedpi не запустился"
+        }
+    }
+
+    fun stop() {
+        proc?.let { p -> runCatching { p.destroy(); p.waitFor() } }
+        proc = null
+    }
+}

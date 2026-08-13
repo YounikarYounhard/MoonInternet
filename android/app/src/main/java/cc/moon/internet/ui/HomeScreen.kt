@@ -51,6 +51,9 @@ fun HomeScreen(
      * lambda looks unchanged even when the answer it gives is different. The star still repainted,
      * because the row called the lambda itself — but the order, worked out here, never did.
      */
+    /** "tun" or "zapret" — the segmented switch above the moon. */
+    connMode: String,
+    onConnMode: (String) -> Unit,
     favorites: Set<String>,
     checkPing: String,
     showSubHeader: Boolean,
@@ -87,9 +90,8 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ---- режим, с плиткой обновления слева -----------------------------
-        // One button for now. A proxy-only mode is not a thing on Android — HAPP, INCY and
-        // v2RayTun do not offer one either — so promising it with a second tab was misleading.
-        // The row stays a row because another mode is planned for it.
+        // Two, not the desktop's three: a proxy-only mode is not a thing on Android — HAPP, INCY
+        // and v2RayTun do not offer one either. Запрет is the mode the row was left open for.
         item {
             Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -99,7 +101,8 @@ fun HomeScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2150)),
                 ) {
                     Row(Modifier.padding(3.dp)) {
-                        SegButton("TUN", true) { }   // a protocol name, not a word to translate
+                        SegButton("TUN", connMode != "zapret") { onConnMode("tun") }   // a protocol name, not a word to translate
+                        SegButton(stringResource(R.string.mode_zapret), connMode == "zapret") { onConnMode("zapret") }
                     }
                 }
 

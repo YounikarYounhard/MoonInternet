@@ -622,6 +622,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- connection ------------------------------------------------------
     fun connect() = viewModelScope.launch {
+        // Запрет has no server to dial and no routing to apply: it edits what leaves the phone
+        // rather than sending it somewhere. Every check below is about a server it does not have.
+        if (store.state.value.connMode == "zapret") {
+            connectZapret()
+            return@launch
+        }
         var s = store.selectedServer() ?: run { _status.value = s(R.string.vm_pick_server); return@launch }
 
         // "The chosen server is silent -> take the fastest live one." That is what the setting
@@ -701,6 +707,37 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             getApplication(), config, (flagOf(s) + " " + s.label).trim(),
             tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
         )
+    }
+
+    /**
+     * Запрет: byedpi listens on loopback, and the tunnel exists only to feed it. No server, no
+     * subscription, no geo files — which is why this is four lines and connect() is fifty.
+     */
+    private fun connectZapret() {
+        val st = store.state.value
+        val strategy = st.zapretStrategy
+        val config = XrayConfig.buildZapret(
+            mtu = 1500,
+            logLevel = if (st.logsEnabled) st.logLevel else "none",
+            logFile = if (st.logsEnabled) cc.moon.internet.data.LogStore.file(getApplication()).absolutePath else null,
+        )
+        MoonVpnService.start(
+            getApplication(), config, s(R.string.zapret_notification, strategy),
+            tun = true, perAppMode = st.perAppMode, perApps = st.perApps,
+            zapretStrategy = strategy,
+        )
+    }
+
+    fun setConnMode(m: String) = viewModelScope.launch {
+        if (m !in setOf("tun", "zapret") || store.state.value.connMode == m) return@launch
+        // A tunnel and запрет both want the traffic; leaving one up would have them fight.
+        if (vpnState.value != MoonVpnService.Companion.State.Disconnected) disconnect()
+        store.update { it.copy(connMode = m, tunMode = m == "tun") }
+    }
+
+    fun pickZapret(id: String) = viewModelScope.launch {
+        store.update { it.copy(zapretStrategy = id) }
+        if (vpnState.value == MoonVpnService.Companion.State.Connected) connectZapret()
     }
 
     /** Resolves the DNS preset from the settings page into actual addresses. */

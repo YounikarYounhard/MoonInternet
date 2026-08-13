@@ -449,4 +449,9 @@
     <string name="routing_prefer">"Prefer"</string>
     <string name="routing_prefer_hint">"When a subscription carries both, this is the one taken"</string>
     <string name="routing_auto_short">"Auto"</string>
+    <string name="mode_zapret">Запрет</string>
+    <string name="zapret_notification">Запрет · %1$s</string>
+    <string name="zapret_sub">Gets past blocking without a server. Subscriptions are not used in this mode</string>
+    <string name="zapret_hint">If a site will not open, try another strategy. They differ in technique, and which one works depends on your ISP</string>
+    <string name="zapret_count">%1$d strategies</string>
 </resources>

@@ -270,6 +270,8 @@ class MainActivity : ComponentActivity() {
                         ) { shown ->
                         when (shown) {
                             Page.Home -> HomeScreen(
+                                connMode = state.connMode,
+                                onConnMode = vm::setConnMode,
                                 state = vpn,
                                 server = selected,
                                 subscriptions = state.subscriptions,
@@ -302,6 +304,9 @@ class MainActivity : ComponentActivity() {
                             )
 
                             Page.Servers -> ServersScreen(
+                                connMode = state.connMode,
+                                zapretStrategy = state.zapretStrategy,
+                                onPickZapret = vm::pickZapret,
                                 subscriptions = state.subscriptions,
                                 selected = selected,
                                 pings = pings,

@@ -32,6 +32,12 @@ data class AppState(
     val pinActive: Boolean = false,
     /** Always true for now: the proxy-only mode was removed, another is planned. */
     val tunMode: Boolean = true,
+    /**
+     * "tun" or "zapret". Two modes on the phone where the desktop has three: proxy-only was
+     * dropped back in v5, and запрет is not a tunnel at all.
+     */
+    val connMode: String = "tun",
+    val zapretStrategy: String = "general",
     /** urls of subscriptions the user collapsed on Home */
     val collapsed: List<String> = emptyList(),
     val autoReconnect: Boolean = true,

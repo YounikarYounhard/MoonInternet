@@ -39,6 +39,10 @@ fun ServersScreen(
      * lambda looks unchanged even when the answer it gives is different. The star still repainted,
      * because the row called the lambda itself — but the order, worked out here, never did.
      */
+    /** "tun" or "zapret": in запрет the page lists strategies, there being no subscription. */
+    connMode: String,
+    zapretStrategy: String,
+    onPickZapret: (String) -> Unit,
     favorites: Set<String>,
     collapsed: Set<String>,
     sort: String,
@@ -74,6 +78,7 @@ fun ServersScreen(
     // Worked out here and not inside the LazyColumn below. An item is its own little composition:
     // it kept the list it was handed the first time, so a new star repainted the row but never
     // moved it. Sorting in the screen's own scope means the item gets an already-ordered list.
+    val zapret = connMode == "zapret"
     val groups = subscriptions.map { sub ->
         sub to sortedIn(sub).filter { s -> query.isBlank() || s.label.contains(query, ignoreCase = true) }
     }
@@ -87,17 +92,20 @@ fun ServersScreen(
             Row(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 12.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.serversscreen_002), fontSize = 21.sp, fontWeight = FontWeight.Bold, color = Moon.TextPrimary)
-                    Text(stringResource(R.string.fmt_servers, all.size), fontSize = 12.sp, color = Moon.TextSecondary,
+                    Text(if (zapret) stringResource(R.string.zapret_count, cc.moon.internet.core.ZapretStrategies.all.size)
+                         else stringResource(R.string.fmt_servers, all.size), fontSize = 12.sp, color = Moon.TextSecondary,
                          modifier = Modifier.padding(top = 2.dp))
                 }
                 // Each button reports its own job. One shared flag meant a ping spun the refresh
                 // icon too, on every subscription at once — a screenful of spinners for one press.
-                BusyIconButton(Icons.Filled.Speed, pinging.isNotEmpty(), stringResource(R.string.serversscreen_003), 40.dp, onPingAll)
-                BusyIconButton(Icons.Filled.Refresh, refreshing.isNotEmpty(), stringResource(R.string.serversscreen_004), 40.dp, onRefreshAll)
+                if (!zapret) {
+                    BusyIconButton(Icons.Filled.Speed, pinging.isNotEmpty(), stringResource(R.string.serversscreen_003), 40.dp, onPingAll)
+                    BusyIconButton(Icons.Filled.Refresh, refreshing.isNotEmpty(), stringResource(R.string.serversscreen_004), 40.dp, onRefreshAll)
+                }
             }
         }
 
-        item {
+        if (!zapret) item {
             Row(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                 Surface(onClick = onAdd, shape = RoundedCornerShape(11.dp), color = Moon.Accent,
                         modifier = Modifier.weight(1f).padding(end = 4.dp)) {
@@ -111,7 +119,7 @@ fun ServersScreen(
             }
         }
 
-        item {
+        if (!zapret) item {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -129,7 +137,7 @@ fun ServersScreen(
             )
         }
 
-        item {
+        if (!zapret) item {
             ChipSection(stringResource(R.string.section_protocol),
                         protocols.map { it to it.ifEmpty { allLabel } }, protocol, onProtocol)
             ChipSection(
@@ -146,7 +154,39 @@ fun ServersScreen(
             Spacer(Modifier.height(4.dp))
         }
 
-        items(groups.size) { i ->
+        // Запрет: the strategies stand where the subscriptions do. Same card, same outline on the
+        // chosen one — switching mode should not feel like a different application.
+        if (zapret) {
+            item {
+                Text(stringResource(R.string.zapret_sub), fontSize = 12.sp, color = Moon.TextSecondary,
+                     lineHeight = 17.sp, modifier = Modifier.padding(bottom = 10.dp))
+            }
+            items(cc.moon.internet.core.ZapretStrategies.all.size) { i ->
+                val st = cc.moon.internet.core.ZapretStrategies.all[i]
+                val chosen = st.id == zapretStrategy
+                Surface(
+                    onClick = { onPickZapret(st.id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (chosen) Color(0xFF251A44) else Moon.Card,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp, if (chosen) Moon.Accent else Moon.BorderSoft),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                ) {
+                    Row(Modifier.padding(14.dp, 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Bolt, null, tint = Moon.AccentText, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(11.dp))
+                        Text(st.id, color = Moon.TextPrimary, fontSize = 13.5.sp,
+                             maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            item {
+                Text(stringResource(R.string.zapret_hint), fontSize = 11.sp, color = Moon.TextMuted,
+                     lineHeight = 16.sp, modifier = Modifier.padding(top = 6.dp, bottom = 12.dp))
+            }
+        }
+
+        if (!zapret) items(groups.size) { i ->
             val (sub, shown) = groups[i]
             if (shown.isNotEmpty() || query.isBlank()) {
                 SubGroup(

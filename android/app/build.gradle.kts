@@ -60,6 +60,10 @@ android {
 
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
+        // libbyedpi.so is an executable wearing a library's name, and it has to be a real file on
+        // disk with the execute bit before it can be run. Left packed inside the APK — which is
+        // what modern Gradle does by default — there is nothing to exec.
+        jniLibs.useLegacyPackaging = true
     }
 }
 

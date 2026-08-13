@@ -31,6 +31,8 @@ class MoonVpnService : VpnService() {
         const val EXTRA_APP_MODE = "appMode"
         const val EXTRA_APPS = "apps"
         const val EXTRA_TUN = "tun"
+        /** Strategy id when this is the запрет mode; absent means an ordinary tunnel. */
+        const val EXTRA_ZAPRET = "zapret"
         const val ACTION_RECONNECT = "cc.moon.internet.RECONNECT"
         const val ACTION_PING = "cc.moon.internet.PING"
         const val ACTION_PAUSE = "cc.moon.internet.PAUSE"
@@ -40,6 +42,7 @@ class MoonVpnService : VpnService() {
         @Volatile private var lastProfile: String = ""
         @Volatile private var lastMtu: Int = 1500
         @Volatile private var lastTun: Boolean = true
+        @Volatile private var lastZapret: String? = null
         @Volatile private var lastAppMode: String = "off"
         @Volatile private var lastApps: List<String> = emptyList()
 
@@ -95,6 +98,7 @@ class MoonVpnService : VpnService() {
         fun start(
             ctx: Context, config: String, profileName: String, mtu: Int = 1500,
             tun: Boolean = true, perAppMode: String = "off", perApps: List<String> = emptyList(),
+            zapretStrategy: String? = null,
         ) {
             androidx.core.content.ContextCompat.startForegroundService(
                 ctx,
@@ -106,6 +110,7 @@ class MoonVpnService : VpnService() {
                 putExtra(EXTRA_APP_MODE, perAppMode)
                 putExtra(EXTRA_APPS, perApps.toTypedArray())
                 putExtra(EXTRA_TUN, tun)
+                putExtra(EXTRA_ZAPRET, zapretStrategy)
             },
             )
         }
@@ -121,6 +126,7 @@ class MoonVpnService : VpnService() {
     }
 
     private var tunFd: ParcelFileDescriptor? = null
+    private val byedpi by lazy { ByedpiRunner(this) }
     // see the companion: one clock, shared with the UI
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -147,7 +153,7 @@ class MoonVpnService : VpnService() {
                 val cfg = lastConfig
                 if (cfg.isNullOrBlank()) { stopSelf(); return START_NOT_STICKY }
                 // a paused tunnel closed its fd; startTunnel builds a fresh one
-                startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun)
+                startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret)
             }
 
             ACTION_PING -> {
@@ -166,6 +172,7 @@ class MoonVpnService : VpnService() {
                     intent.getStringExtra(EXTRA_APP_MODE) ?: "off",
                     intent.getStringArrayExtra(EXTRA_APPS)?.toList().orEmpty(),
                     intent.getBooleanExtra(EXTRA_TUN, true),
+                    intent.getStringExtra(EXTRA_ZAPRET),
                 )
             }
         }
@@ -174,13 +181,13 @@ class MoonVpnService : VpnService() {
 
     private fun startTunnel(
         config: String, profileName: String, mtu: Int, appMode: String, apps: List<String>,
-        tun: Boolean = true,
+        tun: Boolean = true, zapret: String? = null,
     ) {
         _state.value = State.Connecting
         _activeProfile.value = profileName
         lastError.value = null
         lastConfig = config; lastProfile = profileName; lastMtu = mtu
-        lastTun = tun; lastAppMode = appMode; lastApps = apps
+        lastTun = tun; lastAppMode = appMode; lastApps = apps; lastZapret = zapret
         startForeground(NOTIFICATION_ID, notification(profileName, connecting = true))
 
         scope.launch {
@@ -207,6 +214,15 @@ class MoonVpnService : VpnService() {
                         ?: run { askForVpnSlot(); return@launch }
                 } else null
                 tunFd = fd
+
+                if (zapret != null) {
+                    byedpi.start(zapret)?.let { why ->
+                        lastError.value = why
+                        _state.value = State.Disconnected
+                        stopTunnel()
+                        return@launch
+                    }
+                }
 
                 runner = XrayRunner(this@MoonVpnService) { _state.value = State.Disconnected }
                     .also { it.start(config, fd?.fd ?: 0) }
@@ -313,6 +329,7 @@ class MoonVpnService : VpnService() {
     private fun speedText(bytesPerSec: Long) = cc.moon.internet.data.SubscriptionService.speed(bytesPerSec)
 
     private fun stopCore() {
+        runCatching { byedpi.stop() }
         runCatching { runner?.stop() }
         runner = null
         runCatching { tunFd?.close() }

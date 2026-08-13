@@ -77,6 +77,45 @@ object XrayConfig {
         return o.put("inbounds", kept).toString(2)
     }
 
+    /**
+     * Запрет mode: the tunnel carries everything into byedpi, which is listening on loopback.
+     *
+     * There is no server here and no routing — byedpi does not send the traffic anywhere, it edits
+     * the handshake on its way out. xray is doing one job only, turning the tunnel into SOCKS, and
+     * that is why this config is so much smaller than the other one.
+     *
+     * Sniffing stays on: byedpi has to see the hostname to know which connection to work on, and
+     * with a TUN inbound the hostname is only in the TLS hello, not in the destination address.
+     */
+    fun buildZapret(mtu: Int, logLevel: String, logFile: String?): String {
+        val cfg = JSONObject()
+        val log = JSONObject().put("loglevel", logLevel)
+        if (logLevel != "none" && !logFile.isNullOrBlank()) log.put("error", logFile)
+        cfg.put("log", log)
+
+        cfg.put("inbounds", JSONArray().put(
+            JSONObject()
+                .put("tag", "tun-in").put("port", 0).put("protocol", "tun")
+                .put("settings", JSONObject().put("name", "moon0").put("MTU", mtu))
+                .put("sniffing", JSONObject().put("enabled", true)
+                    .put("destOverride", JSONArray().put("http").put("tls")))
+        ))
+
+        cfg.put("outbounds", JSONArray()
+            .put(JSONObject().put("tag", "proxy").put("protocol", "socks")
+                .put("settings", JSONObject().put("servers", JSONArray().put(
+                    JSONObject().put("address", "127.0.0.1").put("port", ZapretStrategies.PORT)))))
+            // byedpi speaks TCP only. UDP has nowhere to go, and letting it out direct is better
+            // than a stall: QUIC then fails over to TLS, which is the path byedpi can actually help.
+            .put(JSONObject().put("tag", "direct").put("protocol", "freedom"))
+            .put(JSONObject().put("tag", "block").put("protocol", "blackhole")))
+
+        cfg.put("routing", JSONObject().put("rules", JSONArray()
+            .put(JSONObject().put("type", "field").put("network", "udp").put("outboundTag", "direct"))))
+
+        return cfg.toString(2)
+    }
+
     fun build(
         server: ServerProfile,
         routing: RoutingProfile? = null,
