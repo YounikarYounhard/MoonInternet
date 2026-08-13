@@ -38,8 +38,12 @@ data class AppState(
      */
     val connMode: String = "tun",
     val zapretStrategy: String = "general",
-    /** What the Zapret check opens. Blocked where this mode is needed, and cheap to ask for. */
-    val zapretCheckUrl: String = "https://www.youtube.com",
+    /**
+     * What the Zapret check opens. Not YouTube: it is throttled by IP address rather than by
+     * name, so no amount of handshake rewriting brings it back and the check would report
+     * failure for a strategy that is working perfectly well on everything else.
+     */
+    val zapretCheckUrl: String = "https://discord.com",
     /** urls of subscriptions the user collapsed on Home */
     val collapsed: List<String> = emptyList(),
     val autoReconnect: Boolean = true,

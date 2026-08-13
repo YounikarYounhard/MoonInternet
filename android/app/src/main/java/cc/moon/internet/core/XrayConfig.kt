@@ -84,8 +84,11 @@ object XrayConfig {
      * the handshake on its way out. xray is doing one job only, turning the tunnel into SOCKS, and
      * that is why this config is so much smaller than the other one.
      *
-     * Sniffing stays on: byedpi has to see the hostname to know which connection to work on, and
-     * with a TUN inbound the hostname is only in the TLS hello, not in the destination address.
+     * Sniffing is deliberately OFF, which is the opposite of what this comment used to claim.
+     * byedpi cannot resolve host names on Android — it answers a SOCKS request carrying a domain
+     * with «not resolved», flat — so xray must hand it the address the app was already dialling.
+     * It loses nothing: the desync works on the TLS hello it sees on the wire, not on the name in
+     * the SOCKS request.
      */
     fun buildZapret(mtu: Int, logLevel: String, logFile: String?): String {
         val cfg = JSONObject()
@@ -97,8 +100,9 @@ object XrayConfig {
             JSONObject()
                 .put("tag", "tun-in").put("port", 0).put("protocol", "tun")
                 .put("settings", JSONObject().put("name", "moon0").put("MTU", mtu))
-                .put("sniffing", JSONObject().put("enabled", true)
-                    .put("destOverride", JSONArray().put("http").put("tls")))
+                // No destOverride: that is what replaced the IP with a sniffed domain and left
+                // byedpi with a name it cannot resolve.
+                .put("sniffing", JSONObject().put("enabled", false))
         ))
 
         cfg.put("outbounds", JSONArray()
@@ -377,8 +381,12 @@ object XrayConfig {
                 .put("health_check_timeout", 20)
                 .put("permit_without_stream", false))
 
+            // Same leak gRPC had — HTTP/2 holds one long-lived connection and needs the same
+            // health check for a dead one to be noticed.
             "http" -> st.put("httpSettings", JSONObject()
                 .put("path", s.path ?: "/")
+                .put("read_idle_timeout", 60)
+                .put("health_check_timeout", 20)
                 .apply {
                     s.host?.takeIf { it.isNotBlank() }?.let {
                         put("host", JSONArray().apply {

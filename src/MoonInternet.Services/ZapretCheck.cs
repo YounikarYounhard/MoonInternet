@@ -13,8 +13,11 @@ namespace MoonInternet.Services;
 /// </summary>
 public static class ZapretCheck
 {
-    /// <summary>What to fetch. Blocked in the places this mode exists for, and cheap to ask for.</summary>
-    public const string DefaultUrl = "https://www.youtube.com/generate_204";
+    /// <summary>
+    /// What to fetch. Not YouTube: it is throttled by IP address rather than by name, so no amount
+    /// of handshake rewriting brings it back — the check would call a perfectly good strategy dead.
+    /// </summary>
+    public const string DefaultUrl = "https://discord.com";
 
     /// <summary>Milliseconds, or -1 when it did not come back.</summary>
     public static async Task<int> MeasureAsync(string url, int timeoutMs = 6000, CancellationToken ct = default)

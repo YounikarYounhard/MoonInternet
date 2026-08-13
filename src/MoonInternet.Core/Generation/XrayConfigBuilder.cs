@@ -280,7 +280,16 @@ public static class XrayConfigBuilder
                 };
                 break;
             case "http":
-                var h2 = new Dictionary<string, object?> { ["path"] = p.Path ?? "/" };
+                // Same leak gRPC had, same cure: HTTP/2 is one long-lived connection, and without a
+                // health check a dead one is never noticed — the client opens another and the
+                // server keeps the corpse. Checked because gRPC turned out to have it; these are
+                // the only two transports here that hold a multiplexed connection open.
+                var h2 = new Dictionary<string, object?>
+                {
+                    ["path"] = p.Path ?? "/",
+                    ["read_idle_timeout"] = 60,
+                    ["health_check_timeout"] = 20,
+                };
                 if (!string.IsNullOrEmpty(p.Host)) h2["host"] = p.Host.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 s["httpSettings"] = h2;
                 break;
