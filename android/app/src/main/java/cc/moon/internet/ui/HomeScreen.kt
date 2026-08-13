@@ -56,6 +56,10 @@ fun HomeScreen(
     onConnMode: (String) -> Unit,
     zapretStrategy: String,
     onPickZapret: (String) -> Unit,
+    zapretPing: String,
+    zapretBusy: Boolean,
+    onCheckZapret: () -> Unit,
+    onAutoPickZapret: () -> Unit,
     favorites: Set<String>,
     checkPing: String,
     showSubHeader: Boolean,
@@ -167,6 +171,10 @@ fun HomeScreen(
                         modifier = Modifier.widthIn(max = 300.dp),
                     )
                 }
+                if (zapretPing != "—") {
+                    Text(zapretPing, color = Moon.TextSecondary, fontSize = 12.sp,
+                         modifier = Modifier.padding(top = 4.dp))
+                }
             } else if (server != null) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -249,12 +257,21 @@ fun HomeScreen(
                     Spacer(Modifier.height(7.dp))
                     StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
                 }
-                // Adding and pasting are about subscriptions; запрет has none. The speed and
-                // traffic readouts stay — traffic still flows, it just flows differently.
-                if (!zapret) Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
-                    ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add, Color(0xFF2C2058), Color(0xFFC4B4FF), onAdd)
-                    Spacer(Modifier.height(6.dp))
-                    ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste, Moon.ChipBg, Color(0xFFC6CAD3), onPaste)
+                // Adding and pasting are about subscriptions; Zapret has none. The two buttons
+                // that matter there take the same place: does this strategy work, and if not,
+                // find one that does. The readouts stay either way — traffic still flows.
+                Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
+                    if (zapret) {
+                        ActionButton(stringResource(R.string.zapret_check_now), Icons.Filled.NetworkCheck,
+                                     Color(0xFF2C2058), Color(0xFFC4B4FF)) { if (!zapretBusy) onCheckZapret() }
+                        Spacer(Modifier.height(6.dp))
+                        ActionButton(stringResource(R.string.zapret_auto_run), Icons.Filled.AutoFixHigh,
+                                     Moon.ChipBg, Color(0xFFC6CAD3)) { if (!zapretBusy) onAutoPickZapret() }
+                    } else {
+                        ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add, Color(0xFF2C2058), Color(0xFFC4B4FF), onAdd)
+                        Spacer(Modifier.height(6.dp))
+                        ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste, Moon.ChipBg, Color(0xFFC6CAD3), onPaste)
+                    }
                 }
             }
         }
@@ -262,23 +279,50 @@ fun HomeScreen(
         // ---- subscriptions ----------------------------------------------------
         item { Spacer(Modifier.height(12.dp)) }
 
-        if (zapret) {
-            items(cc.moon.internet.core.ZapretStrategies.all.size) { i ->
-                val st = cc.moon.internet.core.ZapretStrategies.all[i]
-                val chosen = st.id == zapretStrategy
-                Surface(
-                    onClick = { onPickZapret(st.id) },
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (chosen) Color(0xFF251A44) else Moon.Card,
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp, if (chosen) Moon.Accent else Moon.BorderSoft),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                ) {
-                    Row(Modifier.padding(14.dp, 11.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Bolt, null, tint = Moon.AccentText, modifier = Modifier.size(17.dp))
+        // One card holding the strategies, shaped like a subscription: a bare list of twenty-one
+        // rows read as a debug screen next to the subscriptions it stands in for.
+        if (zapret) item {
+            Surface(
+                shape = RoundedCornerShape(14.dp), color = Moon.HomeCard,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column {
+                    Row(Modifier.padding(14.dp, 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Bolt, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(11.dp))
-                        Text(st.id, color = Moon.TextPrimary, fontSize = 13.5.sp,
-                             maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.zapret_card_title), color = Moon.TextPrimary,
+                                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.zapret_card_sub), color = Moon.TextSecondary,
+                                 fontSize = 11.5.sp, modifier = Modifier.padding(top = 2.dp))
+                        }
+                        Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent) {
+                            Text(cc.moon.internet.core.ZapretStrategies.all.size.toString(),
+                                 Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                 color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    Column(Modifier.padding(horizontal = 7.dp).padding(bottom = 7.dp)) {
+                        cc.moon.internet.core.ZapretStrategies.all.forEach { st ->
+                            val chosen = st.id == zapretStrategy
+                            Surface(
+                                onClick = { onPickZapret(st.id) },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (chosen) Color(0xFF251A44) else Moon.Card,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp, if (chosen) Moon.Accent else Moon.BorderSoft),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(Modifier.padding(14.dp, 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.Bolt, null, tint = Moon.AccentText, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(11.dp))
+                                    Text(st.id, color = Moon.TextPrimary, fontSize = 13.5.sp,
+                                         maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                        }
                     }
                 }
             }

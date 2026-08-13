@@ -472,4 +472,6 @@
     <string name="zapret_none_worked">Ни одна не подошла</string>
     <string name="zapret_check_url">Что открывать при проверке</string>
     <string name="zapret_needs_on">Включите режим Zapret и подключитесь — проверять пока нечего</string>
+    <string name="zapret_card_title">Стратегии Zapret</string>
+    <string name="zapret_card_sub">Выберите одну — какая подойдёт, зависит от провайдера</string>
 </resources>

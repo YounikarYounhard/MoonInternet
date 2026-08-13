@@ -469,4 +469,6 @@
     <string name="zapret_none_worked">None of them worked</string>
     <string name="zapret_check_url">What to open when checking</string>
     <string name="zapret_needs_on">Turn Zapret on and connect — there is nothing to check yet</string>
+    <string name="zapret_card_title">Zapret strategies</string>
+    <string name="zapret_card_sub">Pick one — which works depends on your ISP</string>
 </resources>
