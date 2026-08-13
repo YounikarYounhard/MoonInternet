@@ -311,7 +311,9 @@ fun HomeScreen(
         }
 
         item {
-            if (subscriptions.isEmpty()) {
+            // «No subscriptions yet» with a QR button under it is an invitation to add one, and in
+            // Zapret there is nothing to add — the strategies above are the whole list.
+            if (subscriptions.isEmpty() && !zapret) {
                 Surface(
                     shape = RoundedCornerShape(14.dp), color = Moon.HomeCard,
                     border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),

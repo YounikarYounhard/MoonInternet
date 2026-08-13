@@ -303,6 +303,17 @@ string StartZapret(string id, string filter)
     var strategy = MoonInternet.Core.Parsing.ZapretStrategyParser.Load(dir, mode).FirstOrDefault(s => s.Id == id);
     if (strategy is null) return "ERR no such strategy: " + id;
 
+    // Every strategy names three lists that are not in the archive: the *-user ones, where you put
+    // your own domains. zapret's own service.bat creates them on the way past; we do not run it, so
+    // nobody did — and winws treats a list it cannot open as fatal and quits. Empty is the right
+    // content: it means "nothing of yours to add".
+    foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
+                 strategy.Arguments, @"""([^""]*-user\.txt)"""))
+    {
+        var path = m.Groups[1].Value;
+        if (!File.Exists(path)) try { File.WriteAllText(path, ""); } catch (Exception e) { Log($"list {path}: {e.Message}"); }
+    }
+
     lock (gate)
     {
         StopTun();      // запрет and a tunnel cannot both hold the traffic
