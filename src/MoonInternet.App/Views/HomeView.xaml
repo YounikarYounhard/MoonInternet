@@ -150,6 +150,11 @@
                                FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
                 </StackPanel>
 
+                <TextBlock Text="{Binding ErrorText}" Foreground="{StaticResource Danger}" FontSize="12"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                           MaxWidth="330" Margin="0,8,0,0"
+                           Visibility="{Binding HasError, Converter={StaticResource BoolVis}}"/>
+
                 <!-- check connection + ping: fades + slides in when connected, out when disconnected -->
                 <Grid ClipToBounds="True" HorizontalAlignment="Center">
                     <Grid.Style>

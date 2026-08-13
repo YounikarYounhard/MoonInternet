@@ -1309,6 +1309,13 @@ public partial class MainViewModel : ObservableObject
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
     public bool IsConnecting => ConnectionState == ConnectionState.Connecting;
     public bool CanClick => true; // clickable in every state — during "Connecting" a click cancels
+
+    /// <summary>
+    /// The last failure, shown under the moon. Status has never been on screen anywhere, so a
+    /// refusal to connect looked exactly like a click that did not register.
+    /// </summary>
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasError))] private string errorText = "";
+    public bool HasError => ErrorText.Length > 0;
     public string ConnectButtonText => ConnectionState switch
     {
         ConnectionState.Connected => Localization.Loc.T("S_VM_010"),
@@ -2823,6 +2830,7 @@ public partial class MainViewModel : ObservableObject
             if (SelectedZapret is null) { Status = Localization.Loc.T("S_VM_ZapretPick"); CurrentPage = AppPage.Servers; return; }
             try
             {
+                ErrorText = "";
                 Status = string.Format(Localization.Loc.T("S_VM_ZapretStarting"), SelectedZapret.Name);
                 await _conn.ConnectZapretAsync(SelectedZapret.Id, ZapretGameFilter);
                 if (ConnectionState != ConnectionState.Connected) return;
@@ -2831,7 +2839,15 @@ public partial class MainViewModel : ObservableObject
                 _settings.ZapretStrategy = SelectedZapret.Id;
                 _settings.Save();
             }
-            catch (Exception ex) { Status = Localization.Loc.T("S_VM_ZapretFailed") + ": " + ex.Message; }
+            catch (Exception ex)
+            {
+                // "unknown" comes from a helper that predates запрет: it is installed and answering,
+                // it simply has never heard of the command. That is an update, not a breakage.
+                ErrorText = ex.Message.Contains("unknown", StringComparison.OrdinalIgnoreCase)
+                    ? Localization.Loc.T("S_Zapret_OldHelper")
+                    : Localization.Loc.T("S_VM_ZapretFailed") + ": " + ex.Message;
+                Status = ErrorText;
+            }
             return;
         }
         if (SelectedServer is null) { Status = Localization.Loc.T("S_VM_230"); CurrentPage = AppPage.Servers; return; }

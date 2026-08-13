@@ -35,6 +35,7 @@ class ByedpiRunner(private val ctx: Context) {
 
         val cmd = ZapretStrategies.commandLine(bin.absolutePath, strategyId)
         return try {
+            android.util.Log.i("byedpi", "start: " + cmd.joinToString(" "))
             proc = ProcessBuilder(cmd).redirectErrorStream(true).start()
             // Drain the pipe: a process whose output nobody reads blocks once the buffer fills.
             Thread {
@@ -45,12 +46,28 @@ class ByedpiRunner(private val ctx: Context) {
                 }
             }.apply { isDaemon = true }.start()
 
-            Thread.sleep(400)
-            if (proc?.isAlive != true) {
-                val code = runCatching { proc?.exitValue() }.getOrNull()
-                proc = null
-                "byedpi не запустился (код $code)"
-            } else null
+            // Alive is not the same as ready, and it is not the same as useful either: byedpi
+            // exits on a flag it dislikes, and a port it never bound accepts nothing. So we knock
+            // on the port itself. Without this the tunnel came up, pointed at nobody, and the
+            // phone just sat there with no page loading and no error to show for it.
+            var lastWhy: String? = null
+            repeat(15) {
+                Thread.sleep(100)
+                if (proc?.isAlive != true) {
+                    val code = runCatching { proc?.exitValue() }.getOrNull()
+                    proc = null
+                    return "byedpi завершился сразу (код $code) — стратегия ему не подошла"
+                }
+                val knock = runCatching {
+                    java.net.Socket().use { s ->
+                        s.connect(java.net.InetSocketAddress("127.0.0.1", ZapretStrategies.PORT), 300)
+                    }
+                }
+                if (knock.isSuccess) return null
+                lastWhy = knock.exceptionOrNull()?.message
+            }
+            stop()
+            "byedpi не отвечает на 127.0.0.1:${ZapretStrategies.PORT}" + (lastWhy?.let { " ($it)" } ?: "")
         } catch (e: Exception) {
             proc = null
             e.message ?: "byedpi не запустился"

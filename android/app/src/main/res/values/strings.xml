@@ -452,8 +452,8 @@
     <string name="routing_prefer">"Предпочтение"</string>
     <string name="routing_prefer_hint">"Если в подписке две маршрутизации, будет выбрана эта"</string>
     <string name="routing_auto_short">"Авто"</string>
-    <string name="mode_zapret">Запрет</string>
-    <string name="zapret_notification">Запрет · %1$s</string>
+    <string name="mode_zapret">Zapret</string>
+    <string name="zapret_notification">Zapret · %1$s</string>
     <string name="zapret_sub">Обход блокировок без сервера. Подписки в этом режиме не нужны</string>
     <string name="zapret_hint">Если сайт не открывается — попробуйте другую стратегию. Они отличаются приёмами, и какая подойдёт, зависит от вашего провайдера</string>
     <string name="zapret_count">%1$d стратегий</string>
