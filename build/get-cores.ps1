@@ -56,6 +56,18 @@ try {
     New-Item -ItemType Directory -Force -Path (Join-Path $cores 'tun2socks') | Out-Null
     Copy-Item $exe.FullName (Join-Path $cores 'tun2socks\tun2socks.exe') -Force
 
+    # zapret — the DPI-bypass mode. Not a tunnel at all: it rewrites the handshake on the way out
+    # instead of sending the traffic anywhere, so it rides along with no server and no subscription.
+    # The whole folder is kept as published: winws.exe reads the .bin payloads and the lists next to
+    # it, and the .bat files are the strategies themselves — we parse them rather than run them.
+    $z = Get-Release 'flowseal/zapret-discord-youtube' '*.zip'
+    $zp = Join-Path $tmp 'zp'; Expand-Into $z $zp
+    # The archive has everything under one folder; take whatever level actually holds bin\.
+    $binDir = Get-ChildItem $zp -Recurse -Directory -Filter 'bin' | Select-Object -First 1
+    if (-not $binDir) { throw 'zapret: bin\ not found in the archive' }
+    $src = Split-Path $binDir.FullName -Parent
+    Copy-Item $src (Join-Path $cores 'zapret') -Recurse -Force
+
     # wintun.dll — TUN driver both engines load. Ships inside the xray archive.
     $wintun = Get-ChildItem (Join-Path $cores 'xray') -Recurse -Filter 'wintun.dll' | Select-Object -First 1
     if ($wintun) {
