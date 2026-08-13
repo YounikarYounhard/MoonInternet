@@ -454,4 +454,19 @@
     <string name="zapret_sub">Gets past blocking without a server. Subscriptions are not used in this mode</string>
     <string name="zapret_hint">If a site will not open, try another strategy. They differ in technique, and which one works depends on your ISP</string>
     <string name="zapret_count">%1$d strategies</string>
+    <string name="page_zapret">Zapret settings</string>
+    <string name="page_zapret_sub">Checking strategies and picking one</string>
+    <string name="zapret_check_title">Check the strategy</string>
+    <string name="zapret_check_hint">A ping is no use here: Zapret carries traffic nowhere, so there is nothing to measure to. We open a blocked page through byedpi instead and time it.</string>
+    <string name="zapret_check_now">Check</string>
+    <string name="zapret_checking">Checking…</string>
+    <string name="zapret_no_answer">No answer — this strategy does not help</string>
+    <string name="zapret_auto_title">Find one that works</string>
+    <string name="zapret_auto_hint">Goes down the list and stops at the first strategy the page opens with. Takes up to a couple of minutes.</string>
+    <string name="zapret_auto_run">Find one</string>
+    <string name="zapret_trying">%1$d of %2$d: %3$s…</string>
+    <string name="zapret_found">This one works: %1$s · %2$d ms</string>
+    <string name="zapret_none_worked">None of them worked</string>
+    <string name="zapret_check_url">What to open when checking</string>
+    <string name="zapret_needs_on">Turn Zapret on and connect — there is nothing to check yet</string>
 </resources>

@@ -457,4 +457,19 @@
     <string name="zapret_sub">Обход блокировок без сервера. Подписки в этом режиме не нужны</string>
     <string name="zapret_hint">Если сайт не открывается — попробуйте другую стратегию. Они отличаются приёмами, и какая подойдёт, зависит от вашего провайдера</string>
     <string name="zapret_count">%1$d стратегий</string>
+    <string name="page_zapret">Настройки Zapret</string>
+    <string name="page_zapret_sub">Проверка стратегий и автоподбор</string>
+    <string name="zapret_check_title">Проверка стратегии</string>
+    <string name="zapret_check_hint">Обычный пинг тут бесполезен: Zapret никуда не ведёт трафик, вести замер не к чему. Вместо этого мы открываем заблокированную страницу через byedpi и засекаем время.</string>
+    <string name="zapret_check_now">Проверить</string>
+    <string name="zapret_checking">Проверяю…</string>
+    <string name="zapret_no_answer">Нет ответа — стратегия не помогает</string>
+    <string name="zapret_auto_title">Подобрать стратегию</string>
+    <string name="zapret_auto_hint">Переберёт стратегии одну за другой и остановится на первой, с которой страница открылась. Занимает до пары минут.</string>
+    <string name="zapret_auto_run">Подобрать</string>
+    <string name="zapret_trying">%1$d из %2$d: %3$s…</string>
+    <string name="zapret_found">Подошла: %1$s · %2$d ms</string>
+    <string name="zapret_none_worked">Ни одна не подошла</string>
+    <string name="zapret_check_url">Что открывать при проверке</string>
+    <string name="zapret_needs_on">Включите режим Zapret и подключитесь — проверять пока нечего</string>
 </resources>

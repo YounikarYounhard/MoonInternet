@@ -125,6 +125,8 @@ class MainActivity : ComponentActivity() {
                 val status by vm.status.collectAsState()
                 val checkPing by vm.checkPing.collectAsState()
                 val logsSize by vm.logsSize.collectAsState()
+                val zapretPing by vm.zapretPing.collectAsState()
+                val zapretBusy by vm.zapretBusy.collectAsState()
                 val geoBusy by vm.geoBusy.collectAsState()
                 val geoStatus by vm.geoStatus.collectAsState()
                 val updateAvailable by vm.updateAvailable.collectAsState()
@@ -383,6 +385,10 @@ class MainActivity : ComponentActivity() {
                             Page.Settings -> settingsPage?.let { sp ->
                                 SettingsDetail(
                                     page = sp,
+                                    zapretPing = zapretPing,
+                                    zapretBusy = zapretBusy,
+                                    onCheckZapret = { vm.checkZapret() },
+                                    onAutoPickZapret = { vm.autoPickZapret() },
                                     state = state,
                                     routing = vm.activeRouting(),
                                     apps = installedApps,

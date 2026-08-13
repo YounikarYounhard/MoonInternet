@@ -38,6 +38,8 @@ data class AppState(
      */
     val connMode: String = "tun",
     val zapretStrategy: String = "general",
+    /** What the Zapret check opens. Blocked where this mode is needed, and cheap to ask for. */
+    val zapretCheckUrl: String = "https://www.youtube.com",
     /** urls of subscriptions the user collapsed on Home */
     val collapsed: List<String> = emptyList(),
     val autoReconnect: Boolean = true,

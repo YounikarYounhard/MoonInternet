@@ -43,6 +43,7 @@ enum class SettingsPage(
     Routing(R.string.page_routing, R.string.page_routing_sub, Icons.Filled.AltRoute),
     Subscriptions(R.string.page_subs, R.string.page_subs_sub, Icons.Filled.LibraryBooks),
     Ping(R.string.page_ping, R.string.page_ping_sub, Icons.Filled.Speed),
+    Zapret(R.string.page_zapret, R.string.page_zapret_sub, Icons.Filled.Bolt),
     Auto(R.string.page_auto, R.string.page_auto_sub, Icons.Filled.PlayCircle),
     Notifications(R.string.page_notify, R.string.page_notify_sub, Icons.Filled.Notifications),
     Logs(R.string.page_logs, R.string.page_logs_sub, Icons.Filled.Description),
@@ -57,7 +58,7 @@ enum class SettingsPage(
 
     companion object {
         /** Exactly the cards the desktop hub shows, in the same order. */
-        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Auto, Notifications, Logs, About)
+        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Zapret, Auto, Notifications, Logs, About)
     }
 }
 
@@ -106,6 +107,10 @@ fun SettingsDetail(
     onResetProxyCreds: () -> Unit,
     onClearLogs: () -> Unit,
     onViewLog: () -> Unit,
+    zapretPing: String,
+    zapretBusy: Boolean,
+    onCheckZapret: () -> Unit,
+    onAutoPickZapret: () -> Unit,
 ) {
     // The header is outside the scrolling area on purpose: the desktop page keeps its title and
     // back button fixed while only the body moves.
@@ -130,6 +135,7 @@ fun SettingsDetail(
                 SettingsPage.AppRouting -> AppRoutingPage(state, apps, onSet)
                 SettingsPage.Subscriptions -> SubsPage(state, onSet, onRefresh, onRemoveSub, onAdd)
                 SettingsPage.Ping -> PingPage(state, onSet)
+                SettingsPage.Zapret -> ZapretPage(state, onSet, zapretPing, zapretBusy, onCheckZapret, onAutoPickZapret)
                 SettingsPage.Auto -> AutoPage(state, onSet)
                 SettingsPage.Notifications -> NotificationsPage(state, onSet)
                 SettingsPage.Logs -> LogsPage(state, logsSize, onSet, onClearLogs, onViewLog)
@@ -549,6 +555,67 @@ private fun pingHint(method: String) = when (method) {
     "httphead" -> R.string.ping_desc_httphead
     "stability" -> R.string.ping_desc_stability
     else -> R.string.ping_desc_moon
+}
+
+/**
+ * Zapret settings. Two questions and one field, because there is not a third worth asking:
+ * byedpi has no ports to open and no lists to load — those are the desktop engine's knobs.
+ */
+@Composable
+private fun ZapretPage(
+    state: AppState,
+    onSet: ((AppState.() -> AppState)) -> Unit,
+    ping: String,
+    busy: Boolean,
+    onCheck: () -> Unit,
+    onAutoPick: () -> Unit,
+) {
+    Column {
+        Card {
+            Text(stringResource(R.string.zapret_check_title), color = Moon.TextPrimary,
+                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.zapret_check_hint), color = Moon.TextSecondary,
+                 fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(onClick = { if (!busy) onCheck() }, shape = RoundedCornerShape(10.dp),
+                        color = if (busy) Moon.ChipBg else Moon.Accent) {
+                    Text(stringResource(R.string.zapret_check_now), color = Color.White, fontSize = 13.sp,
+                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(ping, color = Moon.AccentText, fontSize = 13.sp)
+            }
+        }
+
+        Card {
+            Text(stringResource(R.string.zapret_auto_title), color = Moon.TextPrimary,
+                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.zapret_auto_hint), color = Moon.TextSecondary,
+                 fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+            Surface(onClick = { if (!busy) onAutoPick() }, shape = RoundedCornerShape(10.dp),
+                    color = if (busy) Moon.ChipBg else Moon.Accent) {
+                Text(stringResource(R.string.zapret_auto_run), color = Color.White, fontSize = 13.sp,
+                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
+            }
+        }
+
+        SectionLabel(stringResource(R.string.zapret_check_url))
+        var url by remember(state.zapretCheckUrl) { mutableStateOf(state.zapretCheckUrl) }
+        MoonTextField(url, { url = it; onSet { copy(zapretCheckUrl = it) } }, "https://…")
+
+        Text(stringResource(R.string.zapret_hint), color = Moon.TextMuted, fontSize = 11.sp,
+             lineHeight = 16.sp, modifier = Modifier.padding(top = 14.dp))
+    }
+}
+
+/** Plain card, same shape as the ones the other pages use. */
+@Composable
+private fun Card(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(14.dp), color = Moon.Card,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Moon.BorderSoft),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
+    ) { Column(Modifier.padding(14.dp), content = content) }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

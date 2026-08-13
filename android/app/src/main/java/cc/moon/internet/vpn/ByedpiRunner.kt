@@ -74,6 +74,42 @@ class ByedpiRunner(private val ctx: Context) {
         }
     }
 
+    /**
+     * Does the strategy actually help?
+     *
+     * A ping cannot say: Zapret carries traffic nowhere, so there is nothing to measure to. We
+     * fetch a page that is blocked and time it — an answer means this strategy works here.
+     *
+     * Deliberately through byedpi's own SOCKS rather than straight out. Our package is excluded
+     * from the tunnel (otherwise byedpi's own dials would loop back into it), so a plain request
+     * from this app would sail past byedpi and report a healthy number for a strategy doing
+     * nothing at all.
+     */
+    fun check(url: String, timeoutMs: Int = 6000): Int {
+        val target = runCatching { java.net.URL(url) }.getOrNull() ?: return -1
+        val host = target.host
+        val port = if (target.port > 0) target.port else if (target.protocol == "https") 443 else 80
+        return try {
+            val proxy = java.net.Proxy(java.net.Proxy.Type.SOCKS,
+                java.net.InetSocketAddress("127.0.0.1", ZapretStrategies.PORT))
+            val started = System.currentTimeMillis()
+            java.net.Socket(proxy).use { s ->
+                s.connect(java.net.InetSocketAddress.createUnresolved(host, port), timeoutMs)
+                s.soTimeout = timeoutMs
+                // The TLS handshake is the part DPI interferes with, so it is the part worth
+                // timing: a bare TCP connect completes even when the strategy does nothing at
+                // all. Plain HTTP is not handled — there is nothing for a strategy to hide in
+                // an unencrypted request, so checking over it would prove nothing either way.
+                val f = javax.net.ssl.SSLSocketFactory.getDefault() as javax.net.ssl.SSLSocketFactory
+                (f.createSocket(s, host, port, true) as javax.net.ssl.SSLSocket).use { it.startHandshake() }
+            }
+            (System.currentTimeMillis() - started).toInt()
+        } catch (e: Exception) {
+            android.util.Log.i("byedpi", "check failed: " + e.message)
+            -1
+        }
+    }
+
     fun stop() {
         proc?.let { p -> runCatching { p.destroy(); p.waitFor() } }
         proc = null

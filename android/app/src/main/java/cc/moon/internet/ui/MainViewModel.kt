@@ -728,6 +728,44 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    private val _zapretPing = kotlinx.coroutines.flow.MutableStateFlow("—")
+    val zapretPing: kotlinx.coroutines.flow.StateFlow<String> = _zapretPing
+    private val _zapretBusy = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val zapretBusy: kotlinx.coroutines.flow.StateFlow<Boolean> = _zapretBusy
+
+    /** Opens a blocked page through byedpi and times it. See ByedpiRunner.check for why. */
+    fun checkZapret() = viewModelScope.launch {
+        if (_zapretBusy.value) return@launch
+        _zapretBusy.value = true
+        _zapretPing.value = s(R.string.zapret_checking)
+        val ms = withContext(Dispatchers.IO) { cc.moon.internet.vpn.ByedpiRunner(getApplication()).check(store.state.value.zapretCheckUrl) }
+        _zapretPing.value = if (ms < 0) s(R.string.zapret_no_answer) else "$ms ms"
+        _zapretBusy.value = false
+    }
+
+    /**
+     * Walks the list until a page opens. Which strategy works depends on the provider, and by hand
+     * that is twenty-one reconnects — the thing that makes the mode feel broken rather than fiddly.
+     */
+    fun autoPickZapret() = viewModelScope.launch {
+        if (_zapretBusy.value) return@launch
+        _zapretBusy.value = true
+        try {
+            val all = cc.moon.internet.core.ZapretStrategies.all
+            all.forEachIndexed { i, st ->
+                _zapretPing.value = s(R.string.zapret_trying, i + 1, all.size, st.id)
+                store.update { it.copy(zapretStrategy = st.id) }
+                connectZapret()
+                kotlinx.coroutines.delay(1500)
+                val ms = withContext(Dispatchers.IO) { cc.moon.internet.vpn.ByedpiRunner(getApplication()).check(store.state.value.zapretCheckUrl) }
+                if (ms >= 0) { _zapretPing.value = s(R.string.zapret_found, st.id, ms); return@launch }
+            }
+            _zapretPing.value = s(R.string.zapret_none_worked)
+        } finally { _zapretBusy.value = false }
+    }
+
+    fun setZapretCheckUrl(u: String) = viewModelScope.launch { store.update { it.copy(zapretCheckUrl = u) } }
+
     fun setConnMode(m: String) = viewModelScope.launch {
         if (m !in setOf("tun", "zapret") || store.state.value.connMode == m) return@launch
         // A tunnel and запрет both want the traffic; leaving one up would have them fight.
