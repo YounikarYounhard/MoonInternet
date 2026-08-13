@@ -59,12 +59,14 @@ public static class XrayConfigBuilder
         // Ordinary traffic runs at level 0 and had no timeouts of its own, so a connection the
         // client had finished with was held for xray's default five minutes. On a server carrying
         // a whole subscription those pile up. Same figures the Android build writes.
-        var level0 = new Dictionary<string, object?>
-        {
-            ["handshake"] = 4, ["connIdle"] = 120, ["uplinkOnly"] = 1, ["downlinkOnly"] = 1,
-        };
-        if (XrayTuning.BufferSizeKb is { } buf) level0["bufferSize"] = buf;
-        levels["0"] = level0;
+        // Left to xray's own defaults, as in 0.9.1. We used to force connIdle 120 with uplinkOnly
+        // and downlinkOnly at 1 second — stricter than xray's 300/2/5 — on the idea that shorter
+        // timeouts mean fewer connections held. It does the opposite on a multiplexed transport:
+        // a second after one direction finishes the connection is gone, the client opens another,
+        // and the churn is what fills a server up. Detecting a dead connection is the transport's
+        // job, and that is what the gRPC and HTTP/2 health checks below now do properly.
+        if (XrayTuning.BufferSizeKb is { } buf)
+            levels["0"] = new Dictionary<string, object?> { ["bufferSize"] = buf };
 
         var policy = new Dictionary<string, object?> { ["levels"] = levels };
         var routingCfg = BuildRouting(routing);

@@ -109,11 +109,36 @@ class ConfigDumpTest {
         )
     }
 
-    /** Finished connections are released in two minutes, not the default five. */
-    @Test fun idleConnectionsAreLetGo() {
-        val level0 = build(global).getJSONObject("policy").getJSONObject("levels").getJSONObject("0")
-        assertEquals(120, level0.getInt("connIdle"))
-        assertEquals(4, level0.getInt("handshake"))
+    /**
+     * Connection timeouts are xray's, not ours.
+     *
+     * We used to force connIdle 120 with uplinkOnly and downlinkOnly at a second, which reads like
+     * tidiness and behaves like churn: the connection goes a second after one direction finishes,
+     * the client opens another, and the server ends up holding the pile. 0.9.1 shipped without
+     * them and did not have the problem.
+     */
+    @Test fun connectionTimeoutsAreLeftAlone() {
+        val levels = build(global).getJSONObject("policy").optJSONObject("levels")
+        val level0 = levels?.optJSONObject("0")
+        assertTrue("уровень 0 не должен задавать свои таймауты",
+                   level0 == null || !level0.has("connIdle"))
+    }
+
+    /** A gRPC connection that dies quietly is what fills a server up; it has to be noticed. */
+    @Test fun grpcIsCheckedForLife() {
+        val grpc = ServerProfile(
+            raw = "vless://x@h.example:443?type=grpc",
+            name = "gRPC",
+            protocol = cc.moon.internet.core.Protocol.VLESS,
+            address = "h.example", port = 443,
+            id = "00000000-0000-0000-0000-000000000000",
+            security = "tls", network = "grpc",
+        )
+        val cfg = JSONObject(XrayConfig.build(server = grpc, routing = global, dns = "1.1.1.1"))
+        val st = cfg.getJSONArray("outbounds").getJSONObject(0)
+            .getJSONObject("streamSettings").getJSONObject("grpcSettings")
+        assertEquals(60, st.getInt("idle_timeout"))
+        assertEquals(20, st.getInt("health_check_timeout"))
     }
 
     /** Neither core writes a fakedns section; one would be silently ignored. */

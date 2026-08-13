@@ -241,13 +241,12 @@ object XrayConfig {
         // long a session the far side has to keep alive. Without them a connection the phone has
         // finished with lingers for xray's default five minutes, and on a server carrying a whole
         // subscription those add up into real memory. These are the figures v2rayNG and INCY ship.
+        // Left to xray's own defaults — see the desktop builder. Forcing connIdle 120 with
+        // uplinkOnly and downlinkOnly at one second held fewer connections in theory and caused
+        // churn in practice; the transport health checks are the right tool for a dead connection.
         val level0 = JSONObject()
-            .put("handshake", 4)
-            .put("connIdle", 120)
-            .put("uplinkOnly", 1)
-            .put("downlinkOnly", 1)
         bufferSizeKb(trafficPriority)?.let { kb -> level0.put("bufferSize", kb) }
-        policy.put("levels", JSONObject().put("0", level0))
+        if (level0.length() > 0) policy.put("levels", JSONObject().put("0", level0))
         cfg.put("policy", policy)
         return cfg.toString(2)
     }
