@@ -272,6 +272,8 @@ class MainActivity : ComponentActivity() {
                             Page.Home -> HomeScreen(
                                 connMode = state.connMode,
                                 onConnMode = vm::setConnMode,
+                                zapretStrategy = state.zapretStrategy,
+                                onPickZapret = vm::pickZapret,
                                 state = vpn,
                                 server = selected,
                                 subscriptions = state.subscriptions,

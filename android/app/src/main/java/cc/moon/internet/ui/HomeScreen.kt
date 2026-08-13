@@ -54,6 +54,8 @@ fun HomeScreen(
     /** "tun" or "zapret" — the segmented switch above the moon. */
     connMode: String,
     onConnMode: (String) -> Unit,
+    zapretStrategy: String,
+    onPickZapret: (String) -> Unit,
     favorites: Set<String>,
     checkPing: String,
     showSubHeader: Boolean,
@@ -80,6 +82,7 @@ fun HomeScreen(
 ) {
     // Ordered here rather than inside the list below: an item is its own little composition and
     // keeps the list it was first handed, so a new star would repaint a row without moving it.
+    val zapret = connMode == "zapret"
     val groups = subscriptions.map { it to sortedIn(it) }
 
     LazyColumn(
@@ -150,7 +153,21 @@ fun HomeScreen(
 
         // ---- selected server ------------------------------------------------
         item {
-            if (server != null) {
+            // Запрет names the strategy where the others name the server. Leaving the server line
+            // up in that mode is what had people connecting to the wrong thing.
+            if (zapret) {
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Bolt, null, tint = Moon.AccentText, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        zapretStrategy,
+                        color = Moon.AccentText, fontSize = 14.5.sp, fontWeight = FontWeight.Bold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 300.dp),
+                    )
+                }
+            } else if (server != null) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(flagOf(server), fontSize = 15.sp)
@@ -232,7 +249,9 @@ fun HomeScreen(
                     Spacer(Modifier.height(7.dp))
                     StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
                 }
-                Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
+                // Adding and pasting are about subscriptions; запрет has none. The speed and
+                // traffic readouts stay — traffic still flows, it just flows differently.
+                if (!zapret) Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
                     ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add, Color(0xFF2C2058), Color(0xFFC4B4FF), onAdd)
                     Spacer(Modifier.height(6.dp))
                     ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste, Moon.ChipBg, Color(0xFFC6CAD3), onPaste)
@@ -243,7 +262,29 @@ fun HomeScreen(
         // ---- subscriptions ----------------------------------------------------
         item { Spacer(Modifier.height(12.dp)) }
 
-        items(groups.size) { i ->
+        if (zapret) {
+            items(cc.moon.internet.core.ZapretStrategies.all.size) { i ->
+                val st = cc.moon.internet.core.ZapretStrategies.all[i]
+                val chosen = st.id == zapretStrategy
+                Surface(
+                    onClick = { onPickZapret(st.id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (chosen) Color(0xFF251A44) else Moon.Card,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp, if (chosen) Moon.Accent else Moon.BorderSoft),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                ) {
+                    Row(Modifier.padding(14.dp, 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Bolt, null, tint = Moon.AccentText, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(11.dp))
+                        Text(st.id, color = Moon.TextPrimary, fontSize = 13.5.sp,
+                             maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+
+        if (!zapret) items(groups.size) { i ->
             val (sub, shown) = groups[i]
             SubscriptionCard(
                     showServerCount = showServerCount,

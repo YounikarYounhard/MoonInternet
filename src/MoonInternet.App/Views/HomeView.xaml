@@ -128,11 +128,26 @@
                 </Button>
 
                 <!-- selected server (hidden when none) — static, ellipsis if long, full name on hover -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0"
-                            Visibility="{Binding HasSelectedServer, Converter={StaticResource BoolVis}}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                    <StackPanel.Visibility>
+                        <MultiBinding Converter="{StaticResource AllVis}">
+                            <Binding Path="HasSelectedServer"/>
+                            <Binding Path="ShowSubscriptions"/>
+                        </MultiBinding>
+                    </StackPanel.Visibility>
                     <Image Source="{Binding SelectedServerFlag}" Width="20" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,7,0"/>
                     <TextBlock Text="{Binding SelectedServerLabel}" Foreground="{StaticResource AccentText}" FontSize="14.5" FontWeight="Bold"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
+                </StackPanel>
+
+                <!-- Запрет names the strategy where the others name the server: there is no server,
+                     and leaving the old line there is what made people connect to the wrong thing. -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0"
+                            Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}">
+                    <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                               Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <TextBlock Text="{Binding SelectedZapret.Name}" Foreground="{StaticResource AccentText}" FontSize="14.5"
+                               FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
                 </StackPanel>
 
                 <!-- check connection + ping: fades + slides in when connected, out when disconnected -->
@@ -178,7 +193,7 @@
             </StackPanel>
 
             <!-- compact stats + add / paste -->
-            <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Grid Grid.Row="2" Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}" Margin="0,12,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="104"/>   <!-- Отдача / Приём (fixed → no shift) -->
                     <ColumnDefinition Width="90"/>    <!-- Время / Трафик (fixed) -->
@@ -248,7 +263,51 @@
             </Grid>
 
             <!-- subscriptions: collapsible list, scrolls with NO visible scrollbar (wheel handled in code-behind) -->
-            <ScrollViewer Grid.Row="4" x:Name="ListScroll" VerticalScrollBarVisibility="Hidden" Margin="0,12,0,0"
+            <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Hidden" Margin="0,12,0,0"
+                          Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}">
+                <ItemsControl ItemsSource="{Binding ZapretStrategies}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="12" Margin="0,0,0,6" Padding="14,11" Cursor="Hand"
+                                    Background="{StaticResource HomeCard}" BorderThickness="1">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick"
+                                                  Command="{Binding DataContext.PickZapretCommand,
+                                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}"/>
+                                </Border.InputBindings>
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Value="True">
+                                                <DataTrigger.Binding>
+                                                    <MultiBinding Converter="{StaticResource Eq}">
+                                                        <Binding Path="Id"/>
+                                                        <Binding Path="DataContext.SelectedZapret.Id"
+                                                                 RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    </MultiBinding>
+                                                </DataTrigger.Binding>
+                                                <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                                <Setter Property="Background" Value="#251A44"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                               Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,11,0"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{StaticResource TextPrimary}"
+                                               FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <ScrollViewer Grid.Row="4" Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}" x:Name="ListScroll" VerticalScrollBarVisibility="Hidden" Margin="0,12,0,0"
                           PreviewMouseWheel="ListScroll_PreviewMouseWheel">
                 <StackPanel>
                     <ItemsControl ItemsSource="{Binding Subscriptions}">
