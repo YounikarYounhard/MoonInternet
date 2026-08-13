@@ -11,7 +11,7 @@ SetCompressor /SOLID lzma
 !define APPNAME "Moon Internet"
 ; CI passes /DAPPVER=... read off the csproj, so the version is not typed in twice
 !ifndef APPVER
-  !define APPVER "0.9.4"
+  !define APPVER "0.9.5"
 !endif
 !define TASKNAME "MoonInternetTun"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MoonInternet"
