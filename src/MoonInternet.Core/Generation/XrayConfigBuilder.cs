@@ -262,10 +262,21 @@ public static class XrayConfigBuilder
                 s["wsSettings"] = ws;
                 break;
             case "grpc":
+                // gRPC keeps one long-lived HTTP/2 connection, and without a health check neither
+                // end notices when it dies: the client quietly opens another and the server is left
+                // holding a half-open stream. On a server carrying a whole subscription those pile up
+                // until it runs out of memory — which looks exactly like «this protocol died but the
+                // others on the same server are fine», because the others are separate inbounds.
+
+                // 60s idle before a ping, 20s to answer it. Lower values make servers answer GOAWAY
+                // with too_many_pings, which trades a slow leak for instant disconnects.
                 s["grpcSettings"] = new Dictionary<string, object?>
                 {
                     ["serviceName"] = p.ServiceName ?? "",
-                    ["multiMode"] = p.Extra.GetValueOrDefault("mode") == "multi"
+                    ["multiMode"] = p.Extra.GetValueOrDefault("mode") == "multi",
+                    ["idle_timeout"] = 60,
+                    ["health_check_timeout"] = 20,
+                    ["permit_without_stream"] = false,
                 };
                 break;
             case "http":

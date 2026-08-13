@@ -367,9 +367,15 @@ object XrayConfig {
 
             // serviceName stays as-is, empty included — that is what the desktop sends and what
             // these servers expect; "fixing" it to a default breaks them.
+            // See the desktop builder for why the health check matters: without it a dead gRPC
+            // connection is never noticed, the client opens another, and the server keeps the
+            // half-open stream until it runs out of memory.
             "grpc" -> st.put("grpcSettings", JSONObject()
                 .put("serviceName", s.serviceName.orEmpty())
-                .put("multiMode", s.extra["mode"] == "multi"))
+                .put("multiMode", s.extra["mode"] == "multi")
+                .put("idle_timeout", 60)
+                .put("health_check_timeout", 20)
+                .put("permit_without_stream", false))
 
             "http" -> st.put("httpSettings", JSONObject()
                 .put("path", s.path ?: "/")
