@@ -150,6 +150,11 @@
                                FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
                 </StackPanel>
 
+                <TextBlock Text="{Binding ZapretPing}" Foreground="{StaticResource TextSecondary}" FontSize="12"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="330"
+                           Margin="0,4,0,0"
+                           Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}"/>
+
                 <TextBlock Text="{Binding ErrorText}" Foreground="{StaticResource Danger}" FontSize="12"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                            MaxWidth="330" Margin="0,8,0,0"
@@ -259,6 +264,45 @@
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                         <TextBlock Text="{DynamicResource S_Paste_Long}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource CardHover}"/></Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+                <!-- Zapret's own pair, in the place the other one leaves: nothing is added in this
+                     mode, and these two are the only things worth pressing — is this strategy any
+                     good, and if not, find one that is. Same place on the phone. -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                            Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}">
+                    <Button Command="{Binding CheckZapretCommand}" IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
+                            Cursor="Hand" Margin="0,0,0,6" HorizontalAlignment="Stretch">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="b" CornerRadius="10" Background="#2C2058" Padding="14,9">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="#C4B4FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{DynamicResource S_Zapret_CheckNow}" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#382A6E"/></Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button Command="{Binding AutoPickZapretCommand}" IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
+                            Cursor="Hand" HorizontalAlignment="Stretch">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="b" CornerRadius="10" Background="{StaticResource ChipBg}" Padding="14,9">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{DynamicResource S_Zapret_AutoRun}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                                 <ControlTemplate.Triggers>
