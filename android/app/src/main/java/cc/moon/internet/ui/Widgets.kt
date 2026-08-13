@@ -326,10 +326,27 @@ fun RowDivider(inset: Int = 12) =
 
 /** Title + subtitle + switch. Text is weighted so it never runs under the switch. */
 @Composable
-fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+fun SwitchRow(
+    title: String,
+    subtitle: String?,
+    checked: Boolean,
+    /** Shows the same БЕТА badge the stability probe carries. */
+    beta: Boolean = false,
+    onChange: (Boolean) -> Unit,
+) {
     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                if (beta) {
+                    Spacer(Modifier.width(8.dp))
+                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0x33F5C042)) {
+                        Text(stringResource(R.string.settingsscreen_031),
+                             Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                             color = Color(0xFFF5C042), fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
             if (subtitle != null) {
                 Text(subtitle, color = Moon.TextSecondary, fontSize = 12.sp, lineHeight = 16.sp,
                      modifier = Modifier.padding(top = 2.dp))

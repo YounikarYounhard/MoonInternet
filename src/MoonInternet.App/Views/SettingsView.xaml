@@ -542,7 +542,12 @@
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12">
                             <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="{DynamicResource S_Auto_Failover}" FontSize="14" FontWeight="SemiBold"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{DynamicResource S_Auto_Failover}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <Border CornerRadius="6" Background="#33F5C042" Padding="7,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource S_SettingsView_048}" Foreground="#F5C042" FontSize="9.5" FontWeight="Bold"/>
+                                    </Border>
+                                </StackPanel>
                                 <TextBlock Text="{DynamicResource S_Auto_Failover_Sub}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding AutoFailover}" HorizontalAlignment="Right" VerticalAlignment="Center"/>

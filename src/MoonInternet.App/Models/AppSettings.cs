@@ -46,7 +46,7 @@ public sealed class AppSettings
     public string ServerSort { get; set; } = "default";    // default | ping | name
     public bool AutoConnectOnStart { get; set; }           // off by default
     public string AutoConnectTarget { get; set; } = "first"; // first | last | lowest
-    public bool AutoFailover { get; set; } = true;         // preferred server is down -> take the fastest live one
+    public bool AutoFailover { get; set; } = false;        // BETA: preferred server is down -> take the fastest live one
     public int ReconnectDelaySec { get; set; } = 5;        // wait before an auto-reconnect attempt: 3 | 5 | 10 | 30
     public string AppRouteMode { get; set; } = "off";      // off | bypass (apps go direct) | only (only apps via VPN)
     public List<string> AppRouteApps { get; set; } = new(); // process names, e.g. "chrome.exe"
@@ -119,7 +119,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 9;
+    private const int CurrentVersion = 10;
 
     private void Migrate()
     {
@@ -147,10 +147,10 @@ public sealed class AppSettings
         // touched it, rather than leaving them on the old "off".
         if (SettingsVersion < 7 && PingEveryMinutes == 0) PingEveryMinutes = 15;
 
-        // v9: switching to a live server when the chosen one is silent is meant to be on. It was
-        // the default from the start, but anybody who turned it off — or ran a build where it
-        // defaulted off — has been sitting without it since, wondering why a dead server stays dead.
-        if (SettingsVersion < 9) AutoFailover = true;
+        // v10: undoes v9. That one switched falling over to a live server ON for everybody, which
+        // was the wrong call — it is a beta thing and beta things stay off until asked for. Anyone
+        // who got it from v9 never chose it, so taking it back is not overruling anybody.
+        if (SettingsVersion < 10) AutoFailover = false;
 
         // v8: two modes became three. Carry the old switch over so nobody's choice resets.
         if (SettingsVersion < 8) ConnMode = TunMode ? "tun" : "proxy";

@@ -88,7 +88,7 @@ data class AppState(
     val sendHwid: Boolean = true,
     val autoConnectTarget: String = "first",   // first | favorite | last
     val startOnBoot: Boolean = false,          // поднять туннель после перезагрузки телефона
-    val autoFailover: Boolean = true,          // выбранный сервер молчит -> взять самый быстрый живой
+    val autoFailover: Boolean = false,         // БЕТА: выбранный сервер молчит -> взять самый быстрый живой
     val reconnectDelaySec: Int = 5,            // пауза перед попыткой переподключиться: 3 | 5 | 10 | 30
     val logsEnabled: Boolean = true,
     val logLevel: String = "warning",
@@ -139,7 +139,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 9 }
+    private companion object { const val CURRENT_VERSION = 10 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -170,8 +170,8 @@ class Store(private val ctx: Context) {
         _state.value = if (loaded.settingsVersion < CURRENT_VERSION)
             loaded.copy(
                 tunMode = true,   // v5: proxy-only is gone; anybody stuck in it gets the tunnel back
-                // v9: falling over to a live server is meant to be on — see the desktop note.
-                autoFailover = true,
+                // v10: undoes v9, which had switched this on for everybody — see the desktop note.
+                autoFailover = false,
                 pingStagger = true,
                 subMeter = "text",
                 welcomeShown = loaded.welcomeShown || loaded.subscriptions.isNotEmpty(),

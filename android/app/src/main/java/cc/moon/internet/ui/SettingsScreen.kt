@@ -781,7 +781,7 @@ private fun AutoPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
         }
         RowDivider()
         SwitchRow(stringResource(R.string.auto_failover), stringResource(R.string.auto_failover_sub),
-            state.autoFailover) { v -> onSet { copy(autoFailover = v) } }
+            state.autoFailover, beta = true) { v -> onSet { copy(autoFailover = v) } }
         RowDivider()
         SwitchRow(stringResource(R.string.auto_boot), stringResource(R.string.auto_boot_sub),
             state.startOnBoot) { v -> onSet { copy(startOnBoot = v) } }
