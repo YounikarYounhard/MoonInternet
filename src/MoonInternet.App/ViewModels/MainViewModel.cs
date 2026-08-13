@@ -233,7 +233,9 @@ public partial class MainViewModel : ObservableObject
         ? Localization.Loc.T("S_Routing_AutoShort")
         : SelectedRouting?.Name ?? Localization.Loc.T("S_None");
     /// <summary>StringFormat cannot take a DynamicResource, so the whole line is built here.</summary>
-    public string TotalServersText => string.Format(Localization.Loc.T("S_VM_120"), TotalServers);
+    public string TotalServersText => IsZapretMode
+        ? string.Format(Localization.Loc.T("S_Zapret_Count"), ZapretStrategies.Count)
+        : string.Format(Localization.Loc.T("S_VM_120"), TotalServers);
     public string RoutingSubtitle => string.Format(Localization.Loc.T("S_Routing_Sub_Fmt"), RoutingName);
     public bool HasMultipleRoutings => AvailableRoutings.Count > 1;
     public bool HasRoutings => AvailableRoutings.Count > 0;
@@ -827,6 +829,82 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private ServerItem? selectedServer;
     [ObservableProperty] private string status = "";             // ditto
     [ObservableProperty] private bool tunMode;
+
+    /// <summary>"proxy" | "tun" | "zapret". The radio buttons bind to the three Is… below.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsProxyMode), nameof(IsTunMode), nameof(IsZapretMode),
+                              nameof(ShowSubscriptions), nameof(TotalServersText))]
+    private string connMode = "tun";
+
+    public bool IsProxyMode => ConnMode == "proxy";
+    public bool IsTunMode => ConnMode == "tun";
+    public bool IsZapretMode => ConnMode == "zapret";
+
+    /// <summary>Запрет needs no subscription, so the whole servers page turns into the strategy list.</summary>
+    public bool ShowSubscriptions => !IsZapretMode;
+
+    /// <summary>Nothing to choose from — zapret never made it onto the disk.</summary>
+    public bool ZapretMissing => ZapretStrategies.Count == 0;
+
+    /// <summary>Every strategy zapret shipped with. Empty when it was never downloaded.</summary>
+    public ObservableCollection<ZapretStrategy> ZapretStrategies { get; } = new();
+
+    [ObservableProperty] private ZapretStrategy? selectedZapret;
+    [ObservableProperty] private string zapretGameFilter = "off";
+
+    public bool ZapretAvailable => ZapretStrategies.Count > 0;
+
+    [RelayCommand]
+    private void SetConnMode(string m)
+    {
+        if (m is not ("proxy" or "tun" or "zapret") || ConnMode == m) return;
+        ConnMode = m;
+        _settings.ConnMode = m;
+        _settings.TunMode = TunMode = m == "tun";   // kept in step for the tray menu and old saves
+        _settings.Save();
+        // Switching mode while connected has to tear the old one down: a tunnel and запрет both
+        // want the traffic, and leaving one running would quietly fight the other.
+        if (ConnectionState == ConnectionState.Connected) _conn.Disconnect();
+    }
+
+    [RelayCommand]
+    private void PickZapret(ZapretStrategy s)
+    {
+        SelectedZapret = s;
+        _settings.ZapretStrategy = s.Id;
+        _settings.Save();
+        if (ConnectionState == ConnectionState.Connected && IsZapretMode) _ = Connect2Zapret();
+    }
+
+    [RelayCommand]
+    private void SetZapretFilter(string f)
+    {
+        if (f is not ("off" or "all" or "tcp" or "udp")) return;
+        ZapretGameFilter = f;
+        _settings.ZapretGameFilter = f;
+        _settings.Save();
+        if (ConnectionState == ConnectionState.Connected && IsZapretMode) _ = Connect2Zapret();
+    }
+
+    /// <summary>Restart the running strategy in place, so a changed choice takes effect at once.</summary>
+    private async Task Connect2Zapret()
+    {
+        if (SelectedZapret is null) return;
+        try { await _conn.ConnectZapretAsync(SelectedZapret.Id, ZapretGameFilter); }
+        catch (Exception ex) { Status = Localization.Loc.T("S_VM_ZapretFailed") + ": " + ex.Message; }
+    }
+
+    /// <summary>Reads the strategies off disk. Cheap, and the folder only changes on an update.</summary>
+    private void LoadZapretStrategies()
+    {
+        ZapretStrategies.Clear();
+        var dir = Path.Combine(AppContext.BaseDirectory, "cores", "zapret");
+        foreach (var s in ZapretStrategyParser.Load(dir)) ZapretStrategies.Add(s);
+        SelectedZapret = ZapretStrategies.FirstOrDefault(s => s.Id == _settings.ZapretStrategy)
+                      ?? ZapretStrategies.FirstOrDefault();
+        OnPropertyChanged(nameof(ZapretAvailable)); OnPropertyChanged(nameof(ZapretMissing));
+        OnPropertyChanged(nameof(TotalServersText));
+    }
     [ObservableProperty] private bool launchMinimized;
     [ObservableProperty] private bool autostart;
     [ObservableProperty] private bool autoReconnect = true;
@@ -1354,6 +1432,9 @@ public partial class MainViewModel : ObservableObject
             _settings.SubscriptionUrls.Add(_settings.SubscriptionUrl!); // migrate legacy single URL
         SubscriptionUrl = _settings.SubscriptionUrls.FirstOrDefault() ?? "";
         TunMode = _settings.TunMode;
+        ConnMode = _settings.ConnMode;
+        ZapretGameFilter = _settings.ZapretGameFilter;
+        LoadZapretStrategies();
         LaunchMinimized = _settings.StartMinimized;
         Autostart = _settings.Autostart;
         var saved = LayoutStore.Load();
@@ -2733,6 +2814,24 @@ public partial class MainViewModel : ObservableObject
             await Task.Run(() => _conn.Disconnect());     // teardown off the UI thread so the ring stays live
             Disconnecting = false;
             Status = Localization.Loc.T("S_VM_229"); Elapsed = "00:00";
+            return;
+        }
+        // Запрет has no server to dial and no core to check: it rewrites what leaves this machine
+        // rather than sending it anywhere. Both guards below would fail it for the wrong reason.
+        if (IsZapretMode)
+        {
+            if (SelectedZapret is null) { Status = Localization.Loc.T("S_VM_ZapretPick"); CurrentPage = AppPage.Servers; return; }
+            try
+            {
+                Status = string.Format(Localization.Loc.T("S_VM_ZapretStarting"), SelectedZapret.Name);
+                await _conn.ConnectZapretAsync(SelectedZapret.Id, ZapretGameFilter);
+                if (ConnectionState != ConnectionState.Connected) return;
+                _connectedAt = DateTime.Now; ResetTraffic();
+                Status = string.Format(Localization.Loc.T("S_VM_ZapretOn"), SelectedZapret.Name);
+                _settings.ZapretStrategy = SelectedZapret.Id;
+                _settings.Save();
+            }
+            catch (Exception ex) { Status = Localization.Loc.T("S_VM_ZapretFailed") + ": " + ex.Message; }
             return;
         }
         if (SelectedServer is null) { Status = Localization.Loc.T("S_VM_230"); CurrentPage = AppPage.Servers; return; }

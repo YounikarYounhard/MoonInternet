@@ -16,10 +16,18 @@
             <Grid Grid.Row="0">
                 <Border HorizontalAlignment="Center" CornerRadius="13" Background="#160A34" BorderBrush="#2C2150" BorderThickness="1" Padding="3">
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="{DynamicResource S_HomeView_001}" Padding="28,7"
-                                     IsChecked="{Binding TunMode, Converter={StaticResource InvBool}, Mode=TwoWay}"/>
-                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="TUN" Padding="32,7"
-                                     IsChecked="{Binding TunMode, Mode=TwoWay}"/>
+                        <!-- Three one-way bindings driving one command, not three two-way bools: with a
+                             bool each, unchecking the old button and checking the new one is two writes,
+                             and the half-second in between is a state that does not exist. -->
+                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="{DynamicResource S_HomeView_001}" Padding="18,7"
+                                     IsChecked="{Binding IsProxyMode, Mode=OneWay}"
+                                     Command="{Binding SetConnModeCommand}" CommandParameter="proxy"/>
+                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="TUN" Padding="22,7"
+                                     IsChecked="{Binding IsTunMode, Mode=OneWay}"
+                                     Command="{Binding SetConnModeCommand}" CommandParameter="tun"/>
+                        <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="{DynamicResource S_Mode_Zapret}" Padding="18,7"
+                                     IsChecked="{Binding IsZapretMode, Mode=OneWay}"
+                                     Command="{Binding SetConnModeCommand}" CommandParameter="zapret"/>
                     </StackPanel>
                 </Border>
 

@@ -22,7 +22,19 @@ public sealed class AppSettings
     public string? SubscriptionUrl { get; set; }          // legacy single-sub (migrated into SubscriptionUrls)
     public List<string> SubscriptionUrls { get; set; } = new();
     public string? LastServerName { get; set; }
-    public bool TunMode { get; set; } = true;   // TUN by default
+    public bool TunMode { get; set; } = true;   // legacy two-state switch, migrated into ConnMode
+
+    /// <summary>
+    /// "proxy" | "tun" | "zapret". Was a bool while there were only two, but запрет is a third
+    /// state and two bools would spell one combination that cannot exist.
+    /// </summary>
+    public string ConnMode { get; set; } = "tun";
+
+    /// <summary>Which zapret strategy to run, by its file name — <c>general (ALT2)</c>.</summary>
+    public string ZapretStrategy { get; set; } = "general";
+
+    /// <summary>"off" | "all" | "tcp" | "udp" — how wide the game filter opens.</summary>
+    public string ZapretGameFilter { get; set; } = "off";
     public bool StartMinimized { get; set; }
     public bool Autostart { get; set; }
     public bool AutoReconnect { get; set; } = true;
@@ -107,7 +119,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 7;
+    private const int CurrentVersion = 8;
 
     private void Migrate()
     {
@@ -134,6 +146,9 @@ public sealed class AppSettings
         // v7: the automatic ping check is on by default. Switch it on for installs that never
         // touched it, rather than leaving them on the old "off".
         if (SettingsVersion < 7 && PingEveryMinutes == 0) PingEveryMinutes = 15;
+
+        // v8: two modes became three. Carry the old switch over so nobody's choice resets.
+        if (SettingsVersion < 8) ConnMode = TunMode ? "tun" : "proxy";
 
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }
