@@ -67,7 +67,13 @@ Section "Установка"
   nsExec::Exec 'taskkill /f /im sing-box.exe'
   nsExec::Exec 'taskkill /f /im tun2socks.exe'
   nsExec::Exec 'taskkill /f /im xray.exe'
-  Sleep 800
+  ; winws holds WinDivert64.sys open, and a loaded kernel driver cannot be overwritten — the
+  ; install stopped dead on "Невозможно открыть файл для записи". Killing winws unloads it, but the
+  ; service manager needs a moment to let go, hence the longer wait.
+  nsExec::Exec 'taskkill /f /im winws.exe'
+  nsExec::Exec 'net stop WinDivert'
+  nsExec::Exec 'sc delete WinDivert'
+  Sleep 2000
 
   ; default path → app files go in "<root>\app"; a CUSTOM path → straight into "<root>" (flat).
   StrCmp $INSTDIR "$PROGRAMFILES64\${APPNAME}" 0 custompath

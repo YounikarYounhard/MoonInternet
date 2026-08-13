@@ -119,7 +119,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 8;
+    private const int CurrentVersion = 9;
 
     private void Migrate()
     {
@@ -146,6 +146,11 @@ public sealed class AppSettings
         // v7: the automatic ping check is on by default. Switch it on for installs that never
         // touched it, rather than leaving them on the old "off".
         if (SettingsVersion < 7 && PingEveryMinutes == 0) PingEveryMinutes = 15;
+
+        // v9: switching to a live server when the chosen one is silent is meant to be on. It was
+        // the default from the start, but anybody who turned it off — or ran a build where it
+        // defaulted off — has been sitting without it since, wondering why a dead server stays dead.
+        if (SettingsVersion < 9) AutoFailover = true;
 
         // v8: two modes became three. Carry the old switch over so nobody's choice resets.
         if (SettingsVersion < 8) ConnMode = TunMode ? "tun" : "proxy";

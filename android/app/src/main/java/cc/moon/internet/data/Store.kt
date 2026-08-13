@@ -139,7 +139,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 8 }
+    private companion object { const val CURRENT_VERSION = 9 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -170,6 +170,8 @@ class Store(private val ctx: Context) {
         _state.value = if (loaded.settingsVersion < CURRENT_VERSION)
             loaded.copy(
                 tunMode = true,   // v5: proxy-only is gone; anybody stuck in it gets the tunnel back
+                // v9: falling over to a live server is meant to be on — see the desktop note.
+                autoFailover = true,
                 pingStagger = true,
                 subMeter = "text",
                 welcomeShown = loaded.welcomeShown || loaded.subscriptions.isNotEmpty(),
