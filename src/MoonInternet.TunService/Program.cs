@@ -25,6 +25,7 @@ string cfgPath = Path.Combine(dataDir, "tun.json");
 string logPath = Path.Combine(dataDir, "tunservice.log");
 
 Process? proc = null;                        // the current tunnel engine (sing-box OR tun2socks)
+Process? zapret = null;                      // winws.exe — the запрет mode, never runs alongside a tunnel
 var cleanupRoutes = new List<string>();      // "<dst> mask <mask>" entries to `route delete` on stop
 object gate = new();
 
@@ -260,11 +261,93 @@ string StartTun(int socksPort, IReadOnlyList<string> serverIps, string appMode, 
     }
 }
 
+void StopZapret()
+{
+    lock (gate)
+    {
+        if (zapret is { HasExited: false }) { try { zapret.Kill(true); zapret.WaitForExit(5000); } catch { } }
+        zapret = null;
+        // Same rule as the tunnel engines: only kill winws.exe that came out of OUR folder. Other
+        // DPI-bypass tools ship the very same binary, and killing theirs would break them.
+        string mine = Path.Combine(baseDir, "cores", "zapret");
+        foreach (var p in Process.GetProcessesByName("winws"))
+        {
+            string? exe = null;
+            try { exe = p.MainModule?.FileName; } catch { /* access denied → not ours */ }
+            if (exe is null || !exe.StartsWith(mine, StringComparison.OrdinalIgnoreCase)) continue;
+            try { p.Kill(true); p.WaitForExit(5000); } catch { }
+        }
+    }
+}
+
+/// <summary>
+/// Starts winws.exe for one named strategy.
+///
+/// The caller names a strategy and a filter, never a command line: this process is SYSTEM, and
+/// letting the unprivileged app hand it arguments would mean it could run anything it liked with
+/// them. The arguments are read here, out of our own folder, from the file that owns that name.
+/// </summary>
+string StartZapret(string id, string filter)
+{
+    string dir = Path.Combine(baseDir, "cores", "zapret");
+    string exe = Path.Combine(dir, "bin", "winws.exe");
+    if (!File.Exists(exe)) return "ERR zapret is not installed";
+
+    var mode = filter switch
+    {
+        "all" => MoonInternet.Core.Parsing.ZapretGameFilter.All,
+        "tcp" => MoonInternet.Core.Parsing.ZapretGameFilter.Tcp,
+        "udp" => MoonInternet.Core.Parsing.ZapretGameFilter.Udp,
+        _ => MoonInternet.Core.Parsing.ZapretGameFilter.Off,
+    };
+    var strategy = MoonInternet.Core.Parsing.ZapretStrategyParser.Load(dir, mode).FirstOrDefault(s => s.Id == id);
+    if (strategy is null) return "ERR no such strategy: " + id;
+
+    lock (gate)
+    {
+        StopTun();      // запрет and a tunnel cannot both hold the traffic
+        StopZapret();
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = exe, Arguments = strategy.Arguments,
+                // WinDivert.dll and the .bin payloads are looked up next to the exe.
+                WorkingDirectory = Path.Combine(dir, "bin"),
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+            };
+            zapret = Process.Start(psi);
+            if (zapret is null) return "ERR winws did not start";
+            zapret.BeginOutputReadLine();
+            zapret.BeginErrorReadLine();
+            zapret.OutputDataReceived += (_, e) => { if (e.Data is { } d) Log("winws: " + d); };
+            zapret.ErrorDataReceived  += (_, e) => { if (e.Data is { } d) Log("winws! " + d); };
+
+            // A rejected argument or a missing driver kills it in well under a second, and the
+            // difference between «running» and «died instantly» is the whole answer here.
+            Thread.Sleep(700);
+            if (zapret.HasExited) { var code = zapret.ExitCode; zapret = null; return $"ERR winws exited ({code})"; }
+            Log($"zapret up: {id} filter={filter}");
+            return "OK";
+        }
+        catch (Exception e) { Log("zapret failed: " + e.Message); return "ERR " + e.Message; }
+    }
+}
+
 string Handle(string cmd)
 {
     Log("cmd: " + cmd);
     if (cmd == "PING") return "OK";
-    if (cmd == "STOP") { StopTun(); return "OK"; }
+    if (cmd == "STOP") { StopTun(); StopZapret(); return "OK"; }
+    if (cmd == "ZAPRETSTOP") { StopZapret(); return "OK"; }
+    if (cmd.StartsWith("ZAPRET ", StringComparison.Ordinal))
+    {
+        // "ZAPRET <strategy id> <off|all|tcp|udp>"
+        var parts = cmd[7..].Trim().Split('\t', 2, StringSplitOptions.TrimEntries);
+        if (parts.Length == 0 || parts[0].Length == 0) return "ERR bad strategy";
+        return StartZapret(parts[0], parts.Length > 1 ? parts[1] : "off");
+    }
     if (cmd.StartsWith("STARTHY2 ", StringComparison.Ordinal))
     {
         // "STARTHY2 <base64(JSON Hy2Launch)>" — sing-box does the TUN AND the Hysteria2 outbound in one process.
@@ -307,7 +390,7 @@ string Handle(string cmd)
 Log($"TunService up on 127.0.0.1:{Port} (baseDir={baseDir})");
 var listener = new TcpListener(IPAddress.Loopback, Port);
 listener.Start();
-AppDomain.CurrentDomain.ProcessExit += (_, _) => StopTun();
+AppDomain.CurrentDomain.ProcessExit += (_, _) => { StopTun(); StopZapret(); };
 
 while (true)
 {

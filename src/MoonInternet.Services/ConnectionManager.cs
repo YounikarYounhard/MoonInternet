@@ -6,7 +6,12 @@ using MoonInternet.Core.Models;
 namespace MoonInternet.Services;
 
 public enum ConnectionState { Disconnected, Connecting, Connected }
-public enum TunnelMode { SystemProxy, Tun }
+/// <summary>
+/// <see cref="Zapret"/> is the odd one out: it carries no traffic anywhere. There is no server, no
+/// subscription and no routing — it rewrites the handshake on its way out of this machine, which is
+/// also why it cannot run alongside a tunnel.
+/// </summary>
+public enum TunnelMode { SystemProxy, Tun, Zapret }
 
 /// <summary>
 /// Orchestrates a connection: starts the xray core (SOCKS) and either flips the WinINet proxy
@@ -258,6 +263,42 @@ public sealed class ConnectionManager : IDisposable
     /// leave the TUN routed at a dead core. If cancel lands mid-StartTun (a long helper call that can't be
     /// aborted), teardown lands a few seconds later — the UI is already free.
     /// </summary>
+    /// <summary>
+    /// Turns on the запрет mode: one strategy, no server, no routing.
+    ///
+    /// Nothing of ours runs — winws.exe lives in the privileged helper, because it loads a
+    /// kernel driver. Which is the whole reason this mode does not ask for UAC every time.
+    /// </summary>
+    public async Task ConnectZapretAsync(string strategyId, string gameFilter = "off")
+    {
+        Disconnect();
+        _userDisconnect = false;
+        _lastMode = TunnelMode.Zapret;
+        _lastRouting = null;
+        ActiveMode = TunnelMode.Zapret;
+        Current = null;
+        RoutingNote = null;
+        Set(ConnectionState.Connecting);
+        try
+        {
+            if (!TunClient.IsAvailable())
+                throw new InvalidOperationException("Служебный компонент не запущен (нужна установка или перезагрузка)");
+
+            Report("Запуск запрета…");
+            var reply = await Task.Run(() => TunClient.StartZapret(strategyId, gameFilter));
+            if (reply != "OK")
+                throw new InvalidOperationException(reply.StartsWith("ERR ") ? reply[4..] : reply);
+
+            Set(ConnectionState.Connected);
+        }
+        catch
+        {
+            try { TunClient.StopZapret(); } catch { }
+            Set(ConnectionState.Disconnected);
+            throw;
+        }
+    }
+
     public void CancelConnect()
     {
         if (State != ConnectionState.Connecting) return;

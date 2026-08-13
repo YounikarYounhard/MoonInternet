@@ -47,6 +47,16 @@ public static class TunClient
         string b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         return Send($"STARTHY2 {b64}", 30000);
     }
+    /// <summary>
+    /// Starts the запрет mode. Only the strategy's name travels: the helper is SYSTEM, and it reads
+    /// the arguments itself out of its own folder rather than being told what to run.
+    /// Tab-separated because a strategy is called things like <c>general (ALT2)</c>.
+    /// </summary>
+    public static string StartZapret(string strategyId, string gameFilter = "off") =>
+        Send($"ZAPRET {strategyId}\t{gameFilter}", 20000);
+
+    public static string StopZapret() => Send("ZAPRETSTOP", 10000);
+
     // Plain WireGuard through sing-box — same one-process shape, and it gives us real routing.
     public static string StartWgSingBox(MoonInternet.Core.Models.WgSbLaunch launch)
     {
