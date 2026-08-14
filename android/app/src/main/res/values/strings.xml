@@ -386,7 +386,7 @@
     <string name="notify_after_sub">"После установки обновления один раз показать, что изменилось"</string>
     <string name="upd_installed">"Обновлено до %1$s. %2$s"</string>
     <!-- Что нового. Правится вместе с versionName в build.gradle.kts, каждый выпуск. -->
-    <string name="upd_whats_new">"Маршрутизация следует за подпиской сервера, пока вы не выбрали профиль сами. Уведомление на Android — системное, о новой версии на Windows — снова приходит."</string>
+    <string name="upd_whats_new">"Появился режим Zapret — обход блокировок без сервера. Trojan через gRPC больше не заваливает сервер соединениями."</string>
     <string name="routing_title">"Маршрутизация"</string>
     <string name="routing_subtitle">"Профили: какой трафик идёт через VPN, а какой мимо"</string>
     <string name="routing_add">"Новый профиль"</string>
