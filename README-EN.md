@@ -125,6 +125,12 @@ Moon Internet's code is [MIT](LICENSE). The cores and libraries come under their
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md); sing-box and tun2socks are GPL-3.0 and ship
 unmodified.
 
+The Zapret mode uses [zapret](https://github.com/bol-van/zapret) (bol-van) as packaged by
+[flowseal](https://github.com/flowseal/zapret-discord-youtube), with the WinDivert driver,
+and on Android [byedpi](https://github.com/hufrea/byedpi) (hufrea, MIT), which we build from
+unmodified sources. Copyright notices and full terms are in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ---
 
 *This is a proxy tool, not a VPN service: the servers are yours to add. How you use it, and staying

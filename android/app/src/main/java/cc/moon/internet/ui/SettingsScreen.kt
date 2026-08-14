@@ -952,7 +952,8 @@ private fun LibsPage() {
     MoonCard(padding = 0) {
         Column(Modifier.padding(18.dp, 14.dp)) {
             Text(stringResource(R.string.settingsscreen_178), color = Moon.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text("• xray-core — MPL-2.0\n• AndroidLibXrayLite — GPL-3.0",
+            Text("• xray-core — MPL-2.0\n• AndroidLibXrayLite — GPL-3.0\n" +
+                 "• byedpi — MIT, © 2023-2026 hufrea",
                  color = Moon.TextSecondary, fontSize = 12.5.sp, lineHeight = 20.sp,
                  modifier = Modifier.padding(top = 6.dp))
             Text(stringResource(R.string.settingsscreen_179), color = Moon.TextPrimary, fontSize = 13.sp,

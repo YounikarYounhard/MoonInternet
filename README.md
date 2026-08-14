@@ -127,6 +127,12 @@ android/app/.../ui            экраны на Compose
 в [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md); sing-box и tun2socks под GPL-3.0
 и поставляются без изменений.
 
+Режим Zapret использует [zapret](https://github.com/bol-van/zapret) (bol-van) в сборке
+[flowseal](https://github.com/flowseal/zapret-discord-youtube) с драйвером WinDivert,
+а на Android — [byedpi](https://github.com/hufrea/byedpi) (hufrea, MIT), собранный нами
+из неизменённых исходников. Копирайты и полные условия — в
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ---
 
 *Это прокси-инструмент, а не VPN-сервис: серверы вы добавляете свои. За то, как вы его

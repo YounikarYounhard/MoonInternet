@@ -86,6 +86,12 @@ Section "Установка"
   SetOutPath "$AppDir"
   SetOverwrite on
   File /r "..\dist\app\*.*"
+  ; The notices travel with the binaries, not just in the repository: sing-box and
+  ; tun2socks are GPL-3.0, WinDivert and the Cygwin runtime are LGPL, and the MIT ones
+  ; ask for their copyright line to come along. Shipping the engines without these
+  ; would be redistributing somebody else's work bare.
+  File "..\LICENSE"
+  File "..\THIRD-PARTY-NOTICES.md"
 
   ; data folder "save" at the install ROOT — grant the Users group Modify so the DE-elevated app can write
   ; settings/routing/geo/logs there. SID *S-1-5-32-545 = Users (locale-independent).
