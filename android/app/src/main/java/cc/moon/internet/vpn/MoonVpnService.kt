@@ -136,6 +136,8 @@ class MoonVpnService : VpnService() {
     private var tunFd: ParcelFileDescriptor? = null
     // Tells our own teardown apart from the core falling over. Both arrive as the same shutdown
     // callback, and without the distinction auto-reconnect would fight every ordinary disconnect.
+    /** The in-flight connect, so a newer one can cancel it — see startTunnel. */
+    private var connectJob: kotlinx.coroutines.Job? = null
     @Volatile private var intentionalStop = false
     @Volatile private var reconnecting = false
     private val byedpi by lazy { ByedpiRunner(this) }
@@ -204,7 +206,12 @@ class MoonVpnService : VpnService() {
         lastTun = tun; lastAppMode = appMode; lastApps = apps; lastZapret = zapret
         startForeground(NOTIFICATION_ID, notification(profileName, connecting = true))
 
-        scope.launch {
+        // One connect at a time. Tapping through the server list hunting for a working one sends
+        // a CONNECT per tap, and each used to launch its own coroutine: two of them would be
+        // establishing interfaces and starting cores over each other, which is what filled a log
+        // with "Xray started" every couple of seconds. The newest tap wins.
+        connectJob?.cancel()
+        connectJob = scope.launch {
             try {
                 // Tear down anything still up — a stale fd would silently blackhole traffic,
                 // the same class of bug that bit the Windows helper.
