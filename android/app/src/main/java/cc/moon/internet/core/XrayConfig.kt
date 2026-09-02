@@ -145,6 +145,14 @@ object XrayConfig {
          */
         trafficPriority: String = "off",
         preferredIp: String = "auto",
+        /**
+         * Addresses [server] resolves to, when the caller already looked them up. The direct rule
+         * below needs both forms: with domainStrategy IPIfNonMatch xray resolves an unmatched
+         * domain and re-checks the IP rules, so a domain-only rule missed anything else hosted on
+         * the same machine — the panel on the server you were connected through went out through
+         * that server and looped straight back to it.
+         */
+        serverIps: List<String> = emptyList(),
         logLevel: String = "warning",
         /** Where the core should write its log, or null to leave it in logcat only. */
         logFile: String? = null,
@@ -229,7 +237,7 @@ object XrayConfig {
         cfg.put("outbounds", outbounds)
 
         cfg.put("dns", buildDns(routing, dns, server, dnsList))
-        cfg.put("routing", buildRouting(routing, server, hasGeoFiles, blockUdp))
+        cfg.put("routing", buildRouting(routing, server, hasGeoFiles, blockUdp, serverIps))
         cfg.put("stats", JSONObject())
         val policy = JSONObject().put("system", JSONObject()
             .put("statsOutboundUplink", true)
@@ -467,6 +475,7 @@ object XrayConfig {
 
     private fun buildRouting(
         routing: RoutingProfile?, server: ServerProfile, geo: Boolean, blockUdp: Boolean = false,
+        serverIps: List<String> = emptyList(),
     ): JSONObject {
         val rules = JSONArray()
         // QUIC and torrents out of the way before anything else looks at the traffic
@@ -476,10 +485,16 @@ object XrayConfig {
         }
 
         // 1. anything aimed at the proxy server goes out directly — never back into the tunnel
-        rules.put(JSONObject().put("type", "field").put("outboundTag", "direct").apply {
-            if (isIpLiteral(server.address)) put("ip", JSONArray().put(server.address))
-            else put("domain", JSONArray().put("full:${server.address}"))
-        })
+        if (!isIpLiteral(server.address)) {
+            rules.put(JSONObject().put("type", "field").put("outboundTag", "direct")
+                .put("domain", JSONArray().put("full:${server.address}")))
+        }
+        val directIps = (serverIps + server.address.takeIf { isIpLiteral(it) }.orEmpty())
+            .filter { it.isNotBlank() }.distinct()
+        if (directIps.isNotEmpty()) {
+            rules.put(JSONObject().put("type", "field").put("outboundTag", "direct")
+                .put("ip", JSONArray().apply { directIps.forEach(::put) }))
+        }
         // 1b. and so does the resolver that answers for it, or the lookup goes through the tunnel
         // we are still trying to build
         if (!isIpLiteral(server.address)) {

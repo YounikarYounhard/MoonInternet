@@ -283,6 +283,25 @@ Check("xray httpupgrade path", hups.GetProperty("httpupgradeSettings").GetProper
 Check("xray httpupgrade host", hups.GetProperty("httpupgradeSettings").GetProperty("host").GetString() == "cdn.example");
 Check("xray httpupgrade keeps tls", hups.GetProperty("security").GetString() == "tls");
 
+// The server you are connected through must go direct under BOTH names. In TUN mode Address has
+// already been swapped for a resolved IP, and with domainStrategy AsIs xray matches a sniffed
+// connection by domain and never resolves it — so an IP-only rule never fired, and the panel on
+// that same machine went out through the tunnel and looped back. Two rules, always.
+var byIp = ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@panel.example:443?encryption=none#S")
+    .CloneForConnectIp("203.0.113.7");
+var dr = Root(XrayConfigBuilder.Build(byIp, null)).GetProperty("routing").GetProperty("rules");
+bool HasDirect(string prop, string val)
+{
+    foreach (var r in dr.EnumerateArray())
+        if (r.TryGetProperty("outboundTag", out var t) && t.GetString() == "direct"
+            && r.TryGetProperty(prop, out var arr))
+            foreach (var v in arr.EnumerateArray()) if (v.GetString() == val) return true;
+    return false;
+}
+Check("server direct by ip", HasDirect("ip", "203.0.113.7"));
+Check("server direct by domain", HasDirect("domain", "domain:panel.example"));
+Check("original host kept", byIp.OriginalHost == "panel.example" && byIp.Address == "203.0.113.7");
+
 // Trojan over WS
 var trs = Proxy(Root(XrayConfigBuilder.Build(trojan)));
 Check("xray trojan protocol", trs.GetProperty("protocol").GetString() == "trojan");

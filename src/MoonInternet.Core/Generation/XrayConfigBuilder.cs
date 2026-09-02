@@ -75,12 +75,27 @@ public static class XrayConfigBuilder
         // mode, anything you open on that host (its web panel, SSH/console) loops: TUN → proxy → same server → drop.
         // Match by sniffed domain (host + subdomains), or by IP if the address is already an IP. Inserted first so
         // it wins over the proxy rules. (The proxy OUTBOUND's own dial to the server is separate — unaffected.)
-        if (!string.IsNullOrWhiteSpace(p.Address))
+        //
+        // BOTH forms, always. In TUN mode Address has already been swapped for a resolved IP, so an
+        // either/or rule could only be the IP one — and with domainStrategy AsIs xray matches a
+        // sniffed connection by its domain and never resolves it, so that rule never fired. Opening
+        // the panel on the server you were connected through went out through that same server and
+        // came back to it. Which is exactly the "turn routing off and it works" report.
         {
-            var serverRule = System.Net.IPAddress.TryParse(p.Address, out _)
-                ? new Dictionary<string, object?> { ["type"] = "field", ["ip"] = new[] { p.Address }, ["outboundTag"] = "direct" }
-                : new Dictionary<string, object?> { ["type"] = "field", ["domain"] = new[] { "domain:" + p.Address }, ["outboundTag"] = "direct" };
-            ((List<object?>)routingCfg["rules"]!).Insert(0, serverRule);
+            var hostRules = new List<string>();
+            var ipRules = new List<string>();
+            foreach (var a in new[] { p.Address, p.OriginalHost })
+            {
+                if (string.IsNullOrWhiteSpace(a)) continue;
+                if (System.Net.IPAddress.TryParse(a, out _)) { if (!ipRules.Contains(a)) ipRules.Add(a); }
+                else if (!hostRules.Contains("domain:" + a)) hostRules.Add("domain:" + a);
+            }
+            if (ipRules.Count > 0)
+                ((List<object?>)routingCfg["rules"]!).Insert(0,
+                    new Dictionary<string, object?> { ["type"] = "field", ["ip"] = ipRules, ["outboundTag"] = "direct" });
+            if (hostRules.Count > 0)
+                ((List<object?>)routingCfg["rules"]!).Insert(0,
+                    new Dictionary<string, object?> { ["type"] = "field", ["domain"] = hostRules, ["outboundTag"] = "direct" });
         }
 
         // Traffic stats for the live up/down counters. Like INCY, we count the LOCAL INBOUND (payload delivered to /

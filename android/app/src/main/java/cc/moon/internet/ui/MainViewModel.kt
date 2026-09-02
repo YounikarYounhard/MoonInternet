@@ -711,9 +711,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _status.value = s(R.string.vm_port_taken, socks, http)
         }
 
+        // Look the server up before the tunnel exists, so its own addresses can be pinned to the
+        // direct rule. Without them, anything else on that machine — its panel, its console —
+        // resolved to an IP no rule mentioned and went out through the tunnel back to itself.
+        // Off the main thread: a lookup there is a NetworkOnMainThreadException.
+        val serverIps = withContext(Dispatchers.IO) {
+            runCatching {
+                java.net.InetAddress.getAllByName(s.address).map { it.hostAddress }.filterNotNull()
+            }.getOrDefault(emptyList())
+        }
+
         var config = runCatching {
             XrayConfig.build(
                 server = s,
+                serverIps = serverIps,
                 routing = if (st.useRouting) store.activeRouting() else null,
                 dns = st.dns,
                 hasGeoFiles = GeoService.ready(getApplication()),

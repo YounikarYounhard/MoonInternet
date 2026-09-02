@@ -51,6 +51,15 @@ public sealed class OutboundProfile
     public Dictionary<string, string> Extra { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// The hostname this profile carried before <see cref="CloneForConnectIp"/> swapped an IP into
+    /// <see cref="Address"/>. The routing needs both: xray matches a sniffed connection by domain
+    /// and never by IP, so an IP-only "this server goes direct" rule silently misses everything
+    /// the sniffer named — which is how the panel on the server you are connected through ended
+    /// up going out through that same server and looping.
+    /// </summary>
+    public string? OriginalHost { get; set; }
+
+    /// <summary>
     /// Copy that connects to a pre-resolved server IP instead of the domain, keeping the domain as the TLS SNI
     /// and Host header. In TUN mode this stops xray from doing its own DNS lookup for the server — that lookup
     /// gets caught by sing-box's DNS hijack and deadlocks (to resolve the server it would need the server).
@@ -60,6 +69,7 @@ public sealed class OutboundProfile
         var c = (OutboundProfile)MemberwiseClone();   // Extra dict is shared (read-only during generation)
         if (string.IsNullOrEmpty(c.Sni)) c.Sni = c.Address;   // preserve the domain for TLS SNI
         if (string.IsNullOrEmpty(c.Host)) c.Host = c.Address; // preserve the domain for ws/http/xhttp Host
+        c.OriginalHost = c.Address;                           // and for the "server goes direct" rule
         c.Address = ip;
         return c;
     }
