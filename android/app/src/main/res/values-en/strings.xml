@@ -354,6 +354,8 @@
     <string name="notif_total">"Total: ↑ %1$s ↓ %2$s"</string>
     <string name="notif_time">"Time: %1$s"</string>
     <string name="notif_ping">"Ping: %1$s"</string>
+    <string name="notif_not_working">"The connection is not working"</string>
+    <string name="notif_not_working_long">"The tunnel is up but no traffic is getting through. Switch server or reconnect."</string>
     <string name="notif_start">"Start"</string>
     <string name="notif_pause">"Pause"</string>
     <string name="notif_disconnect">"Disconnect"</string>

@@ -277,7 +277,7 @@
     <string name="homescreen_002">"Обновления"</string>
     <string name="homescreen_003">"Луна укрыла"</string>
     <string name="homescreen_004">"Луна просыпается…"</string>
-    <string name="homescreen_005">"Луна на паузе"</string>
+    <string name="homescreen_005">"Луна делает перерыв"</string>
     <string name="homescreen_006">"Луна спит"</string>
     <string name="homescreen_007">"Нет активного соединения"</string>
     <string name="homescreen_008">"Проверить соединение"</string>
@@ -356,6 +356,8 @@
     <string name="notif_total">"Всего: ↑ %1$s ↓ %2$s"</string>
     <string name="notif_time">"Время: %1$s"</string>
     <string name="notif_ping">"Пинг: %1$s"</string>
+    <string name="notif_not_working">"Подключение не работает"</string>
+    <string name="notif_not_working_long">"Туннель поднят, но трафик через него не идёт. Смените сервер или переподключитесь."</string>
     <string name="notif_start">"Запустить"</string>
     <string name="notif_pause">"Пауза"</string>
     <string name="notif_disconnect">"Отключить"</string>

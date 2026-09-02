@@ -66,7 +66,19 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_CONNECT_NOW = "connect_now"
         /** Set by the notification's "Сервер" button. */
         const val EXTRA_OPEN_SERVERS = "open_servers"
+        /** Set when the notification itself is tapped. */
+        const val EXTRA_OPEN_HOME = "open_home"
     }
+
+    /**
+     * Where an incoming intent wants us, consumed once by the composition below.
+     *
+     * singleTask means the app comes back exactly where it was left, so tapping the notification
+     * dropped you into whatever page you had wandered off to — the logs, a sub-page of settings —
+     * rather than the screen the notification is about. EXTRA_OPEN_SERVERS had the same problem
+     * from the other end: the notification's "Сервер" button set it and nothing ever read it.
+     */
+    private var navRequest by androidx.compose.runtime.mutableStateOf<String?>(null)
 
     override fun attachBaseContext(base: Context) =
         super.attachBaseContext(cc.moon.internet.data.Lang.wrap(base))
@@ -158,6 +170,16 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(settingsPage) { settingsPageName = settingsPage?.name.orEmpty() }
                 // sub-pages can open other sub-pages (About → Terms), so back needs a stack
                 val settingsBack = remember { mutableStateListOf<SettingsPage>() }
+                // An intent asked for a page — go there, and to the TOP of it: arriving in a
+                // sub-page you had left open days ago is the same bug as not moving at all.
+                LaunchedEffect(navRequest) {
+                    navRequest?.let {
+                        page = Page.valueOf(it)
+                        settingsPage = null
+                        settingsBack.clear()
+                        navRequest = null
+                    }
+                }
                 // touching the core loads a 19 MB native library; keep it off the first frame
                 val xrayVersion by produceState(initialValue = "…") {
                     value = withContext(Dispatchers.IO) { cc.moon.internet.vpn.XrayRunner.version() }
@@ -501,7 +523,10 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.align(Alignment.BottomCenter),
                         onServers = { page = Page.Servers },
                         onHome = { page = Page.Home },
-                        onSettings = { if (page == Page.Settings) settingsPage = null else page = Page.Settings },
+                        // Always the settings root. Opening the logs, wandering to Servers and
+                        // pressing Настройки put you back in the logs, because only a tap while
+                        // already ON settings cleared the sub-page.
+                        onSettings = { settingsPage = null; settingsBack.clear(); page = Page.Settings },
                     )
                 }
                 }   // Scaffold content
@@ -526,6 +551,14 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         // a share link opened from the browser / another app
         intent?.dataString?.let { vm.addSubscription(it) }
+        if (intent?.getBooleanExtra(EXTRA_OPEN_HOME, false) == true) {
+            intent.removeExtra(EXTRA_OPEN_HOME)      // or every rotation would jump to Home
+            navRequest = Page.Home.name
+        }
+        if (intent?.getBooleanExtra(EXTRA_OPEN_SERVERS, false) == true) {
+            intent.removeExtra(EXTRA_OPEN_SERVERS)
+            navRequest = Page.Servers.name
+        }
         if (intent?.getBooleanExtra(EXTRA_CONNECT_NOW, false) == true) {
             intent.removeExtra(EXTRA_CONNECT_NOW)   // or every rotation would reconnect
             // connect, never toggle: the service bounces us here while it is still tearing the

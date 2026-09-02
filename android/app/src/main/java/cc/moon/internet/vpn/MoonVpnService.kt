@@ -66,6 +66,14 @@ class MoonVpnService : VpnService() {
         private val _state = MutableStateFlow(State.Disconnected)
         val state = _state.asStateFlow()
 
+        /**
+         * True once a measurement through the tunnel came back with nothing. "Connected" only means
+         * the interface is up; a server that has stopped carrying traffic looks exactly the same
+         * from here, and the notification went on cheerfully reporting 0 B/s as though that were a
+         * speed. False until something actually fails, so it never accuses a fresh connection.
+         */
+        val linkDead = MutableStateFlow(false)
+
         private val _activeProfile = MutableStateFlow<String?>(null)
         val activeProfile = _activeProfile.asStateFlow()
 
@@ -163,6 +171,7 @@ class MoonVpnService : VpnService() {
             ACTION_PING -> {
                 scope.launch {
                     val ms = runner?.measureDelay()
+                    linkDead.value = ms == null || ms < 0
                     livePing.value = if (ms == null || ms < 0) "нет ответа" else "$ms ms"
                     runCatching { updateNotification(_activeProfile.value.orEmpty(), false) }
                 }
@@ -190,6 +199,7 @@ class MoonVpnService : VpnService() {
         _state.value = State.Connecting
         _activeProfile.value = profileName
         lastError.value = null
+        linkDead.value = false
         lastConfig = config; lastProfile = profileName; lastMtu = mtu
         lastTun = tun; lastAppMode = appMode; lastApps = apps; lastZapret = zapret
         startForeground(NOTIFICATION_ID, notification(profileName, connecting = true))
@@ -239,6 +249,7 @@ class MoonVpnService : VpnService() {
                 scope.launch {
                     runCatching {
                         val ms = runner?.measureDelay()
+                        linkDead.value = ms == null || ms < 0
                         livePing.value = if (ms == null || ms < 0) null else "$ms ms"
                         updateNotification(profileName, connecting = false)
                     }
@@ -309,6 +320,9 @@ class MoonVpnService : VpnService() {
         var lastDown = 0L
         var tick = 0
         while (_state.value == State.Connected) {
+            // One 204 through the tunnel a minute. Cheap, and the only thing that can tell a live
+            // connection from an interface that is merely up.
+            if (tick % 60 == 30) runCatching { linkDead.value = (runner?.measureDelay() ?: -1) < 0 }
             runner?.trafficTotals()?.let { (up, down) ->
                 traffic.value = up to down
                 // refresh the notification every other second with the current speed
@@ -429,8 +443,11 @@ class MoonVpnService : VpnService() {
     }
 
     private fun notification(profile: String, connecting: Boolean, detail: String? = null): Notification {
+        // EXTRA_OPEN_HOME: the app is singleTask, so tapping this used to resume whatever page was
+        // left open — the logs, a settings sub-page — instead of the screen the notification is about.
         val open = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
+            this, 0,
+            Intent(this, MainActivity::class.java).putExtra(MainActivity.EXTRA_OPEN_HOME, true),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         fun service(action: String, code: Int) = PendingIntent.getService(
@@ -468,6 +485,10 @@ class MoonVpnService : VpnService() {
         // own theme, and it draws real action buttons with the labels spelled out.
         if (paused || connecting) {
             b.setContentText(state)
+        } else if (linkDead.value) {
+            // Say it. "Connected" with a speed of zero reads as "working, quiet"; it is not.
+            b.setContentText(getString(R.string.notif_not_working))
+                .setStyle(NotificationCompat.BigTextStyle().bigText(getString(R.string.notif_not_working_long)))
         } else {
             val (up, down) = traffic.value
             val speed = getString(R.string.notif_speed, detail ?: "↑ —  ↓ —")

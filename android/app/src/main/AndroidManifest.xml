@@ -52,6 +52,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Long-press on the quick-settings tile. Without this filter Android has nothing of
+                 ours to open and falls back to the system "App info" page, which is not what
+                 anybody holding a VPN tile is reaching for. -->
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
             <!-- import a server/subscription by tapping a share link -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
