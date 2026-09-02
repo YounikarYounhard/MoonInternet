@@ -58,6 +58,8 @@ fun HomeScreen(
     onPickZapret: (String) -> Unit,
     zapretPing: String,
     zapretBusy: Boolean,
+    /** A mode switch is tearing the old one down; show it the way a connect is shown. */
+    switching: Boolean = false,
     onCheckZapret: () -> Unit,
     onAutoPickZapret: () -> Unit,
     favorites: Set<String>,
@@ -142,10 +144,13 @@ fun HomeScreen(
         // ---- moon button + state text --------------------------------------
         item {
             Spacer(Modifier.height(10.dp))
-            MoonButton(state, onToggle)
+            // A mode switch wears the connecting face: the tunnel is coming down and the page is
+            // about to change shape, and a still moon over that reads as a freeze.
+            val shown = if (switching) State.Connecting else state
+            MoonButton(shown, onToggle)
             Spacer(Modifier.height(10.dp))
             Text(
-                when (state) {
+                if (switching) stringResource(R.string.vm_mode_switching) else when (shown) {
                     State.Connected -> stringResource(R.string.homescreen_003)
                     State.Connecting -> stringResource(R.string.homescreen_004)
                     State.Paused -> stringResource(R.string.homescreen_005)

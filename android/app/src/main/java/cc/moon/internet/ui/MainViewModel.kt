@@ -820,10 +820,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setZapretCheckUrl(u: String) = viewModelScope.launch { store.update { it.copy(zapretCheckUrl = u) } }
 
+    /** True while a mode switch is tearing the old one down — the moon keeps spinning through it. */
+    private val _switchingMode = MutableStateFlow(false)
+    val switchingMode = _switchingMode.asStateFlow()
+
     fun setConnMode(m: String) = viewModelScope.launch {
         if (m !in setOf("tun", "zapret") || store.state.value.connMode == m) return@launch
         // A tunnel and запрет both want the traffic; leaving one up would have them fight.
-        if (vpnState.value != MoonVpnService.Companion.State.Disconnected) disconnect()
+        if (vpnState.value != MoonVpnService.Companion.State.Disconnected) {
+            _switchingMode.value = true
+            _status.value = s(R.string.vm_mode_switching)
+            disconnect()
+            // Flip the page only once the tunnel is really down. Changing it mid-teardown is what
+            // made the switch jarring: the subscriptions vanished while the moon was still lit and
+            // the whole screen rebuilt under the user's thumb.
+            kotlinx.coroutines.withTimeoutOrNull(4000) {
+                vpnState.first { it == MoonVpnService.Companion.State.Disconnected }
+            }
+            _switchingMode.value = false
+        }
         store.update { it.copy(connMode = m, tunMode = m == "tun") }
     }
 

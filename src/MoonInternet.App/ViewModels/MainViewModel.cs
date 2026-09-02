@@ -877,16 +877,29 @@ public partial class MainViewModel : ObservableObject
     public bool ZapretAvailable => ZapretStrategies.Count > 0;
 
     [RelayCommand]
-    private void SetConnMode(string m)
+    private async Task SetConnMode(string m)
     {
         if (m is not ("proxy" or "tun" or "zapret") || ConnMode == m) return;
         ConnMode = m;
         _settings.ConnMode = m;
         _settings.TunMode = TunMode = m == "tun";   // kept in step for the tray menu and old saves
         _settings.Save();
+        ErrorText = "";
+        if (ConnectionState != ConnectionState.Connected) return;
         // Switching mode while connected has to tear the old one down: a tunnel and запрет both
         // want the traffic, and leaving one running would quietly fight the other.
-        if (ConnectionState == ConnectionState.Connected) _conn.Disconnect();
+        //
+        // Off the UI thread, and behind the same sleeping moon an auto-reconnect uses. That
+        // teardown talks to the privileged helper and waits for a network adapter to disappear —
+        // seconds, on the dispatcher, with the whole screen changing shape the instant it
+        // returned. Which is what made switching modes hurt to look at.
+        ReSleeping = true;
+        try
+        {
+            await Task.Run(() => _conn.Disconnect());
+            await Task.Delay(400);          // let the moon finish setting before the page rebuilds
+        }
+        finally { ReSleeping = false; }
     }
 
     [RelayCommand]
@@ -1465,7 +1478,7 @@ public partial class MainViewModel : ObservableObject
         if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
         else _ = CheckConnection();                                   // auto-measure ping the moment we connect
         ServerComparers.ActiveRaw = PinActiveServer && value == ConnectionState.Connected
-            ? SelectedServer?.ShareUrl : null;
+            ? SelectedServer?.FavKey : null;
         foreach (var sub in Subscriptions) sub.Refresh();
         OnPropertyChanged(nameof(ElapsedDisplay));
         OnPropertyChanged(nameof(MoonAwake));
@@ -2070,7 +2083,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnPinActiveServerChanged(bool v)
     {
         _settings.PinActiveServer = v; _settings.Save();
-        ServerComparers.ActiveRaw = v && IsConnected ? SelectedServer?.ShareUrl : null;
+        ServerComparers.ActiveRaw = v && IsConnected ? SelectedServer?.FavKey : null;
         foreach (var sub in Subscriptions) sub.Refresh();
     }
 

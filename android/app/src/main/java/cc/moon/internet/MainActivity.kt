@@ -145,6 +145,7 @@ class MainActivity : ComponentActivity() {
                 val release by vm.release.collectAsState()
                 val updateStatus by vm.updateStatus.collectAsState()
                 val downloadProgress by vm.downloadProgress.collectAsState()
+                val switchingMode by vm.switchingMode.collectAsState()
 
                 // Saveable, not plain remember: switching the language recreates the activity, and
                 // landing back on Home every time reads like the app restarted.
@@ -295,6 +296,10 @@ class MainActivity : ComponentActivity() {
                         when (shown) {
                             Page.Home -> HomeScreen(
                                 connMode = state.connMode,
+                                // Keep the moon busy through a mode switch: the teardown talks to
+                                // the system and takes a moment, and a still moon over a screen
+                                // that is about to change shape reads as a freeze.
+                                switching = switchingMode,
                                 onConnMode = vm::setConnMode,
                                 zapretStrategy = state.zapretStrategy,
                                 onPickZapret = vm::pickZapret,

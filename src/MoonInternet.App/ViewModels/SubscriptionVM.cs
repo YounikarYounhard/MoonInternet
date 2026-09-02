@@ -182,7 +182,7 @@ internal static class ServerComparers
     private static int Active(ServerItem x, ServerItem y)
     {
         if (ActiveRaw is null) return 0;
-        return (y.ShareUrl == ActiveRaw).CompareTo(x.ShareUrl == ActiveRaw);
+        return (y.FavKey == ActiveRaw).CompareTo(x.FavKey == ActiveRaw);
     }
 
     public static readonly IComparer ByDefault = Comparer<object>.Create((a, b) =>
