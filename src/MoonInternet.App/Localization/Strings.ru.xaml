@@ -311,6 +311,7 @@
     <s:String x:Key="S_SubMeter_Dots">Точки</s:String>
     <s:String x:Key="S_None">нет</s:String>
     <s:String x:Key="S_Routing_Sub_Fmt">Профиль, правила · {0}</s:String>
+    <s:String x:Key="S_VM_Offline">Нет интернета — дело не в серверах</s:String>
     <s:String x:Key="S_VM_001">Убрать из избранного</s:String>
     <s:String x:Key="S_VM_002">Добавить в избранное</s:String>
     <s:String x:Key="S_VM_010">ОТКЛЮЧИТЬ</s:String>

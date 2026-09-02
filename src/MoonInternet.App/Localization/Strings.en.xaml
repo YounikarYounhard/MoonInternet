@@ -341,6 +341,7 @@
     <s:String x:Key="S_SubMeter_Dots">Dots</s:String>
     <s:String x:Key="S_None">none</s:String>
     <s:String x:Key="S_Routing_Sub_Fmt">Profile, rules · {0}</s:String>
+    <s:String x:Key="S_VM_Offline">No internet — this is not the servers</s:String>
     <s:String x:Key="S_VM_001">Remove from favourites</s:String>
     <s:String x:Key="S_VM_002">Add to favourites</s:String>
     <s:String x:Key="S_VM_010">DISCONNECT</s:String>

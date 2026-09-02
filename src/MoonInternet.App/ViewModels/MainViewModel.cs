@@ -1171,10 +1171,34 @@ public partial class MainViewModel : ObservableObject
     /// never coming.
     /// </summary>
     public bool AllServersDown =>
-        !IsConnected && AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable);
+        !IsConnected && AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable) && !Offline;
+
+    /// <summary>
+    /// The machine itself has no internet. Checked only when a whole pass came back silent, because
+    /// that is the moment the two are indistinguishable — and they were being reported as the same
+    /// thing. "Ни один сервер не отвечает" over an unplugged cable sent people hunting for a fault
+    /// in their subscription.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AllServersDown))]
+    private bool offline;
 
     /// <summary>Re-evaluated after every ping pass; the tray listens for this.</summary>
-    private void RefreshReachability() => OnPropertyChanged(nameof(AllServersDown));
+    private void RefreshReachability()
+    {
+        bool silent = AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable);
+        if (!silent) { Offline = false; OnPropertyChanged(nameof(AllServersDown)); return; }
+        _ = Task.Run(async () =>
+        {
+            bool up = await Internet.IsUpAsync().ConfigureAwait(false);
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                Offline = !up;
+                if (Offline) ErrorText = Status = Localization.Loc.T("S_VM_Offline");
+                OnPropertyChanged(nameof(AllServersDown));
+            });
+        });
+    }
 
     /// <summary>Reachable = it answered. Unknown (-2) does not count as reachable, nor as dead.</summary>
     private static bool Reachable(ServerItem s) => s.Ping >= 0;

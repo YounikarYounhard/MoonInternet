@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
@@ -90,7 +90,7 @@ public partial class MainWindow : Window
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(MainViewModel.IsConnected) or nameof(MainViewModel.AllServersDown)
-                                  or nameof(MainViewModel.SelectedServerLabel))
+                                  or nameof(MainViewModel.SelectedServerLabel) or nameof(MainViewModel.Offline))
                 Dispatcher.Invoke(() =>
                 {
                     tray.Icon = TrayIconFor(vm);
@@ -98,6 +98,7 @@ public partial class MainWindow : Window
                     // its own told you nothing, and Label already has the flag emoji taken off it
                     // (Windows draws those as the two letters "FI", which is what looked broken).
                     tray.ToolTipText = vm.IsConnected ? $"Moon Internet — подключено · {vm.SelectedServerLabel}"
+                        : vm.Offline ? "Moon Internet — нет интернета"
                         : vm.AllServersDown ? "Moon Internet — ни один сервер не отвечает"
                         : "Moon Internet — отключено";
                 });

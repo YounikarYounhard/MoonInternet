@@ -305,6 +305,7 @@
     <string name="vm_sub_removed">"Subscription removed"</string>
     <string name="vm_pinging">"Pinging %1$d…"</string>
     <string name="vm_no_reply">"no reply"</string>
+    <string name="vm_offline">"No internet — this is not the servers"</string>
     <string name="vm_pick_server">"Pick a server first"</string>
     <string name="vm_unsupported">"%1$s is not supported by the xray core"</string>
     <string name="vm_port_taken">"Port taken by another VPN, listening on %1$d/%2$d"</string>

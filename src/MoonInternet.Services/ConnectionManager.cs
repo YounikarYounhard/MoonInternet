@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using MoonInternet.Core.Generation;
 using MoonInternet.Core.Models;
@@ -132,6 +132,17 @@ public sealed class ConnectionManager : IDisposable
             for (int attempt = 0; attempt < 5; attempt++)
             {
                 await Task.Delay(Math.Clamp(ReconnectDelaySec, 1, 60) * 1000);
+                if (_userDisconnect) return;
+                // Wi-Fi off, cable out, train in a tunnel: no attempt made against that is worth
+                // spending, and burning all five meant coming back to a connection that had given
+                // up ten seconds after the link went. Wait it out instead — up to five minutes,
+                // then let the loop have its go anyway in case the check itself is wrong.
+                for (int waited = 0; waited < 300 && !await Internet.IsUpAsync(); waited += 5)
+                {
+                    if (_userDisconnect) return;
+                    Report("Нет сети — жду…");
+                    await Task.Delay(5000);
+                }
                 if (_userDisconnect) return;
                 try { await ConnectAsync(server, mode, routing); return; } catch { /* retry */ }
             }

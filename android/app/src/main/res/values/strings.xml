@@ -307,6 +307,7 @@
     <string name="vm_sub_removed">"Подписка удалена"</string>
     <string name="vm_pinging">"Пингую %1$d…"</string>
     <string name="vm_no_reply">"нет ответа"</string>
+    <string name="vm_offline">"Нет интернета — дело не в серверах"</string>
     <string name="vm_pick_server">"Сначала выберите сервер"</string>
     <string name="vm_unsupported">"%1$s не поддерживается ядром xray"</string>
     <string name="vm_port_taken">"Порт занят другим VPN, слушаю %1$d/%2$d"</string>

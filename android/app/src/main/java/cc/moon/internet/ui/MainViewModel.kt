@@ -556,9 +556,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         } finally {
             _pinging.value = emptySet()
             _pingingAll.value = false
-            _status.value = ""
+            // A whole pass with nothing to show has two very different causes and they were
+            // reported as one. "Ни один сервер не отвечает" over mobile data that had dropped sent
+            // people looking for a fault in their subscription.
+            val silent = targets.size > 1 && targets.all { (_pings.value[it.pingKey] ?: -2) < 0 }
+            _status.value = if (silent && !hasInternet()) s(R.string.vm_offline) else ""
         }
     }
+
+    /**
+     * Whether the phone has a working connection at all — validated, not merely attached: a hotel
+     * Wi-Fi you have not signed into reports a network and carries nothing.
+     */
+    private fun hasInternet(): Boolean = runCatching {
+        val cm = getApplication<Application>()
+            .getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }.getOrDefault(true)   // cannot tell → do not accuse the network
 
     /**
      * The same five methods as the desktop.
