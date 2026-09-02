@@ -303,6 +303,7 @@
     <string name="vm_update_available">"Доступна версия %1$s"</string>
     <string name="vm_up_to_date">"У вас последняя версия"</string>
     <string name="vm_server_added">"Сервер добавлен"</string>
+    <string name="loose_servers">"Отдельные подключения"</string>
     <string name="vm_not_a_link">"Не похоже на ссылку сервера"</string>
     <string name="vm_loaded">"Загружено серверов: %1$d"</string>
     <string name="vm_load_error">"Ошибка загрузки: %1$s"</string>

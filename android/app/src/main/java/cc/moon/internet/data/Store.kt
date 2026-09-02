@@ -145,7 +145,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 11 }
+    private companion object { const val CURRENT_VERSION = 12 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -190,12 +190,34 @@ class Store(private val ctx: Context) {
                 // #remark now (see ServerProfile.key). Trim what is already saved, or every
                 // favourite anybody has would stop matching the moment this build lands.
                 favorites = loaded.favorites.map { it.substringBefore('#') }.distinct(),
+                // v12: hand-added servers share one bucket instead of one pseudo-subscription
+                // each. Fold whatever is already there into it, keeping the order.
+                subscriptions = mergeLooseSubscriptions(loaded.subscriptions),
                 selectedServerRaw = loaded.selectedServerRaw?.substringBefore('#'),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
         // Ids handed out here must survive the next launch, or the selection points at nothing.
         else loaded.copy(routings = routings).also { if (routings != loaded.routings) save(it) }
         _ready.value = true
+    }
+
+    /** All `clipboard:*` pseudo-subscriptions folded into one, in place of the first of them. */
+    private fun mergeLooseSubscriptions(subs: List<Subscription>): List<Subscription> {
+        val loose = subs.filter { it.url.startsWith("clipboard:") }
+        if (loose.size <= 1 && loose.firstOrNull()?.url.let { it == null || it == "clipboard:local" }) return subs
+        val merged = Subscription(
+            url = "clipboard:local",
+            name = loose.first().name.takeIf { loose.size == 1 } ?: "Отдельные подключения",
+            servers = loose.flatMap { it.servers }.distinctBy { it.key },
+        )
+        var placed = false
+        return subs.mapNotNull {
+            when {
+                !it.url.startsWith("clipboard:") -> it
+                placed -> null
+                else -> { placed = true; merged }
+            }
+        }
     }
 
     private fun save(st: AppState) = runCatching { file.writeText(json.encodeToString(st)) }

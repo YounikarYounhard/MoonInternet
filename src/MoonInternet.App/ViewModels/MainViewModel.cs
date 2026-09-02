@@ -2696,10 +2696,42 @@ public partial class MainViewModel : ObservableObject
         _settings.Save();
     }
 
+    /// <summary>
+    /// Where every server pasted or scanned by hand lives, as opposed to one that came from a
+    /// subscription. Every paste used to mint its own <c>clipboard:GUID</c> pseudo-subscription, so
+    /// five pasted links drew five cards each holding one server with the card's own name on it —
+    /// "подключение в подписке подключение". One bucket, and a fixed url so it survives a restart.
+    /// </summary>
+    private const string LooseUrl = "clipboard:local";
+
+    private SubscriptionVM LooseSub()
+    {
+        var existing = Subscriptions.FirstOrDefault(s => s.Url == LooseUrl);
+        if (existing is not null) return existing;
+        var sub = new SubscriptionVM(LooseUrl, Localization.Loc.T("S_VM_LooseSub"), FilterServer);
+        Subscriptions.Add(sub);
+        return sub;
+    }
+
     /// <summary>Rebuild subscriptions from the on-disk cache — runs before any network call, so the UI is
     /// populated instantly and still works fully offline.</summary>
     private void LoadCachedSubs()
     {
+        // Fold the old one-card-per-paste entries into the single bucket, once.
+        var loose = _settings.CachedSubs.Where(c => c.Url.StartsWith("clipboard:", StringComparison.Ordinal)).ToList();
+        if (loose.Count > 1 || (loose.Count == 1 && loose[0].Url != LooseUrl))
+        {
+            var merged = new CachedSub
+            {
+                Url = LooseUrl,
+                Name = Localization.Loc.T("S_VM_LooseSub"),
+                Links = loose.SelectMany(c => c.Links).Distinct().ToList(),
+            };
+            _settings.CachedSubs.RemoveAll(c => c.Url.StartsWith("clipboard:", StringComparison.Ordinal));
+            _settings.CachedSubs.Add(merged);
+            _settings.Save();
+        }
+
         foreach (var c in _settings.CachedSubs.Where(c => c.Links.Count > 0))
         {
             if (Subscriptions.Any(s => s.Url == c.Url)) continue;
@@ -2870,9 +2902,8 @@ public partial class MainViewModel : ObservableObject
         {
             if (wgp.Wireguard is { IsAmnezia: true })
             { Status = Localization.Loc.T("S_VM_223"); return; }
-            var wsub = new SubscriptionVM("clipboard:" + Guid.NewGuid().ToString("N"), "AmneziaWG", FilterServer);
-            Subscriptions.Add(wsub);
-            wsub.SetServers(new[] { wgp });
+            var wsub = LooseSub();
+            wsub.SetServers(wsub.Servers.Select(x => x.Profile).Append(wgp).ToList());
             wsub.ApplySort(ServerSort);
             SaveSubCache(wsub);                     // persist it — pasted servers must survive a restart too
             RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
@@ -2884,10 +2915,10 @@ public partial class MainViewModel : ObservableObject
         var content = SubscriptionParser.ParseFull(text);
         if (content.Servers.Count == 0) { Status = Localization.Loc.T("S_VM_225"); return; }
 
-        var sub = new SubscriptionVM("clipboard:" + Guid.NewGuid().ToString("N"), "Из буфера обмена", FilterServer);
-        Subscriptions.Add(sub);
-        sub.SetServers(content.Servers);
+        var sub = LooseSub();
+        sub.SetServers(sub.Servers.Select(x => x.Profile).Concat(content.Servers).ToList());
         sub.SetRouting(content.Routing);
+        SaveSubCache(sub);                      // pasted servers must survive a restart too
         sub.ApplySort(ServerSort);
         RebuildRouting();
         RefreshHomeSummary();

@@ -345,6 +345,7 @@
     <s:String x:Key="S_VM_Offline">No internet — this is not the servers</s:String>
     <s:String x:Key="S_VM_StabilityOk">{0} — the connection works, {1} ms</s:String>
     <s:String x:Key="S_VM_StabilityDead">{0} — nothing gets through this server</s:String>
+    <s:String x:Key="S_VM_LooseSub">Standalone servers</s:String>
     <s:String x:Key="S_VM_001">Remove from favourites</s:String>
     <s:String x:Key="S_VM_002">Add to favourites</s:String>
     <s:String x:Key="S_VM_010">DISCONNECT</s:String>

@@ -25,6 +25,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         /** Same cap as the desktop build; see the comment on pingServers. */
         const val PING_PARALLEL = 6
+        /** The one bucket every hand-added server goes into — see addSubscription. */
+        const val LOOSE_URL = "clipboard:local"
     }
 
     /** Status text is user-facing, so it goes through resources like everything else. */
@@ -278,8 +280,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!u.startsWith("http", true)) {
             ShareLinkParser.parse(u)?.let { p ->
                 store.update { st ->
-                    val sub = Subscription(url = "clipboard:${UUID.randomUUID()}", name = name.ifBlank { p.label }.ifBlank { "Сервер" }, servers = listOf(p))
-                    st.copy(subscriptions = st.subscriptions + sub, selectedServerRaw = st.selectedServerRaw ?: p.key)
+                    // One bucket for everything pasted or scanned by hand. Every paste used to mint
+                    // its own pseudo-subscription, so five links drew five cards each holding one
+                    // server named after the card — "подключение в подписке подключение".
+                    val bucket = st.subscriptions.firstOrNull { it.url == LOOSE_URL }
+                    val merged = Subscription(
+                        url = LOOSE_URL,
+                        name = this@MainViewModel.s(R.string.loose_servers),
+                        servers = (bucket?.servers.orEmpty() + p).distinctBy { it.key },
+                    )
+                    st.copy(
+                        subscriptions =
+                            if (bucket == null) st.subscriptions + merged
+                            else st.subscriptions.map { if (it.url == LOOSE_URL) merged else it },
+                        selectedServerRaw = st.selectedServerRaw ?: p.key,
+                    )
                 }
                 _status.value = s(R.string.vm_server_added)
             } ?: run { _status.value = s(R.string.vm_not_a_link) }

@@ -301,6 +301,7 @@
     <string name="vm_update_available">"Version %1$s is available"</string>
     <string name="vm_up_to_date">"You are on the latest version"</string>
     <string name="vm_server_added">"Server added"</string>
+    <string name="loose_servers">"Standalone servers"</string>
     <string name="vm_not_a_link">"That does not look like a server link"</string>
     <string name="vm_loaded">"Servers loaded: %1$d"</string>
     <string name="vm_load_error">"Load error: %1$s"</string>
