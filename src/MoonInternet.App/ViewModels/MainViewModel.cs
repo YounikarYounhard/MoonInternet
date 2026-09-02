@@ -1190,8 +1190,16 @@ public partial class MainViewModel : ObservableObject
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 OfflineChecking = false;
+                bool wasOffline = Offline;
                 Offline = !up;
-                if (Offline) ErrorText = Status = Localization.Loc.T("S_VM_Offline");
+                // Only when it CHANGES. The automatic pass runs every quarter of an hour, and now
+                // that Status reaches the screen, announcing it each time would put the same toast
+                // up four times an hour for as long as the network stayed down.
+                if (Offline)
+                {
+                    ErrorText = Localization.Loc.T("S_VM_Offline");
+                    if (!wasOffline) Status = ErrorText;
+                }
                 OnPropertyChanged(nameof(AllServersDown));
             });
         });
@@ -2810,9 +2818,29 @@ public partial class MainViewModel : ObservableObject
 
     // Per-subscription actions (header buttons): ping just this sub / re-fetch just this sub.
     [RelayCommand] private async Task PingSubscription(SubscriptionVM? sub) { if (sub is not null) await PingSub(sub); }
-    [RelayCommand] private async Task RefreshSubscription(SubscriptionVM? sub) { if (sub is not null) { NewSubName = ""; await ImportUrl(sub.Url); } }
+    [RelayCommand]
+    private async Task RefreshSubscription(SubscriptionVM? sub)
+    {
+        if (sub is null) return;
+        if (!sub.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        { ErrorText = Status = Localization.Loc.T("S_VM_NoSourceToRefresh"); return; }
+        NewSubName = "";
+        await ImportUrl(sub.Url);
+    }
     // Home global actions: ping / refresh every subscription.
-    [RelayCommand] private async Task RefreshAll() { NewSubName = ""; foreach (var s in Subscriptions.ToList()) await ImportUrl(s.Url); }
+    /// <summary>
+    /// Refetch every subscription that HAS somewhere to fetch from. The bucket of hand-added
+    /// servers has a <c>clipboard:</c> url, and asking the network for that throws — which the
+    /// hourly timer did, quietly, until Status started reaching the screen and it became an error
+    /// message once an hour. The phone already filtered this.
+    /// </summary>
+    [RelayCommand]
+    private async Task RefreshAll()
+    {
+        NewSubName = "";
+        foreach (var s in Subscriptions.ToList())
+            if (s.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) await ImportUrl(s.Url);
+    }
 
     [RelayCommand]
     private async Task Import()

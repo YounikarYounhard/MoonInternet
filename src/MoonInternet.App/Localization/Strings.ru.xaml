@@ -316,6 +316,7 @@
     <s:String x:Key="S_VM_StabilityOk">{0} — соединение живое, {1} мс</s:String>
     <s:String x:Key="S_VM_StabilityDead">{0} — через этот сервер ничего не проходит</s:String>
     <s:String x:Key="S_VM_LooseSub">Отдельные подключения</s:String>
+    <s:String x:Key="S_VM_NoSourceToRefresh">Эти серверы добавлены вручную — обновлять неоткуда</s:String>
     <s:String x:Key="S_VM_001">Убрать из избранного</s:String>
     <s:String x:Key="S_VM_002">Добавить в избранное</s:String>
     <s:String x:Key="S_VM_010">ОТКЛЮЧИТЬ</s:String>
