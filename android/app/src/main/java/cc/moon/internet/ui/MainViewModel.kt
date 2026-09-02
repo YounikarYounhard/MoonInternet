@@ -521,10 +521,45 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun measurePing(s: ServerProfile, method: String): Int {
         val st = store.state.value
         val timeout = st.pingTimeoutMs
+        // Стабильность carries a real request through the protocol, so it works for UDP endpoints
+        // too. Everything else here is a TCP probe, and there is nothing on TCP to probe: mKCP and
+        // QUIC are UDP transports, Hysteria2 and WireGuard are UDP protocols. Those rows showed ✕
+        // for servers that were perfectly alive.
+        if (method != "stability" && s.udpOnly) return udpEndpointPing(s, timeout)
         return when (method) {
             "stability" -> stabilityPing(s, st.pingTestUrl)
             "httpget", "httphead" -> httpPing(s, timeout, head = method == "httphead")
             else -> tcpPing(s.address, s.port, timeout)
+        }
+    }
+
+    /**
+     * A UDP endpoint answers no TCP handshake — but a *closed* TCP port still answers, with an
+     * RST, and that answer travels the same path the tunnel will. Its own port first, then the
+     * ports a host usually has open. Nothing at all → -2 ("—", unknown), never ✕: a server that
+     * refuses to be probed is not a server that is down.
+     */
+    private fun udpEndpointPing(s: ServerProfile, timeout: Int): Int {
+        for (port in listOf(s.port, 443, 80, 22)) {
+            val ms = rstPing(s.address, port, timeout)
+            if (ms >= 0) return ms
+        }
+        return -2
+    }
+
+    /** Round trip to [host]:[port], counting a refused connection as the answer it is. */
+    private fun rstPing(host: String, port: Int, timeout: Int): Int {
+        val t0 = System.currentTimeMillis()
+        return try {
+            Socket().use {
+                MoonVpnService.protectSocket(it)          // out of our own tunnel — see tcpPing
+                it.connect(InetSocketAddress(host, port), timeout)
+            }
+            (System.currentTimeMillis() - t0).toInt()      // unlikely: the port is actually open
+        } catch (e: java.net.ConnectException) {
+            (System.currentTimeMillis() - t0).toInt()      // refused — the RST came back, that is the round trip
+        } catch (_: Exception) {
+            -1                                             // dropped, no answer at all
         }
     }
 

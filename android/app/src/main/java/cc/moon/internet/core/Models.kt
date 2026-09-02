@@ -109,8 +109,17 @@ data class ServerProfile(
     val transportLabel: String
         get() = when (protocol) {
             Protocol.HYSTERIA2, Protocol.WIREGUARD -> "UDP"
-            else -> network.uppercase()
+            else -> when (network) { "kcp" -> "mKCP"; "httpupgrade" -> "HTTPUpgrade"; else -> network.uppercase() }
         }
+
+    /**
+     * True when nothing is listening on TCP at [port] — so a TCP handshake there can only ever
+     * time out, and the row showed ✕ for a server that was perfectly alive. mKCP and QUIC are UDP
+     * transports; Hysteria2 and WireGuard are UDP protocols whatever the transport field says.
+     */
+    val udpOnly: Boolean
+        get() = protocol == Protocol.HYSTERIA2 || protocol == Protocol.WIREGUARD ||
+            network == "kcp" || network == "quic"
 }
 
 @Serializable

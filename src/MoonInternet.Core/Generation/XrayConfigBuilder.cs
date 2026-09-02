@@ -307,6 +307,26 @@ public static class XrayConfigBuilder
                 }
                 s["xhttpSettings"] = xh;
                 break;
+            case "httpupgrade":
+                // Parsed since forever and never built: the link said type=httpupgrade, xray got a
+                // transport name with no settings behind it, and the path fell back to "/" — so a
+                // server expecting its own path refused every connection.
+                var hu = new Dictionary<string, object?> { ["path"] = p.Path ?? "/" };
+                if (!string.IsNullOrEmpty(p.Host)) hu["host"] = p.Host;
+                s["httpupgradeSettings"] = hu;
+                break;
+            case "kcp":
+                // mKCP: UDP with its own retransmission, which is why it holds up on a link that
+                // makes TCP crawl. The seed is a shared secret — without it the obfuscation
+                // header does not match and the server drops everything.
+                var kcp = new Dictionary<string, object?>
+                {
+                    ["header"] = new Dictionary<string, object?>
+                    { ["type"] = string.IsNullOrEmpty(p.HeaderType) ? "none" : p.HeaderType },
+                };
+                if (p.Extra.GetValueOrDefault("seed") is { Length: > 0 } seed) kcp["seed"] = seed;
+                s["kcpSettings"] = kcp;
+                break;
             case "tcp":
                 if (p.HeaderType == "http")
                     s["tcpSettings"] = new Dictionary<string, object?> { ["header"] = new Dictionary<string, object?> { ["type"] = "http" } };

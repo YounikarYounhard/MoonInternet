@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using MoonInternet.Core.Generation;
 using MoonInternet.Core.Models;
@@ -10,8 +10,6 @@ if (args.Length >= 2 && args[0] == "wgparse")
 {
     if (!WireGuardParser.TryParse(File.ReadAllText(args[1]).Trim(), out var w) || w is null) { Console.WriteLine("PARSE FAILED"); return 1; }
     Console.WriteLine($"endpoint={w.Endpoint} address={string.Join(",", w.Address)} dns={string.Join(",", w.Dns)} jc={w.Jc} h1={w.H1}");
-    Console.WriteLine("--- UAPI ---");
-    Console.WriteLine(WireGuardUapi.Build(w));
     return 0;
 }
 
@@ -266,6 +264,25 @@ Check("xray xhttp mode", xs.GetProperty("mode").GetString() == "packet-up");
 Check("xray xhttp extra preserved", xs.GetProperty("extra").GetProperty("xPaddingBytes").GetString() == "100-300");
 Check("xray has socks+http inbounds", xr.GetProperty("inbounds").GetArrayLength() == 2);
 
+// mKCP and HTTPUpgrade. Both were parsed out of the link and then dropped on the floor: the
+// builder had no case for either, so xray got a transport name with no settings behind it and
+// fell back to path "/" with no seed — every connection refused, for no visible reason.
+var kcp = ShareLinkParser.Parse(
+    "vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@host.example:2096" +
+    "?encryption=none&type=kcp&headerType=wechat-video&seed=hunter2#KCP");
+var kcps = Proxy(Root(XrayConfigBuilder.Build(kcp))).GetProperty("streamSettings");
+Check("xray kcp network", kcps.GetProperty("network").GetString() == "kcp");
+Check("xray kcp header", kcps.GetProperty("kcpSettings").GetProperty("header").GetProperty("type").GetString() == "wechat-video");
+Check("xray kcp seed", kcps.GetProperty("kcpSettings").GetProperty("seed").GetString() == "hunter2");
+
+var hup = ShareLinkParser.Parse(
+    "trojan://pass@host.example:8443?security=tls&type=httpupgrade&path=%2Fmoon&host=cdn.example#HU");
+var hups = Proxy(Root(XrayConfigBuilder.Build(hup))).GetProperty("streamSettings");
+Check("xray httpupgrade network", hups.GetProperty("network").GetString() == "httpupgrade");
+Check("xray httpupgrade path", hups.GetProperty("httpupgradeSettings").GetProperty("path").GetString() == "/moon");
+Check("xray httpupgrade host", hups.GetProperty("httpupgradeSettings").GetProperty("host").GetString() == "cdn.example");
+Check("xray httpupgrade keeps tls", hups.GetProperty("security").GetString() == "tls");
+
 // Trojan over WS
 var trs = Proxy(Root(XrayConfigBuilder.Build(trojan)));
 Check("xray trojan protocol", trs.GetProperty("protocol").GetString() == "trojan");
@@ -402,11 +419,9 @@ Check("wg endpoint split", wg.Endpoint == "192.124.181.110:41166" && wg.Endpoint
 Check("wg awg params", wg.Jc == "5" && wg.S2 == "128" && wg.H1 == "1400777498-1491390525" && wg.I1!.StartsWith("<r 2>"));
 Check("wg address/dns", wg.Address.Contains("10.8.1.3/32") && wg.Dns.Contains("1.1.1.1"));
 Check("wg valid", wg.IsValid);
-var uapi = WireGuardUapi.Build(wg);
-Check("uapi hex private_key (64 hex)", System.Text.RegularExpressions.Regex.IsMatch(uapi, "private_key=[0-9a-f]{64}\n"));
-Check("uapi amnezia params", uapi.Contains("\njc=5\n") && uapi.Contains("\nh1=1400777498-1491390525\n") && uapi.Contains("\ni1=<r 2>"));
-Check("uapi peer + endpoint", uapi.Contains("endpoint=192.124.181.110:41166\n") && System.Text.RegularExpressions.Regex.IsMatch(uapi, "public_key=[0-9a-f]{64}\n") && uapi.Contains("allowed_ip=0.0.0.0/0\n"));
-Check("uapi terminates with blank line", uapi.EndsWith("\n\n"));
+// WireGuardUapi went with amneziawg-go: plain WG rides sing-box now, and sing-box takes the
+// parsed config rather than a UAPI string. The four checks that stood here tested a class that
+// no longer exists — which is why nothing in this project has compiled since 0.9.0.
 Check("wg rejects garbage", !WireGuardParser.TryParse("vless://x@y:1", out _));
 
 // --- PortFinder ---

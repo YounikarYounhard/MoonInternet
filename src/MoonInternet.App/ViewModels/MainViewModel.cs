@@ -2575,15 +2575,24 @@ public partial class MainViewModel : ObservableObject
     /// always read as a timeout — use ICMP for those and the configured method for everything else.</summary>
     private async Task<int> ProbeAsync(ServerItem s, int? outIf)
     {
-        if (s.Profile.Protocol != ProtocolType.Wireguard)
+        // Nothing listens on TCP at the VPN port for these. mKCP and QUIC are UDP transports;
+        // Hysteria2 and WireGuard are UDP protocols whatever their transport field says.
+        static bool IsUdpOnly(OutboundProfile p) =>
+            p.Protocol is ProtocolType.Wireguard or ProtocolType.Hysteria2
+            || p.Network is "kcp" or "quic";
+
+        if (!IsUdpOnly(s.Profile))
             return await Pinger.MeasureAsync(PingMethod, s.Profile.Address, s.Profile.Port, PingTimeoutMs, outIf);
-        // WireGuard/AmneziaWG: the endpoint is UDP-only and the server usually drops ICMP too, so there's nothing
-        // that replies on the VPN port itself. Race several probes against the SAME host and take the first answer:
-        // ICMP echo, plus TCP on ports that commonly answer (22/443/80 — an open port OR an RST both give a real RTT).
-        // Nothing answered → "—" (unknown), never "✕", which would wrongly read as "server down".
+        // UDP-only endpoint: nothing listens on TCP at the VPN port, and the server usually drops
+        // ICMP too, so the ordinary handshake can only time out and the row read ✕ for a server
+        // that was perfectly alive. Race several probes against the SAME host and take the first
+        // answer — an open port and an RST both give a real round-trip. Its own port goes first:
+        // a closed TCP port still answers, and that answer travels the exact path the tunnel will.
+        // Nothing answered → "—" (unknown), never "✕", which would read as "server down".
         int timeout = Math.Min(PingTimeoutMs, 3000);
         var probes = new List<Task<int>>
         {
+            Pinger.RstLatencyAsync(s.Profile.Address, s.Profile.Port, timeout, outIf),
             Pinger.RstLatencyAsync(s.Profile.Address, 22, timeout, outIf),
             Pinger.RstLatencyAsync(s.Profile.Address, 443, timeout, outIf),
             Pinger.RstLatencyAsync(s.Profile.Address, 80, timeout, outIf),

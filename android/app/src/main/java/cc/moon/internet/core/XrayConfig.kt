@@ -404,6 +404,20 @@ object XrayConfig {
                     }
                 })
 
+            // Parsed since forever and never built: the link said type=httpupgrade, xray got a
+            // transport name with nothing behind it and fell back to path "/", so a server
+            // expecting its own path refused every connection.
+            "httpupgrade" -> st.put("httpupgradeSettings", JSONObject()
+                .put("path", s.path ?: "/")
+                .apply { s.host?.takeIf { it.isNotBlank() }?.let { put("host", it) } })
+
+            // mKCP: UDP carrying its own retransmission, which is why it holds up on a link that
+            // makes TCP crawl. The seed is a shared secret — without it the obfuscation header
+            // does not match and the server drops everything.
+            "kcp" -> st.put("kcpSettings", JSONObject()
+                .put("header", JSONObject().put("type", s.headerType?.takeIf { it.isNotBlank() } ?: "none"))
+                .apply { s.extra["seed"]?.takeIf { it.isNotBlank() }?.let { put("seed", it) } })
+
             "tcp" -> if (s.headerType == "http") {
                 st.put("tcpSettings", JSONObject()
                     .put("header", JSONObject().put("type", "http")))
