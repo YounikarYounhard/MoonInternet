@@ -314,6 +314,24 @@ Check("two remarks, one key",
     ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#A"))
     == ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#B")));
 
+// Раздача в локальной сети. The switch was saved and drawn for a whole release and read by
+// nothing, so the inbounds stayed on loopback however it was set. The stats API must NOT follow
+// it out: that one is xray's own control port and has no business on the network.
+var lanServer = ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#L");
+XrayTuning.AllowLan = false;
+var offCfg = Root(XrayConfigBuilder.Build(lanServer, null, 10808, 10809, 10810));
+foreach (var ib in offCfg.GetProperty("inbounds").EnumerateArray())
+    Check($"lan off: {ib.GetProperty("tag").GetString()} on loopback", ib.GetProperty("listen").GetString() == "127.0.0.1");
+XrayTuning.AllowLan = true;
+var onCfg = Root(XrayConfigBuilder.Build(lanServer, null, 10808, 10809, 10810));
+foreach (var ib in onCfg.GetProperty("inbounds").EnumerateArray())
+{
+    string tag = ib.GetProperty("tag").GetString() ?? "";
+    string want = tag == "api" ? "127.0.0.1" : "0.0.0.0";
+    Check($"lan on: {tag} listens on {want}", ib.GetProperty("listen").GetString() == want);
+}
+XrayTuning.AllowLan = false;   // leave the static as we found it
+
 // The whole matrix, because "we do not support X" turned out to mean "the builder had no case
 // for it and xray silently used defaults". Every protocol that can choose a transport, against
 // every transport, against every security: the link must parse and the config must come out with

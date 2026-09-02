@@ -489,7 +489,7 @@ object XrayConfig {
             rules.put(JSONObject().put("type", "field").put("outboundTag", "direct")
                 .put("domain", JSONArray().put("full:${server.address}")))
         }
-        val directIps = (serverIps + server.address.takeIf { isIpLiteral(it) }.orEmpty())
+        val directIps = (serverIps + listOfNotNull(server.address.takeIf { isIpLiteral(it) }))
             .filter { it.isNotBlank() }.distinct()
         if (directIps.isNotEmpty()) {
             rules.put(JSONObject().put("type", "field").put("outboundTag", "direct")
