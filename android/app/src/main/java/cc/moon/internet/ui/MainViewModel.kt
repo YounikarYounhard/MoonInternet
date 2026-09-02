@@ -392,13 +392,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             store.update { st ->
                 st.copy(subscriptions = st.subscriptions.map {
                     if (it.url != u) it else it.copy(
-                        name = f.title ?: it.name,
+                        // Deliberately NOT the panel's title: a refresh must not rename. The name
+                        // is chosen when the subscription is added and changed only on purpose —
+                        // and now that refreshes run on a timer, taking the title back would undo
+                        // whatever you called it, once an hour, for ever. The desktop already
+                        // behaves this way.
                         servers = f.servers,
                         announcement = f.announcement,
                         trafficText = f.trafficText,
                         expiryText = f.expiryText,
                         trafficFraction = f.trafficFraction,
                         expiryFraction = f.expiryFraction,
+                        updateIntervalMinutes = f.updateMinutes,
                         fetchedAt = System.currentTimeMillis(),
                     )
                 })

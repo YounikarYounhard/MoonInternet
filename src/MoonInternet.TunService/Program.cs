@@ -77,7 +77,12 @@ void StopTun()
         // Wait for the adapter to really go. Killing the process does not remove a wintun adapter
         // synchronously — it lingers, IP and all, for a second or three. The old blind 500 ms sleep
         // often ended while the ghost was still up, and then the NEXT connect measured the ghost.
-        for (int i = 0; i < 40 && TunHasGatewayIp(); i++) Thread.Sleep(100);
+        int waited = 0;
+        for (; waited < 40 && TunHasGatewayIp(); waited++) Thread.Sleep(100);
+        // Four seconds and still there means the driver is holding it, which is the state a reboot
+        // used to be the only cure for. Say so: without a line here the next report is again
+        // "half the protocols stopped working" with nothing to go on.
+        if (TunHasGatewayIp()) Log($"WARNING: {TunGatewayIp} still up after {waited * 100} ms — a stale adapter may swallow the next connection");
     }
 }
 
