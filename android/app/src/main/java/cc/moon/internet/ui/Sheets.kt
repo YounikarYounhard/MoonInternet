@@ -68,6 +68,8 @@ fun ServerSheet(
     onConnect: () -> Unit,
     onFavorite: () -> Unit,
     onPing: () -> Unit,
+    /** «Стабильность» for this one server — see the view model. */
+    onStability: () -> Unit,
     onCopy: () -> Unit,
     onQr: () -> Unit,
     onJson: () -> Unit,
@@ -81,6 +83,9 @@ fun ServerSheet(
             onFavorite,
         )
         SheetItem(Icons.Filled.Speed, stringResource(R.string.sheets_001), onPing)
+        // The one check that proves the server carries traffic. It was reachable only by switching
+        // the global ping method in settings and switching back, which is the whole complaint.
+        SheetItem(Icons.Filled.NetworkCheck, stringResource(R.string.sheets_stability), onStability)
         SheetItem(Icons.Filled.Code, stringResource(R.string.sheets_007), onJson)
         SheetItem(Icons.Filled.ContentCopy, stringResource(R.string.sheets_002), onCopy)
         SheetItem(Icons.Filled.QrCode2, stringResource(R.string.sheets_003), onQr)

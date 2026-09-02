@@ -457,6 +457,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun pingServer(s: ServerProfile) = viewModelScope.launch { pingServers(listOf(s)) }
 
     /**
+     * «Стабильность» for one server, on demand, whatever the configured method is.
+     *
+     * It was only ever reachable by switching the global ping method in settings, running a pass
+     * and switching back — for the one check that actually proves a server carries traffic rather
+     * than merely accepting connections. That is the friction: it is an action, not a mode.
+     */
+    fun stabilityServer(s: ServerProfile) = viewModelScope.launch {
+        if (_pingingAll.value) return@launch
+        _pinging.update { it + s.pingKey }
+        _status.value = this@MainViewModel.s(R.string.vm_stability_checking, s.label)
+        val ms = withContext(Dispatchers.IO) { stabilityPing(s, store.state.value.pingTestUrl) }
+        _pings.update { it + (s.pingKey to ms) }
+        _pinging.update { it - s.pingKey }
+        _status.value =
+            if (ms >= 0) this@MainViewModel.s(R.string.vm_stability_ok, s.label, ms)
+            else this@MainViewModel.s(R.string.vm_stability_dead, s.label)
+    }
+
+    /**
      * Which server auto-connect would pick. The quick-settings tile uses the same rule, and falls
      * back to the first server when auto-connect is switched off.
      */

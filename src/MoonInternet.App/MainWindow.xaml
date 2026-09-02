@@ -271,6 +271,9 @@
                     <TextBlock Text="{Binding SheetServer.Label}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE00B;" Content="{Binding SheetServer.FavoriteText}" Command="{Binding SheetToggleFavoriteCommand}"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xEC4A;" Content="{DynamicResource S_MainWindow_024}" Command="{Binding SheetPingCommand}"/>
+                    <!-- The one check that proves a server carries traffic. It used to be reachable
+                         only by switching the global ping method in settings and switching back. -->
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE9D2;" Content="{DynamicResource S_MainWindow_Stability}" Command="{Binding SheetStabilityCommand}"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE7C3;" Content="{DynamicResource S_MainWindow_025}" Command="{Binding SheetServerConfigCommand}"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="{DynamicResource S_MainWindow_026}" Command="{Binding SheetCopyServerUrlCommand}"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="{DynamicResource S_MainWindow_027}" Command="{Binding SheetServerQrCommand}"/>

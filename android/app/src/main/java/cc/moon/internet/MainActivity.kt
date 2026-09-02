@@ -471,6 +471,7 @@ class MainActivity : ComponentActivity() {
                                 onConnect = { vm.selectServer(s); serverMenu = null; onToggleIfIdle() },
                                 onFavorite = { vm.toggleFavorite(s); serverMenu = null },
                                 onPing = { vm.pingServer(s); serverMenu = null },
+                                onStability = { vm.stabilityServer(s); serverMenu = null },
                                 onCopy = { copy(s.raw.orEmpty(), toastLink); serverMenu = null },
                                 onQr = { qrOf = s.label to s.raw.orEmpty(); serverMenu = null },
                                 onJson = { jsonOf = s; serverMenu = null },

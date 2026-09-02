@@ -277,6 +277,7 @@
     <s:String x:Key="S_MainWindow_022">Закрыть</s:String>
     <s:String x:Key="S_MainWindow_023">Копировать</s:String>
     <s:String x:Key="S_MainWindow_024">Пинг</s:String>
+    <s:String x:Key="S_MainWindow_Stability">Проверить по-настоящему</s:String>
     <s:String x:Key="S_MainWindow_025">Конфигурация</s:String>
     <s:String x:Key="S_MainWindow_026">Копировать URL</s:String>
     <s:String x:Key="S_MainWindow_027">Показать QR-код</s:String>
@@ -312,6 +313,8 @@
     <s:String x:Key="S_None">нет</s:String>
     <s:String x:Key="S_Routing_Sub_Fmt">Профиль, правила · {0}</s:String>
     <s:String x:Key="S_VM_Offline">Нет интернета — дело не в серверах</s:String>
+    <s:String x:Key="S_VM_StabilityOk">{0} — соединение живое, {1} мс</s:String>
+    <s:String x:Key="S_VM_StabilityDead">{0} — через этот сервер ничего не проходит</s:String>
     <s:String x:Key="S_VM_001">Убрать из избранного</s:String>
     <s:String x:Key="S_VM_002">Добавить в избранное</s:String>
     <s:String x:Key="S_VM_010">ОТКЛЮЧИТЬ</s:String>

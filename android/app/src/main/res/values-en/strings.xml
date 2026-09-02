@@ -230,6 +230,10 @@
     <string name="settingsscreen_199">"The camera will read the link for you"</string>
     <string name="settingsscreen_200">"Cancel"</string>
     <string name="sheets_001">"Ping"</string>
+    <string name="sheets_stability">"Check for real"</string>
+    <string name="vm_stability_checking">"Really checking %1$s…"</string>
+    <string name="vm_stability_ok">"%1$s — the connection works, %2$d ms"</string>
+    <string name="vm_stability_dead">"%1$s — nothing gets through this server"</string>
     <string name="sheets_002">"Copy URL"</string>
     <string name="sheets_003">"Show QR code"</string>
     <string name="sheets_004">"Connect"</string>

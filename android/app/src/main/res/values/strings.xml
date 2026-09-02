@@ -232,6 +232,10 @@
     <string name="settingsscreen_199">"Камера прочитает ссылку сама"</string>
     <string name="settingsscreen_200">"Отмена"</string>
     <string name="sheets_001">"Пинговать"</string>
+    <string name="sheets_stability">"Проверить по-настоящему"</string>
+    <string name="vm_stability_checking">"Проверяю %1$s по-настоящему…"</string>
+    <string name="vm_stability_ok">"%1$s — соединение живое, %2$d мс"</string>
+    <string name="vm_stability_dead">"%1$s — через этот сервер ничего не проходит"</string>
     <string name="sheets_002">"Копировать URL"</string>
     <string name="sheets_003">"Показать QR-код"</string>
     <string name="sheets_004">"Подключиться"</string>

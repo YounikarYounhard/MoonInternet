@@ -3291,5 +3291,41 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// «Стабильность» for one server, on demand, whatever the configured ping method is.
+    ///
+    /// It was only ever reachable by switching the global method in settings, running a pass and
+    /// switching back — for the one check that actually proves a server carries traffic. That is
+    /// the friction: it is an action, not a mode.
+    /// </summary>
+    [RelayCommand]
+    private async Task StabilityServer(ServerItem? s)
+    {
+        if (s is null || s.Pinging) return;
+        s.Pinging = true;
+        try
+        {
+            var pinger = new StabilityPinger(CoreLocator.CoresDir());
+            if (!pinger.CoreAvailable) { ErrorText = Status = Localization.Loc.T("S_VM_235"); return; }
+            var results = await pinger.MeasureAsync(
+                new List<(string, OutboundProfile)> { (s.Profile.Name ?? "", s.Profile) },
+                probeUrl: PingTestUrl, attempts: 3, timeoutMs: PingTimeoutMs,
+                progress: new Progress<string>(m => Status = m));
+            var r = results.FirstOrDefault();
+            s.Ping = r is null ? -2 : r.NotMeasured ? -2 : r.Ms;
+            Status = s.Ping >= 0
+                ? string.Format(Localization.Loc.T("S_VM_StabilityOk"), s.Label, s.Ping)
+                : string.Format(Localization.Loc.T("S_VM_StabilityDead"), s.Label);
+        }
+        finally
+        {
+            s.Pinging = false;
+            OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
+            RefreshReachability();
+        }
+    }
+
+    [RelayCommand] private async Task SheetStability() { ShowServerSheet = false; await StabilityServer(SheetServer); }
+
     public void Shutdown() { try { _settings.Save(); } catch { } _conn.Disconnect(); }
 }
