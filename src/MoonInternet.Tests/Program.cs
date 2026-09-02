@@ -302,6 +302,35 @@ Check("server direct by ip", HasDirect("ip", "203.0.113.7"));
 Check("server direct by domain", HasDirect("domain", "domain:panel.example"));
 Check("original host kept", byIp.OriginalHost == "panel.example" && byIp.Address == "203.0.113.7");
 
+// The whole matrix, because "we do not support X" turned out to mean "the builder had no case
+// for it and xray silently used defaults". Every protocol that can choose a transport, against
+// every transport, against every security: the link must parse and the config must come out with
+// the settings block that transport is named after.
+var settingsBlock = new Dictionary<string, string>
+{
+    ["tcp"] = "", ["ws"] = "wsSettings", ["grpc"] = "grpcSettings", ["h2"] = "httpSettings",
+    ["xhttp"] = "xhttpSettings", ["httpupgrade"] = "httpupgradeSettings", ["kcp"] = "kcpSettings",
+};
+foreach (var proto in new[] { "vless", "trojan" })
+    foreach (var (net, block) in settingsBlock)
+        foreach (var sec in new[] { "none", "tls", "reality" })
+        {
+            // Reality rides TCP-like transports; xray has no reality over kcp, so skip that pair.
+            if (sec == "reality" && net == "kcp") continue;
+            string creds = proto == "vless" ? "15f55b17-6353-48ad-9c16-3941dcc4dcaa" : "hunter2";
+            string link = $"{proto}://{creds}@host.example:443?type={net}&security={sec}" +
+                          "&path=%2Fp&host=cdn.example&serviceName=svc&seed=sd&headerType=none" +
+                          "&pbk=k&sid=00&fp=chrome&sni=host.example#M";
+            string what = $"{proto}/{net}/{sec}";
+            if (!ShareLinkParser.TryParse(link, out var mp, out var mErr) || mp is null)
+            { Check($"matrix {what} parses", false); continue; }
+            var ms = Proxy(Root(XrayConfigBuilder.Build(mp))).GetProperty("streamSettings");
+            string wantNet = net == "h2" ? "http" : net;
+            Check($"matrix {what} network", ms.GetProperty("network").GetString() == wantNet);
+            if (block.Length > 0) Check($"matrix {what} settings", ms.TryGetProperty(block, out _));
+            if (sec != "none") Check($"matrix {what} security", ms.GetProperty("security").GetString() == sec);
+        }
+
 // Trojan over WS
 var trs = Proxy(Root(XrayConfigBuilder.Build(trojan)));
 Check("xray trojan protocol", trs.GetProperty("protocol").GetString() == "trojan");

@@ -145,4 +145,37 @@ class ConfigDumpTest {
     @Test fun noFakeDns() {
         assertTrue(!build(fromSub).toString().contains("fakedns"))
     }
+
+    /**
+     * Every transport against every security, for the protocols that can choose. "We do not
+     * support X" turned out to mean "the builder had no case for it": xray was handed the
+     * transport name with nothing behind it and quietly used its defaults, so a server expecting
+     * its own path or an mKCP seed refused every connection and said nothing about why.
+     */
+    @Test fun everyTransportGetsItsSettingsBlock() {
+        val blocks = mapOf(
+            "tcp" to null, "ws" to "wsSettings", "grpc" to "grpcSettings", "h2" to "httpSettings",
+            "xhttp" to "xhttpSettings", "httpupgrade" to "httpupgradeSettings", "kcp" to "kcpSettings",
+        )
+        for (proto in listOf(cc.moon.internet.core.Protocol.VLESS, cc.moon.internet.core.Protocol.TROJAN))
+            for ((net, block) in blocks)
+                for (sec in listOf("none", "tls", "reality")) {
+                    if (sec == "reality" && net == "kcp") continue   // xray has no reality over kcp
+                    val p = ServerProfile(
+                        raw = "x://h.example:443?type=$net", name = "M",
+                        protocol = proto, address = "h.example", port = 443,
+                        id = "00000000-0000-0000-0000-000000000000", password = "hunter2",
+                        security = sec, network = net,
+                        path = "/p", host = "cdn.example", serviceName = "svc",
+                        headerType = "none", publicKey = "k", shortId = "00",
+                        extra = mapOf("seed" to "sd"),
+                    )
+                    val st = JSONObject(XrayConfig.build(server = p, routing = null, dns = "1.1.1.1"))
+                        .getJSONArray("outbounds").getJSONObject(0).getJSONObject("streamSettings")
+                    val what = "$proto/$net/$sec"
+                    assertEquals(what, if (net == "h2") "http" else net, st.getString("network"))
+                    if (block != null) assertTrue(what, st.has(block))
+                    if (sec != "none") assertEquals(what, sec, st.getString("security"))
+                }
+    }
 }
