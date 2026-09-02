@@ -17,6 +17,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         _tray = BuildTray();
         Loaded += (_, _) => ThemeService.ApplyToWindow(this, App.ActiveTheme);
+        WatchStatus();
         if (((MainViewModel)DataContext).StartMinimized)
         {
             // Render the window once (invisibly) BEFORE hiding, else WPF composites nothing and it comes back
@@ -25,6 +26,34 @@ public partial class MainWindow : Window
             ShowInTaskbar = false;
             ContentRendered += HideAfterFirstRender;
         }
+    }
+
+    /// <summary>
+    /// Shows every Status message as a toast for a few seconds. The view model has written about
+    /// seventy of them — copied, updated, failed, switching server — into a property that was
+    /// bound nowhere, so none of them ever reached the screen.
+    /// </summary>
+    private void WatchStatus()
+    {
+        var vm = (MainViewModel)DataContext;
+        var hide = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        var fade = new System.Windows.Media.Animation.DoubleAnimation
+        { To = 0, Duration = TimeSpan.FromMilliseconds(280) };
+        hide.Tick += (_, _) => { hide.Stop(); Toast.BeginAnimation(OpacityProperty, fade); };
+
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(MainViewModel.Status)) return;
+            Dispatcher.Invoke(() =>
+            {
+                if (string.IsNullOrWhiteSpace(vm.Status)) return;
+                ToastText.Text = vm.Status;
+                Toast.BeginAnimation(OpacityProperty, null);   // cancel a fade still in flight
+                Toast.Opacity = 1;
+                hide.Stop();
+                hide.Start();
+            });
+        };
     }
 
     private void HideAfterFirstRender(object? sender, EventArgs e)

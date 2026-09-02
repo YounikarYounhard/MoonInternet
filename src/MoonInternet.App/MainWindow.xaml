@@ -400,5 +400,18 @@
                 </StackPanel>
             </Border>
         </Border>
+
+        <!-- ===== Toast =====
+             Status carries about seventy messages — "подписка обновлена", "скопировано",
+             "ошибка загрузки", "сервер не отвечал, переключаюсь" — and until now it was bound
+             nowhere at all, so every one of them was written and thrown away. The phone has had a
+             snackbar for this all along. Fades itself out; see MainWindow.xaml.cs. -->
+        <Border x:Name="Toast" Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="90"
+                VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,26"
+                CornerRadius="12" Background="#F21A1430" BorderBrush="{StaticResource BorderSoft}"
+                BorderThickness="1" Padding="16,11" MaxWidth="420" Opacity="0" IsHitTestVisible="False">
+            <TextBlock x:Name="ToastText" Foreground="{StaticResource TextPrimary}" FontSize="12.5"
+                       TextWrapping="Wrap" TextAlignment="Center"/>
+        </Border>
     </Grid>
 </Window>

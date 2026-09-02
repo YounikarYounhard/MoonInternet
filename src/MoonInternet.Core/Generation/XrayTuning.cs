@@ -1,4 +1,4 @@
-namespace MoonInternet.Core.Generation;
+﻿namespace MoonInternet.Core.Generation;
 
 /// <summary>Global xray tuning knobs from the Tunnel settings (set by the app before a config is built).
 /// Single-instance app, so a static is fine — no config-per-call plumbing. ponytail: global, one instance.</summary>
@@ -14,6 +14,15 @@ public static class XrayTuning
     public static string? SocksPass;
     public static bool HttpAuth;                  // also require the same creds on the local HTTP proxy
     public static bool BlockUdp;                  // drop UDP on the local inbound (breaks QUIC/DNS-over-UDP/games)
+
+    /// <summary>
+    /// Bind the local SOCKS/HTTP proxies to every interface instead of loopback, so other machines
+    /// on the network can use them. The switch existed, was saved and drawn — and nothing read it,
+    /// so the inbounds stayed on 127.0.0.1 and no other device could ever reach them.
+    /// </summary>
+    public static bool AllowLan;
+    /// <summary>Where the local inbounds listen. Loopback unless sharing is on.</summary>
+    public static string ListenAddress => AllowLan ? "0.0.0.0" : "127.0.0.1";
 
     /// <summary>
     /// off | balance | games — how hard we let a bulk transfer fill the queue. BETA, off by default.

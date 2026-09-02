@@ -372,7 +372,7 @@ public static class XrayConfigBuilder
     private static Dictionary<string, object?> Inbound(string tag, int port, string protocol, Dictionary<string, object?> settings, bool fakeDns = false) => new()
     {
         ["tag"] = tag,
-        ["listen"] = "127.0.0.1",
+        ["listen"] = XrayTuning.ListenAddress,
         ["port"] = port,
         ["protocol"] = protocol,
         ["settings"] = settings,

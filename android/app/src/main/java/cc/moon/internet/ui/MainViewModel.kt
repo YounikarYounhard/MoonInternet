@@ -213,6 +213,36 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // the tunnel reports failures on its own thread — surface them instead of silently going dark
         viewModelScope.launch { vpnError.filterNotNull().collect { _status.value = it } }
         viewModelScope.launch { autoPingLoop() }
+        viewModelScope.launch { autoUpdateSubsLoop() }
+    }
+
+    /**
+     * Refetches subscriptions on their own schedule. «Автообновление подписок» and the interval
+     * chips under it were drawn, saved — and read by nothing at all: the only refresh that ever
+     * happened on the phone was the one at launch, so a subscription whose servers had changed
+     * stayed stale until the app was restarted.
+     *
+     * Interval 0 means "follow the subscription", i.e. whatever the panel put in its own header,
+     * falling back to an hour. Checked every minute rather than slept through, so a change to the
+     * setting takes effect now; skipped while a fetch or a ping pass is already running.
+     */
+    private suspend fun autoUpdateSubsLoop() {
+        while (true) {
+            kotlinx.coroutines.delay(60_000)
+            val st = store.state.value
+            if (!st.autoUpdateSubs || st.subscriptions.isEmpty()) continue
+            if (_pingingAll.value || _refreshing.value.isNotEmpty()) continue
+            val now = System.currentTimeMillis()
+            val due = st.subscriptions.filter { sub ->
+                val every = when {
+                    st.subIntervalMinutes > 0 -> st.subIntervalMinutes
+                    sub.updateIntervalMinutes > 0 -> sub.updateIntervalMinutes
+                    else -> 60
+                }
+                sub.fetchedAt <= 0 || now - sub.fetchedAt >= every * 60_000L
+            }
+            due.forEach { refreshSubscription(it.url, silent = true).join() }
+        }
     }
 
     /**
@@ -256,6 +286,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return@launch
         }
         _busy.value = true
+        val wasKnown = store.state.value.subscriptions.any { it.url == u }
         runCatching { SubscriptionService.fetch(u, hwidHeader()) }
             .onSuccess { f ->
                 store.update { st ->
@@ -271,12 +302,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         updateIntervalMinutes = f.updateMinutes,
                         fetchedAt = System.currentTimeMillis(),
                     )
+                    // Adding one you already have is a refresh, not a new entry. Dropping it and
+                    // appending sent it to the bottom of the list and threw away the name you had
+                    // given it, while the notice still read "загружено N серверов" as though it
+                    // were new.
+                    val known = st.subscriptions.any { it.url == u }
                     st.copy(
-                        subscriptions = st.subscriptions.filterNot { it.url == u } + sub,
+                        subscriptions =
+                            if (known) st.subscriptions.map {
+                                if (it.url == u) sub.copy(name = name.ifBlank { it.name }) else it
+                            }
+                            else st.subscriptions + sub,
                         selectedServerRaw = st.selectedServerRaw ?: f.servers.firstOrNull()?.key,
                     )
                 }
-                _status.value = s(R.string.vm_loaded, f.servers.size)
+                _status.value =
+                    if (store.state.value.subscriptions.count { it.url == u } == 1 && wasKnown)
+                        s(R.string.vm_sub_updated) else s(R.string.vm_loaded, f.servers.size)
                 warnAboutSubscription(f.title ?: hostOf(u), u, f)
                 pingAll()
             }
@@ -294,11 +336,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         pingServers(store.allServers, auto = true)
     }
 
-    fun refreshSubscription(url: String) = viewModelScope.launch {
+    /** [silent]: the background refresh says nothing — a snackbar every hour is not news. */
+    fun refreshSubscription(url: String, silent: Boolean = false) = viewModelScope.launch {
         if (!url.startsWith("http")) return@launch
-        _busy.value = true
+        if (!silent) _busy.value = true
         _refreshing.update { it + url }
-        if (refreshOne(url)) _status.value = s(R.string.vm_sub_updated) else _status.value = s(R.string.vm_sub_update_failed)
+        val ok = refreshOne(url)
+        if (!silent) _status.value = if (ok) s(R.string.vm_sub_updated) else s(R.string.vm_sub_update_failed)
         _refreshing.update { it - url }
         _busy.value = false
     }

@@ -1366,6 +1366,9 @@ public partial class MainViewModel : ObservableObject
         MoonInternet.Core.Generation.XrayTuning.PreferredIp = PreferredIp;
         MoonInternet.Core.Generation.XrayTuning.Dns = DnsIps(VpnDns, VpnDnsCustom);
         MoonInternet.Core.Generation.XrayTuning.BlockUdp = BlockUdp;
+        // «Раздача в локальной сети» was saved, drawn and read by nothing: the inbounds stayed
+        // pinned to 127.0.0.1, so no other device on the network could ever reach them.
+        MoonInternet.Core.Generation.XrayTuning.AllowLan = AllowLan;
         MoonInternet.Core.Generation.XrayTuning.HttpAuth = HttpProxyAuth && Socks5Auth;
         if (Socks5Auth)
         {
@@ -1386,7 +1389,7 @@ public partial class MainViewModel : ObservableObject
 
     // ===== Connection settings (LAN / proxy-only / SOCKS5 auth / block UDP / HTTP auth) =====
     [ObservableProperty] private bool allowLan;
-    partial void OnAllowLanChanged(bool value) { _settings.AllowLan = value; _settings.Save(); }
+    partial void OnAllowLanChanged(bool value) { _settings.AllowLan = value; _settings.Save(); ApplyTuning(); ReconnectIfConnected(); }
     [ObservableProperty] private bool lanThroughProxy;
     partial void OnLanThroughProxyChanged(bool value) { _settings.LanThroughProxy = value; _settings.Save(); }
     [ObservableProperty] private bool showProxyOnlyButton;
