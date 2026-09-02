@@ -321,8 +321,12 @@ class MoonVpnService : VpnService() {
         var tick = 0
         while (_state.value == State.Connected) {
             // One 204 through the tunnel a minute. Cheap, and the only thing that can tell a live
-            // connection from an interface that is merely up.
-            if (tick % 60 == 30) runCatching { linkDead.value = (runner?.measureDelay() ?: -1) < 0 }
+            // connection from an interface that is merely up. In its own coroutine: measureDelay
+            // blocks for as long as its timeout, and on this thread that froze the speed line in
+            // the notification for a second or two every minute.
+            if (tick % 60 == 30) scope.launch {
+                runCatching { linkDead.value = (runner?.measureDelay() ?: -1) < 0 }
+            }
             runner?.trafficTotals()?.let { (up, down) ->
                 traffic.value = up to down
                 // refresh the notification every other second with the current speed
@@ -366,8 +370,11 @@ class MoonVpnService : VpnService() {
      * the radio awake all night for nothing.
      */
     private fun onCoreDropped() {
-        _state.value = State.Disconnected
+        // Our own teardown already owns the state. Stamping Disconnected here first meant every
+        // deliberate reconnect flickered through it: startTunnel sets Connecting, then stops the
+        // old core, whose shutdown callback lands right here and undoes that.
         if (intentionalStop || reconnecting) return
+        _state.value = State.Disconnected
         val cfg = lastConfig
         if (cfg.isNullOrBlank()) return
         reconnecting = true

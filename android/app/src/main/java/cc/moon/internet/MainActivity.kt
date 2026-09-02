@@ -146,6 +146,12 @@ class MainActivity : ComponentActivity() {
                 val updateStatus by vm.updateStatus.collectAsState()
                 val downloadProgress by vm.downloadProgress.collectAsState()
                 val switchingMode by vm.switchingMode.collectAsState()
+                // Remembered, not recomputed: a fresh list instance on every recomposition is a
+                // parameter Compose cannot see through, and the whole server list would repaint
+                // for any unrelated state change. Same lesson the favourites reorder taught.
+                val orderedSubs = remember(state.subscriptions, state.pinActiveSub, state.selectedServerRaw) {
+                    vm.orderedSubscriptions(state)
+                }
 
                 // Saveable, not plain remember: switching the language recreates the activity, and
                 // landing back on Home every time reads like the app restarted.
@@ -309,7 +315,7 @@ class MainActivity : ComponentActivity() {
                                 onAutoPickZapret = { vm.autoPickZapret() },
                                 state = vpn,
                                 server = selected,
-                                subscriptions = vm.orderedSubscriptions(state),
+                                subscriptions = orderedSubs,
                                 collapsed = collapsed,
                                 onToggleCollapse = vm::toggleCollapse,
                                 pings = pings,
@@ -342,7 +348,7 @@ class MainActivity : ComponentActivity() {
                                 connMode = state.connMode,
                                 zapretStrategy = state.zapretStrategy,
                                 onPickZapret = vm::pickZapret,
-                                subscriptions = vm.orderedSubscriptions(state),
+                                subscriptions = orderedSubs,
                                 selected = selected,
                                 pings = pings,
                                 pinging = pinging,
@@ -395,7 +401,7 @@ class MainActivity : ComponentActivity() {
 
                                 else -> RoutingScreen(
                                     profiles = state.routings,
-                                    subscriptions = vm.orderedSubscriptions(state),
+                                    subscriptions = orderedSubs,
                                     // the stored choice, not the resolved one: blank means Авто
                                     selectedId = state.selectedRoutingId,
                                     autoPick = vm.autoRouting(),

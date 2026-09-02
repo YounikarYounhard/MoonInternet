@@ -1,4 +1,4 @@
-﻿namespace MoonInternet.Core.Generation;
+namespace MoonInternet.Core.Generation;
 
 /// <summary>Global xray tuning knobs from the Tunnel settings (set by the app before a config is built).
 /// Single-instance app, so a static is fine — no config-per-call plumbing. ponytail: global, one instance.</summary>

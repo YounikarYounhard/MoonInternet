@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using MoonInternet.Core.Generation;
 using MoonInternet.Core.Models;

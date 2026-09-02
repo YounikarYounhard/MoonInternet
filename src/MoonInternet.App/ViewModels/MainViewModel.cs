@@ -1171,7 +1171,7 @@ public partial class MainViewModel : ObservableObject
     /// never coming.
     /// </summary>
     public bool AllServersDown =>
-        !IsConnected && AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable) && !Offline;
+        !IsConnected && AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable) && !Offline && !OfflineChecking;
 
     /// <summary>
     /// The machine itself has no internet. Checked only when a whole pass came back silent, because
@@ -1183,16 +1183,24 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(AllServersDown))]
     private bool offline;
 
+    /// <summary>Set while the "is it us or the network" probe is in flight. Without it the tray
+    /// went red for the second the check takes and then quietly went back.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AllServersDown))]
+    private bool offlineChecking;
+
     /// <summary>Re-evaluated after every ping pass; the tray listens for this.</summary>
     private void RefreshReachability()
     {
         bool silent = AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable);
-        if (!silent) { Offline = false; OnPropertyChanged(nameof(AllServersDown)); return; }
+        if (!silent) { Offline = false; OfflineChecking = false; OnPropertyChanged(nameof(AllServersDown)); return; }
+        OfflineChecking = true;
         _ = Task.Run(async () =>
         {
             bool up = await Internet.IsUpAsync().ConfigureAwait(false);
             Application.Current?.Dispatcher.Invoke(() =>
             {
+                OfflineChecking = false;
                 Offline = !up;
                 if (Offline) ErrorText = Status = Localization.Loc.T("S_VM_Offline");
                 OnPropertyChanged(nameof(AllServersDown));
@@ -2704,6 +2712,13 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private const string LooseUrl = "clipboard:local";
 
+    /// <summary>What is already in the bucket plus what was just pasted, without the duplicates —
+    /// pasting the same link twice used to leave two identical rows.</summary>
+    private static List<OutboundProfile> Merge(SubscriptionVM sub, IEnumerable<OutboundProfile> added) =>
+        sub.Servers.Select(x => x.Profile).Concat(added)
+           .GroupBy(p => ServerItem.KeyOf(p.Raw) ?? $"{p.Address}:{p.Port}")
+           .Select(g => g.First()).ToList();
+
     private SubscriptionVM LooseSub()
     {
         var existing = Subscriptions.FirstOrDefault(s => s.Url == LooseUrl);
@@ -2903,7 +2918,7 @@ public partial class MainViewModel : ObservableObject
             if (wgp.Wireguard is { IsAmnezia: true })
             { Status = Localization.Loc.T("S_VM_223"); return; }
             var wsub = LooseSub();
-            wsub.SetServers(wsub.Servers.Select(x => x.Profile).Append(wgp).ToList());
+            wsub.SetServers(Merge(wsub, new[] { wgp }));
             wsub.ApplySort(ServerSort);
             SaveSubCache(wsub);                     // persist it — pasted servers must survive a restart too
             RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
@@ -2916,7 +2931,7 @@ public partial class MainViewModel : ObservableObject
         if (content.Servers.Count == 0) { Status = Localization.Loc.T("S_VM_225"); return; }
 
         var sub = LooseSub();
-        sub.SetServers(sub.Servers.Select(x => x.Profile).Concat(content.Servers).ToList());
+        sub.SetServers(Merge(sub, content.Servers));
         sub.SetRouting(content.Routing);
         SaveSubCache(sub);                      // pasted servers must survive a restart too
         sub.ApplySort(ServerSort);

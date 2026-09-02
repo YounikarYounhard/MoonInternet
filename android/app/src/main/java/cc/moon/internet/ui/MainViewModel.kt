@@ -332,8 +332,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 }
                 _status.value =
-                    if (store.state.value.subscriptions.count { it.url == u } == 1 && wasKnown)
-                        s(R.string.vm_sub_updated) else s(R.string.vm_loaded, f.servers.size)
+                    if (wasKnown) s(R.string.vm_sub_updated) else s(R.string.vm_loaded, f.servers.size)
                 warnAboutSubscription(f.title ?: hostOf(u), u, f)
                 pingAll()
             }
@@ -359,7 +358,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val ok = refreshOne(url)
         if (!silent) _status.value = if (ok) s(R.string.vm_sub_updated) else s(R.string.vm_sub_update_failed)
         _refreshing.update { it - url }
-        _busy.value = false
+        if (!silent) _busy.value = false   // a background pass must not clear somebody else's spinner
     }
 
     /** Warned already this run — one notice per subscription per condition, not per refresh. */
