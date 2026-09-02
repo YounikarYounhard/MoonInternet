@@ -135,7 +135,13 @@
                             <Binding Path="ShowSubscriptions"/>
                         </MultiBinding>
                     </StackPanel.Visibility>
-                    <Image Source="{Binding SelectedServerFlag}" Width="20" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <!-- Globe behind the flag, as in ServerRowTemplate. A server whose name carries
+                         no country flag left an empty 20 px gap here and the line sat off-centre. -->
+                    <Grid Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,7,0">
+                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource TextSecondary}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="{Binding SelectedServerFlag}" Width="20" Stretch="Uniform" VerticalAlignment="Center"/>
+                    </Grid>
                     <TextBlock Text="{Binding SelectedServerLabel}" Foreground="{StaticResource AccentText}" FontSize="14.5" FontWeight="Bold"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
                 </StackPanel>

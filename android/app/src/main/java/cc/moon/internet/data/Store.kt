@@ -143,7 +143,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 10 }
+    private companion object { const val CURRENT_VERSION = 11 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -184,6 +184,11 @@ class Store(private val ctx: Context) {
                 // v8: the automatic check is on by default now; switch it on for installs
                 // that never touched it rather than leaving them on the old off.
                 pingEveryMinutes = if (loaded.pingEveryMinutes == 0) 15 else loaded.pingEveryMinutes,
+                // v11: stars and the current selection are keyed by the share link without its
+                // #remark now (see ServerProfile.key). Trim what is already saved, or every
+                // favourite anybody has would stop matching the moment this build lands.
+                favorites = loaded.favorites.map { it.substringBefore('#') }.distinct(),
+                selectedServerRaw = loaded.selectedServerRaw?.substringBefore('#'),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
         // Ids handed out here must survive the next launch, or the selection points at nothing.
@@ -205,19 +210,19 @@ class Store(private val ctx: Context) {
 
     fun selectedServer(): ServerProfile? {
         val raw = _state.value.selectedServerRaw ?: return allServers.firstOrNull()
-        return allServers.firstOrNull { it.raw == raw } ?: allServers.firstOrNull()
+        return allServers.firstOrNull { it.key == raw } ?: allServers.firstOrNull()
     }
 
-    fun isFavorite(s: ServerProfile) = s.raw != null && s.raw in _state.value.favorites
+    fun isFavorite(s: ServerProfile) = s.key in _state.value.favorites
 
     suspend fun toggleFavorite(s: ServerProfile) {
-        val raw = s.raw ?: return
+        val raw = s.key
         update { st ->
             st.copy(favorites = if (raw in st.favorites) st.favorites - raw else st.favorites + raw)
         }
     }
 
-    suspend fun selectServer(s: ServerProfile) = update { it.copy(selectedServerRaw = s.raw) }
+    suspend fun selectServer(s: ServerProfile) = update { it.copy(selectedServerRaw = s.key) }
 
     suspend fun removeSubscription(url: String) =
         update { it.copy(subscriptions = it.subscriptions.filterNot { s -> s.url == url }) }
@@ -247,7 +252,7 @@ class Store(private val ctx: Context) {
         // Глобальный is the answer, and the card under Авто says so.
         val global = st.routings.firstOrNull { it.id == "builtin-global" }
         val raw = st.selectedServerRaw ?: return global
-        val sub = st.subscriptions.firstOrNull { s -> s.servers.any { it.raw == raw } } ?: return global
+        val sub = st.subscriptions.firstOrNull { s -> s.servers.any { it.key == raw } } ?: return global
         val mine = st.routings.filter { it.subUrl == sub.url }
         if (mine.isEmpty()) return global
         // A preference, not a rule: a subscription that only ships HAPP gets HAPP even when INCY
@@ -401,7 +406,7 @@ class Store(private val ctx: Context) {
         }
 
         // Nothing measured yet — we have no grounds to overrule the preference.
-        val measuredAny = all.any { pings.containsKey(it.raw) }
+        val measuredAny = all.any { pings.containsKey(it.pingKey) }
         if (!measuredAny || reachable(preferred)) return preferred
         // The user can ask us to respect the preference even when it looks dead — some servers
         // simply do not answer a probe while carrying traffic perfectly well.
@@ -435,8 +440,8 @@ internal fun orderServers(
 ): List<ServerProfile> {
     // The one you are connected through goes first — it is the row you look for, and hunting
     // for it in thirty others while it is live is the whole complaint.
-    val pinned = { s: ServerProfile -> if (activeRaw != null && s.raw == activeRaw) 0 else 1 }
-    val fav = { s: ServerProfile -> if (s.raw != null && s.raw in favorites) 0 else 1 }
+    val pinned = { s: ServerProfile -> if (activeRaw != null && s.key == activeRaw) 0 else 1 }
+    val fav = { s: ServerProfile -> if (s.key in favorites) 0 else 1 }
     val kept = if (protocol.isEmpty()) list else list.filter { it.protocolLabel == protocol }
     return when (sort) {
         "ping" -> kept.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))

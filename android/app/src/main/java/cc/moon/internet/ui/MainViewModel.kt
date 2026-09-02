@@ -249,7 +249,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             ShareLinkParser.parse(u)?.let { p ->
                 store.update { st ->
                     val sub = Subscription(url = "clipboard:${UUID.randomUUID()}", name = name.ifBlank { p.label }.ifBlank { "Сервер" }, servers = listOf(p))
-                    st.copy(subscriptions = st.subscriptions + sub, selectedServerRaw = st.selectedServerRaw ?: p.raw)
+                    st.copy(subscriptions = st.subscriptions + sub, selectedServerRaw = st.selectedServerRaw ?: p.key)
                 }
                 _status.value = s(R.string.vm_server_added)
             } ?: run { _status.value = s(R.string.vm_not_a_link) }
@@ -273,7 +273,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     )
                     st.copy(
                         subscriptions = st.subscriptions.filterNot { it.url == u } + sub,
-                        selectedServerRaw = st.selectedServerRaw ?: f.servers.firstOrNull()?.raw,
+                        selectedServerRaw = st.selectedServerRaw ?: f.servers.firstOrNull()?.key,
                     )
                 }
                 _status.value = s(R.string.vm_loaded, f.servers.size)
@@ -446,7 +446,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      *   refresh, and the background timer.
      */
     private suspend fun pingServers(servers: List<ServerProfile>, auto: Boolean = false) {
-        val targets = servers
+        // Favourites first: they are pinned to the top of the list, so measuring them in list
+        // order meant the one server you actually use waited out every other one. The stagger
+        // below is indexed off this order, so first here is also first out.
+        val targets = servers.sortedByDescending { store.isFavorite(it) }
         if (targets.isEmpty()) return
         // The flag existed and nothing ever raised it, so the ping button never span and stayed
         // pressable — a second tap on top of a running pass fought the first one for the same
@@ -644,7 +647,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val dead = !XrayConfig.supports(s.protocol) || _pings.value[s.pingKey] == -1
         if (store.state.value.autoFailover && dead) {
             val alt = store.allServers
-                .filter { it.raw != s.raw && XrayConfig.supports(it.protocol) && (_pings.value[it.pingKey] ?: -2) >= 0 }
+                .filter { it.key != s.key && XrayConfig.supports(it.protocol) && (_pings.value[it.pingKey] ?: -2) >= 0 }
                 .minByOrNull { _pings.value[it.pingKey] ?: Int.MAX_VALUE }
             if (alt != null) {
                 store.selectServer(alt)

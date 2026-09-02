@@ -60,11 +60,15 @@ public partial class MainWindow : Window
         // that is never going to come up.
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(MainViewModel.IsConnected) or nameof(MainViewModel.AllServersDown))
+            if (e.PropertyName is nameof(MainViewModel.IsConnected) or nameof(MainViewModel.AllServersDown)
+                                  or nameof(MainViewModel.SelectedServerLabel))
                 Dispatcher.Invoke(() =>
                 {
                     tray.Icon = TrayIconFor(vm);
-                    tray.ToolTipText = vm.IsConnected ? "Moon Internet — подключено"
+                    // Name the server. A tooltip is plain text — no picture — but "подключено" on
+                    // its own told you nothing, and Label already has the flag emoji taken off it
+                    // (Windows draws those as the two letters "FI", which is what looked broken).
+                    tray.ToolTipText = vm.IsConnected ? $"Moon Internet — подключено · {vm.SelectedServerLabel}"
                         : vm.AllServersDown ? "Moon Internet — ни один сервер не отвечает"
                         : "Moon Internet — отключено";
                 });

@@ -55,11 +55,17 @@ data class ServerProfile(
             return "${'a' + (a - 0x1F1E6)}${'a' + (b - 0x1F1E6)}"
         }
 
-    /** Name without the leading flag emoji. */
+    /**
+     * Name without the leading flag emoji — and never empty. A link with no remark, or one whose
+     * remark was nothing but the flag, produced a blank row you could not tell from the next
+     * blank one. The endpoint is always there and is what you would look at anyway.
+     */
     val label: String
         get() {
-            if (countryCode == null) return name
-            return name.dropWhile { it.code in 0xD800..0xDBFF || it.code in 0xDC00..0xDFFF || it == ' ' }.trim()
+            val bare =
+                if (countryCode == null) name
+                else name.dropWhile { it.code in 0xD800..0xDBFF || it.code in 0xDC00..0xDFFF || it == ' ' }.trim()
+            return bare.ifBlank { "$address:$port" }
         }
 
     val protocolLabel: String
@@ -79,7 +85,19 @@ data class ServerProfile(
      * those from the list of things to measure, so they sat in the list forever with no number
      * and no attempt. Address and port always exist.
      */
-    val pingKey: String get() = raw?.takeIf { it.isNotBlank() } ?: "$address:$port"
+    val pingKey: String get() = key
+
+    /**
+     * What identifies this server across a subscription refresh: the share link without its
+     * `#remark`. The remark is only the display name and panels rewrite it — x-ui writes the
+     * traffic left and the expiry into it — so a key made of the whole link turned one server
+     * into a different one on every refresh. Stars, the current selection and every measured
+     * ping were all keyed off it, which is why they kept clearing themselves.
+     *
+     * ponytail: a vmess:// link keeps its name inside the base64 payload, so renaming one still
+     * moves its key. Decode it here if that ever turns up in practice.
+     */
+    val key: String get() = raw?.takeIf { it.isNotBlank() }?.substringBefore('#') ?: "$address:$port"
 
     /**
      * What the connection actually rides on, for the chip beside the protocol.

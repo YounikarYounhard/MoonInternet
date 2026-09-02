@@ -541,11 +541,11 @@ private fun SubscriptionCard(
                     servers.forEach { s ->
                         ServerRowCompact(
                             server = s,
-                            selected = s.raw == selected?.raw,
+                            selected = s.key == selected?.key,
                             ping = pings[s.pingKey],
                             pinging = s.pingKey in pinging,
                             pingDisplay = pingDisplay,
-                            favorite = s.raw in favorites,
+                            favorite = s.key in favorites,
                             onClick = { onSelect(s) },
                             onMenu = { onServerMenu(s) },
                         )

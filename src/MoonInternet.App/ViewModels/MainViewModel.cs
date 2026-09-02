@@ -22,7 +22,7 @@ public partial class ServerItem : ObservableObject
 {
     public OutboundProfile Profile { get; }
     public string Flag { get; }
-    public string Label { get; }
+    public string Label { get; private set; }
     public ImageSource? FlagImage { get; }   // real flag picture (Windows renders flag emoji as "FI" text, useless)
     public string? SubscriptionName { get; set; }
 
@@ -31,6 +31,10 @@ public partial class ServerItem : ObservableObject
         Profile = p;
         (Flag, Label, var code) = SplitFlag(p.Name);
         FlagImage = LoadFlag(code);
+        // A link with no remark, or one whose remark was nothing but the flag, left the row with a
+        // blank name — a server you cannot tell apart from the next blank one. Its endpoint is
+        // never blank and is the thing you would look at anyway.
+        if (string.IsNullOrWhiteSpace(Label)) Label = $"{p.Address}:{p.Port}";
     }
 
     private static ImageSource? LoadFlag(string? code)
@@ -77,8 +81,22 @@ public partial class ServerItem : ObservableObject
     private bool pinging;
 
     [ObservableProperty] private bool isSelected;  // highlights the row on Home's picker list
-    [ObservableProperty] private bool isFavorite;  // starred by the user (persisted, keyed by ShareUrl)
+    [ObservableProperty] private bool isFavorite;  // starred by the user (persisted, keyed by FavKey)
     public string? ShareUrl => Profile.Raw;        // original share link (Copy URL / QR)
+
+    /// <summary>
+    /// What identifies this server across a subscription refresh: the share link without its
+    /// <c>#remark</c>. The remark is the display name, and panels rewrite it — x-ui puts the
+    /// traffic left and the expiry date in there — so keying anything off the whole link meant a
+    /// refresh silently produced a different server. That is how stars and the current selection
+    /// kept disappearing on their own.
+    ///
+    /// ponytail: vmess:// keeps its name inside the base64 payload, so renaming one still shifts
+    /// its key. Decode it here if that ever shows up in practice.
+    /// </summary>
+    public string? FavKey => KeyOf(Profile.Raw);
+    public static string? KeyOf(string? raw) =>
+        raw is null ? null : raw.IndexOf('#') is var i and >= 0 ? raw[..i] : raw;
     public int Order { get; set; }                 // position in the subscription (for "Обычная" order)
 
     /// <summary>The reading is only worth showing when it is not mid-measurement.</summary>
@@ -1542,6 +1560,15 @@ public partial class MainViewModel : ObservableObject
         AutoConnectOnStart = _settings.AutoConnectOnStart;
         AutoConnectTarget = _settings.AutoConnectTarget;
 
+        // Stars saved before FavKey existed carry the #remark and would never match again. Trim
+        // them once, in place, so nobody loses the favourites they already have.
+        if (_settings.FavoriteServers.Any(f => f.Contains('#')))
+        {
+            _settings.FavoriteServers = _settings.FavoriteServers
+                .Select(f => ServerItem.KeyOf(f)!).Distinct().ToList();
+            _settings.Save();
+        }
+
         _conn = new ConnectionManager(CoreLocator.CoresDir());
         _conn.StateChanged += s => Application.Current?.Dispatcher.Invoke(() => ConnectionState = s);
         _conn.Progress += m => Application.Current?.Dispatcher.Invoke(() => ConnectingStatus = m);
@@ -2507,7 +2534,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void ShowServerQr(ServerItem? s) { if (s is not null) ShowQr(s.Label, s.ShareUrl); }
     [RelayCommand] private void ToggleFavorite(ServerItem? s)
     {
-        if (s?.ShareUrl is not { } key) return;
+        if (s?.FavKey is not { } key) return;
         s.IsFavorite = !s.IsFavorite;
         if (s.IsFavorite) { if (!_settings.FavoriteServers.Contains(key)) _settings.FavoriteServers.Add(key); }
         else _settings.FavoriteServers.Remove(key);
@@ -2614,7 +2641,7 @@ public partial class MainViewModel : ObservableObject
             }
             if (profiles.Count == 0) continue;
             sub.SetServers(profiles);
-            foreach (var srv in sub.Servers) srv.IsFavorite = srv.ShareUrl is { } fu && _settings.FavoriteServers.Contains(fu);
+            foreach (var srv in sub.Servers) srv.IsFavorite = srv.FavKey is { } fu && _settings.FavoriteServers.Contains(fu);
             sub.SetAnnouncement(c.Announcement);
             sub.SetCachedInfo(c.TrafficText, c.ExpiryText);
             sub.ApplySort(ServerSort);
@@ -2702,7 +2729,7 @@ public partial class MainViewModel : ObservableObject
             if (sub is null) { sub = new SubscriptionVM(url, name, FilterServer); Subscriptions.Add(sub); }
             else if (!string.IsNullOrWhiteSpace(NewSubName)) sub.Name = NewSubName.Trim();  // keep name on plain refresh
             sub.SetServers(content.Servers);
-            foreach (var srv in sub.Servers) srv.IsFavorite = srv.ShareUrl is { } fu && _settings.FavoriteServers.Contains(fu);
+            foreach (var srv in sub.Servers) srv.IsFavorite = srv.FavKey is { } fu && _settings.FavoriteServers.Contains(fu);
             sub.SetInfo(info);
             WarnAboutSubscription(sub, info);
             sub.SetAnnouncement(announce);          // panel welcome/notice from the Announce header (overrides fake-node text)
@@ -3055,7 +3082,11 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task PingAll(bool auto = false)
     {
-        foreach (var s in Subscriptions.ToList()) await PingSub(s, auto);
+        // Subscriptions holding a favourite go first, and inside each one the favourites lead
+        // (see PingSub). Sorting only within a subscription still made a favourite in the second
+        // one wait out every server in the first.
+        foreach (var s in Subscriptions.OrderByDescending(x => x.Servers.Any(v => v.IsFavorite)).ToList())
+            await PingSub(s, auto);
     }
 
     // "Проверить соединение" (shown only while connected): ping the active server, show its latency next to the button.
@@ -3112,7 +3143,10 @@ public partial class MainViewModel : ObservableObject
         {
             if (!auto && PingMethod == "stability") { await StabilitySub(sub); return; }
 
-            var servers = sub.Servers.ToList();
+            // Favourites first. They sit at the top of the list, so waiting out thirty other
+            // servers before the one you actually use gets a number is the whole complaint — and
+            // the stagger below is indexed off this order, so first here also means first out.
+            var servers = sub.Servers.OrderByDescending(s => s.IsFavorite).ToList();
             foreach (var s in servers) s.Pinging = true;
 
             // The whole batch runs off the UI thread. Enumerating the NICs alone takes long enough
@@ -3152,7 +3186,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private async Task StabilitySub(SubscriptionVM sub)
     {
-        var servers = sub.Servers.ToList();
+        var servers = sub.Servers.OrderByDescending(s => s.IsFavorite).ToList();   // see PingSub
         if (servers.Count == 0) return;
 
         foreach (var s in servers) s.Pinging = true;

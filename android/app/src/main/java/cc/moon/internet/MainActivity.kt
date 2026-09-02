@@ -216,7 +216,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val servers = state.subscriptions.flatMap { it.servers }
-                val selected = servers.firstOrNull { it.raw == state.selectedServerRaw } ?: servers.firstOrNull()
+                val selected = servers.firstOrNull { it.key == state.selectedServerRaw } ?: servers.firstOrNull()
                 val collapsed = state.collapsed.toSet()
 
                 // The page background goes behind the insets, not inside them: in landscape the
@@ -439,7 +439,7 @@ class MainActivity : ComponentActivity() {
                                 // state.favorites, not vm.isFavorite(s): the store's value is read
                                 // outside Compose's sight, so the sheet could offer «В избранное»
                                 // for a server that already had a star.
-                                favorite = s.raw in state.favorites,
+                                favorite = s.key in state.favorites,
                                 onDismiss = { serverMenu = null },
                                 onConnect = { vm.selectServer(s); serverMenu = null; onToggleIfIdle() },
                                 onFavorite = { vm.toggleFavorite(s); serverMenu = null },

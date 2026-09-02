@@ -20,7 +20,13 @@
                 <Setter.Value>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <Image Source="{Binding FlagImage}" Width="18" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <!-- globe stands in when the name carries no country flag, so the row
+                                 does not open with a hole where the picture should be -->
+                            <Grid Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource TextSecondary}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Image Source="{Binding FlagImage}" Width="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                            </Grid>
                             <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </DataTemplate>
@@ -33,6 +39,23 @@
         <ContextMenu x:Key="TrayMenu" Style="{StaticResource TrayMenu}">
             <MenuItem Header="{Binding TrayToggleText}" Style="{StaticResource TrayMenuItem}" Command="{Binding ConnectCommand}">
                 <MenuItem.Icon><Ellipse Width="9" Height="9" Fill="{Binding RingBrush}"/></MenuItem.Icon>
+            </MenuItem>
+
+            <!-- Which server is on. The tray said only "подключено": to see WHAT you were connected
+                 to you had to open the window, which is the one thing the tray is there to avoid.
+                 A menu can show a picture where the tooltip cannot, so the flag lives here. -->
+            <MenuItem Style="{StaticResource TrayMenuItem}" IsHitTestVisible="False"
+                      Visibility="{Binding HasSelectedServer, Converter={StaticResource BoolVis}}">
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Grid Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{StaticResource TextSecondary}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Image Source="{Binding SelectedServerFlag}" Width="16" Stretch="Uniform" VerticalAlignment="Center"/>
+                        </Grid>
+                        <TextBlock Text="{Binding SelectedServerLabel}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
+                    </StackPanel>
+                </MenuItem.Header>
             </MenuItem>
 
             <MenuItem Header="{DynamicResource S_MainWindow_001}" Style="{StaticResource TrayMenuItem}"
