@@ -77,12 +77,16 @@ public static class Pinger
     /// <summary>RTT measured from a TCP RST ("connection refused"). A closed port still answers — and that answer
     /// travels the same path as real traffic, so the round-trip time is a valid latency even when ICMP is filtered.
     /// Used for WireGuard/AmneziaWG, whose UDP endpoint never replies to probes. -1 if the packet is dropped.</summary>
-    public static async Task<int> RstLatencyAsync(string host, int port, int timeoutMs = 3000)
+    public static async Task<int> RstLatencyAsync(string host, int port, int timeoutMs = 3000, int? outIfIndex = null)
     {
         var sw = Stopwatch.StartNew();
         try
         {
             using var client = new TcpClient(AddressFamily.InterNetwork);
+            // Same reason as TcpLatencyAsync: unbound, this measures our own TUN stack answering
+            // locally instead of the server. It was the only probe here without the binding.
+            if (outIfIndex is int idx)
+                client.Client.SetSocketOption(SocketOptionLevel.IP, IP_UNICAST_IF, IPAddress.HostToNetworkOrder(idx));
             var connect = client.ConnectAsync(host, port);
             if (await Task.WhenAny(connect, Task.Delay(timeoutMs)).ConfigureAwait(false) != connect) return -1;   // dropped, no answer
             await connect;                                    // unlikely: port actually open

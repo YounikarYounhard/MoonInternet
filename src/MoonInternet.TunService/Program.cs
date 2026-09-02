@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net;
 using System.Net.Http;
@@ -29,7 +29,18 @@ Process? zapret = null;                      // winws.exe — the запрет m
 var cleanupRoutes = new List<string>();      // "<dst> mask <mask>" entries to `route delete` on stop
 object gate = new();
 
-void Log(string m) { try { File.AppendAllText(logPath, $"[{DateTime.Now:O}] {m}\n"); } catch { } }
+// Rotate at 2 MB, keep one older file. sing-box's stdout lands here too and it is chatty enough to
+// reach 6 MB of a single connection's warnings — a log nobody can open is a log nobody reads.
+void Log(string m)
+{
+    try
+    {
+        if (new FileInfo(logPath) is { Exists: true, Length: > 2_000_000 })
+            File.Move(logPath, logPath + ".1", overwrite: true);
+        File.AppendAllText(logPath, $"[{DateTime.Now:O}] {m}\n");
+    }
+    catch { }
+}
 
 int Run(string exe, string args, int timeoutMs = 8000)
 {
@@ -63,18 +74,26 @@ void StopTun()
             }
         foreach (var r in cleanupRoutes) Run("route", $"delete {r}", 4000);
         cleanupRoutes.Clear();
-        Thread.Sleep(500); // let the driver release the adapter + routes settle
+        // Wait for the adapter to really go. Killing the process does not remove a wintun adapter
+        // synchronously — it lingers, IP and all, for a second or three. The old blind 500 ms sleep
+        // often ended while the ghost was still up, and then the NEXT connect measured the ghost.
+        for (int i = 0; i < 40 && TunHasGatewayIp(); i++) Thread.Sleep(100);
     }
 }
 
 // Adapter exists AND carries the gateway IP (sing-box path) / adapter is up by name (tun2socks path).
-bool TunHasGatewayIp()
+// Pass ifName once a specific adapter is expected: without it the check answers "yes" for the
+// PREVIOUS connection's adapter that has not disappeared yet, so a sing-box which never managed to
+// create its own was reported as up — connected on screen, no traffic anywhere, and only a reboot
+// or killing everything by hand cleared it.
+bool TunHasGatewayIp(string? ifName = null)
 {
     try
     {
         foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
         {
             if (ni.OperationalStatus != OperationalStatus.Up) continue;
+            if (ifName is not null && ni.Name != ifName) continue;
             foreach (var a in ni.GetIPProperties().UnicastAddresses)
                 if (a.Address.ToString() == TunGatewayIp) return true;
         }
@@ -184,7 +203,7 @@ string StartSingBox(int socksPort, IReadOnlyList<string> serverIps, string appMo
         for (int i = 0; i < 40; i++)
         {
             if (proc.HasExited) break;
-            if (TunHasGatewayIp()) { Log($"sing-box up as {ifName} (attempt {attempt})"); return "OK"; }
+            if (TunHasGatewayIp(ifName)) { Log($"sing-box up as {ifName} (attempt {attempt})"); return "OK"; }
             Thread.Sleep(500);
         }
         Log($"sing-box did not bring up TUN (attempt {attempt}, exited={proc?.HasExited})");
@@ -211,7 +230,7 @@ string StartHy2Tun(Hy2Launch launch)
         for (int i = 0; i < 40; i++)
         {
             if (proc.HasExited) break;
-            if (TunHasGatewayIp()) { Log($"hysteria2 TUN up as {ifName} (attempt {attempt})"); return "OK"; }
+            if (TunHasGatewayIp(ifName)) { Log($"hysteria2 TUN up as {ifName} (attempt {attempt})"); return "OK"; }
             Thread.Sleep(500);
         }
         Log($"hysteria2 sing-box did not bring up TUN (attempt {attempt}, exited={proc?.HasExited})");
@@ -236,7 +255,7 @@ string StartWgSingBox(WgSbLaunch launch)
         for (int i = 0; i < 40; i++)
         {
             if (proc.HasExited) break;
-            if (TunHasGatewayIp()) { Log($"wireguard TUN up as {ifName} (attempt {attempt})"); return "OK"; }
+            if (TunHasGatewayIp(ifName)) { Log($"wireguard TUN up as {ifName} (attempt {attempt})"); return "OK"; }
             Thread.Sleep(500);
         }
         Log($"wireguard sing-box did not bring up TUN (attempt {attempt}, exited={proc?.HasExited})");
@@ -364,7 +383,11 @@ string StartZapret(string id, string filter)
 
 string Handle(string cmd)
 {
-    Log("cmd: " + cmd);
+    // Only the verb. The payload of every START* is base64 JSON carrying the server password —
+    // logging it whole put the credentials of every connection into a plain-text file that nothing
+    // ever truncated (found at 6 MB, holding months of them).
+    int sp = cmd.IndexOf(' ');
+    Log("cmd: " + (sp < 0 ? cmd : cmd[..sp] + " …"));
     if (cmd == "PING") return "OK";
     if (cmd == "STOP") { StopTun(); StopZapret(); return "OK"; }
     if (cmd == "ZAPRETSTOP") { StopZapret(); return "OK"; }

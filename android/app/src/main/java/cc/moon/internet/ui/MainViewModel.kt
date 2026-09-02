@@ -662,8 +662,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // Another VPN client on the phone probably owns 10808/10809 already — see freeLocalPort.
         // proxy mode also shares the listeners on the LAN — that is what makes it a proxy
         val listen = if (st.allowLan || !st.tunMode) "0.0.0.0" else "127.0.0.1"
-        val socks = freeLocalPort(st.socksPort, listen)
-        val http = freeLocalPort(st.httpPort, listen, avoid = setOf(socks))
+        // ...but when WE are the ones already listening — every switch to another server — the
+        // probe finds its own core, moves both ports and announces "занят другим VPN" about
+        // itself. The service tears the old core down before binding the new one (see
+        // startTunnel → stopCore), so our own ports are free by the time they are needed.
+        val holdingOurOwn = MoonVpnService.state.value != MoonVpnService.Companion.State.Disconnected
+        val socks = if (holdingOurOwn) st.socksPort else freeLocalPort(st.socksPort, listen)
+        val http = if (holdingOurOwn) st.httpPort else freeLocalPort(st.httpPort, listen, avoid = setOf(socks))
         if (socks != st.socksPort || http != st.httpPort) {
             _status.value = s(R.string.vm_port_taken, socks, http)
         }

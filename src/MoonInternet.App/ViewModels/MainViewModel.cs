@@ -1581,6 +1581,7 @@ public partial class MainViewModel : ObservableObject
         ApplyTuning();
         RebuildRouting(); // installed INCY profiles available even before a subscription loads
         _conn.AutoReconnect = AutoReconnect;
+        _conn.ReconnectDelaySec = ReconnectDelaySec;
         _conn.KillSwitch = KillSwitch;
         foreach (var a in _settings.AppRouteApps)
             if (a.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) AppRouteApps.Add(new AppRouteItem(a));   // skip stale non-exe entries
@@ -2187,6 +2188,7 @@ public partial class MainViewModel : ObservableObject
     public bool IsDelay30 => ReconnectDelaySec == 30;
     [RelayCommand] private void SetReconnectDelay(string v)
     { ReconnectDelaySec = int.Parse(v); _settings.ReconnectDelaySec = ReconnectDelaySec; _settings.Save(); }
+    partial void OnReconnectDelaySecChanged(int value) => _conn.ReconnectDelaySec = value;
 
     [ObservableProperty] private bool notifyOnUpdate;
     partial void OnNotifyOnUpdateChanged(bool value) { _settings.NotifyOnUpdate = value; _settings.Save(); }
@@ -2555,11 +2557,14 @@ public partial class MainViewModel : ObservableObject
         int timeout = Math.Min(PingTimeoutMs, 3000);
         var probes = new List<Task<int>>
         {
-            Pinger.IcmpLatencyAsync(s.Profile.Address, timeout),
-            Pinger.RstLatencyAsync(s.Profile.Address, 22, timeout),
-            Pinger.RstLatencyAsync(s.Profile.Address, 443, timeout),
-            Pinger.RstLatencyAsync(s.Profile.Address, 80, timeout),
+            Pinger.RstLatencyAsync(s.Profile.Address, 22, timeout, outIf),
+            Pinger.RstLatencyAsync(s.Profile.Address, 443, timeout, outIf),
+            Pinger.RstLatencyAsync(s.Profile.Address, 80, timeout, outIf),
         };
+        // ICMP only while nothing is tunnelling. .NET's Ping cannot be bound to an interface, so
+        // with a TUN up every echo walks into it, dies there ("icmp is not supported by default
+        // outbound") and fills the helper log a line per packet — it can never answer anyway.
+        if (!IsConnected) probes.Add(Pinger.IcmpLatencyAsync(s.Profile.Address, timeout));
         while (probes.Count > 0)
         {
             var done = await Task.WhenAny(probes);
@@ -2906,6 +2911,7 @@ public partial class MainViewModel : ObservableObject
         {
             if (Disconnecting) return;
             Disconnecting = true;
+            ErrorText = "";
             Status = Localization.Loc.T("S_VM_228");
             await Task.Delay(500);                        // let Localization.Loc.T("S_VM_228") show before/while we tear down
             await Task.Run(() => _conn.Disconnect());     // teardown off the UI thread so the ring stays live
@@ -2940,8 +2946,12 @@ public partial class MainViewModel : ObservableObject
             }
             return;
         }
-        if (SelectedServer is null) { Status = Localization.Loc.T("S_VM_230"); CurrentPage = AppPage.Servers; return; }
-        if (!_conn.CoreAvailable) { Status = Localization.Loc.T("S_VM_231"); return; }
+        // Every refusal below used to be written to Status alone, which is bound nowhere — so a
+        // connect that declined to start looked exactly like a click that never registered. That
+        // is the "кнопка не работает" report. ErrorText is the line under the moon.
+        ErrorText = "";
+        if (SelectedServer is null) { ErrorText = Status = Localization.Loc.T("S_VM_230"); CurrentPage = AppPage.Servers; return; }
+        if (!_conn.CoreAvailable) { ErrorText = Status = Localization.Loc.T("S_VM_231"); return; }
 
         // "The chosen server is silent -> take the fastest live one" only ever applied when
         // auto-connect picked a server at startup. Pressing Connect on a server whose probe had
@@ -2973,13 +2983,13 @@ public partial class MainViewModel : ObservableObject
             string routingLabel = _conn.RoutingNote is not null ? " · " + _conn.RoutingNote : "";
             Status = $"Подключено ({modeLabel}){routingLabel} · {SelectedServer.Label}";
             if (TunMode && _conn.ActiveMode != TunnelMode.Tun)
-                Status = $"TUN-служба не установлена — включён системный прокси · {SelectedServer.Label}";
+                ErrorText = Status = $"TUN-служба не установлена — включён системный прокси · {SelectedServer.Label}";
             _settings.LastServerName = SelectedServer.Label;
             _settings.TunMode = TunMode;
             _settings.Save();
             if (deferRouting) _ = ApplyRoutingWhenReady(routing!);   // finish geo in the background, then re-apply
         }
-        catch (Exception ex) { Status = "Не удалось подключиться: " + ex.Message; }
+        catch (Exception ex) { ErrorText = Status = "Не удалось подключиться: " + ex.Message; }
     }
 
     // Background: finish the geo download, then quietly reconnect WITH routing — but only if still connected to the

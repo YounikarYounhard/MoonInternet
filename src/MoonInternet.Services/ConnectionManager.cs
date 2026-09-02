@@ -38,6 +38,9 @@ public sealed class ConnectionManager : IDisposable
     public string? TunFallbackReason { get; private set; }
     public string? RoutingNote { get; private set; }
     public bool AutoReconnect { get; set; } = true;
+    /// <summary>Seconds between auto-reconnect attempts. The setting existed, was saved and drawn
+    /// as four chips — and never left the view model: the retry loop had 2 s written into it.</summary>
+    public int ReconnectDelaySec { get; set; } = 5;
     public bool KillSwitch { get; set; }
     public string AppRouteMode { get; set; } = "off";                                  // per-app split routing (TUN)
     public IReadOnlyList<string> AppRouteApps { get; set; } = Array.Empty<string>();
@@ -128,7 +131,7 @@ public sealed class ConnectionManager : IDisposable
         {
             for (int attempt = 0; attempt < 5; attempt++)
             {
-                await Task.Delay(2000);
+                await Task.Delay(Math.Clamp(ReconnectDelaySec, 1, 60) * 1000);
                 if (_userDisconnect) return;
                 try { await ConnectAsync(server, mode, routing); return; } catch { /* retry */ }
             }

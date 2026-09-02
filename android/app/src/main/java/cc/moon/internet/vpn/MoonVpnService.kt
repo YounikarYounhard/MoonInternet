@@ -126,6 +126,10 @@ class MoonVpnService : VpnService() {
     }
 
     private var tunFd: ParcelFileDescriptor? = null
+    // Tells our own teardown apart from the core falling over. Both arrive as the same shutdown
+    // callback, and without the distinction auto-reconnect would fight every ordinary disconnect.
+    @Volatile private var intentionalStop = false
+    @Volatile private var reconnecting = false
     private val byedpi by lazy { ByedpiRunner(this) }
     // see the companion: one clock, shared with the UI
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -224,7 +228,8 @@ class MoonVpnService : VpnService() {
                     }
                 }
 
-                runner = XrayRunner(this@MoonVpnService) { _state.value = State.Disconnected }
+                intentionalStop = false
+                runner = XrayRunner(this@MoonVpnService) { onCoreDropped() }
                     .also { it.start(config, fd?.fd ?: 0) }
 
                 connectedAt = System.currentTimeMillis()
@@ -329,11 +334,45 @@ class MoonVpnService : VpnService() {
     private fun speedText(bytesPerSec: Long) = cc.moon.internet.data.SubscriptionService.speed(bytesPerSec)
 
     private fun stopCore() {
+        intentionalStop = true
         runCatching { byedpi.stop() }
         runCatching { runner?.stop() }
         runner = null
         runCatching { tunFd?.close() }
         tunFd = null
+    }
+
+    /**
+     * The core stopped without being asked to — the server went away, the phone changed network,
+     * the radio dropped. «Автоподключение при обрыве» and its delay were settings the user could
+     * turn on and watch do nothing: no code read either of them, and a dropped tunnel just stayed
+     * dropped with the notification still claiming otherwise.
+     *
+     * Five attempts, then give up for real. Retrying forever on a server that is simply gone keeps
+     * the radio awake all night for nothing.
+     */
+    private fun onCoreDropped() {
+        _state.value = State.Disconnected
+        if (intentionalStop || reconnecting) return
+        val cfg = lastConfig
+        if (cfg.isNullOrBlank()) return
+        reconnecting = true
+        scope.launch {
+            try {
+                val st = cc.moon.internet.data.Store(applicationContext).also { it.load() }.state.value
+                if (!st.autoReconnect) { stopTunnel(); return@launch }
+                repeat(5) {
+                    kotlinx.coroutines.delay(st.reconnectDelaySec.coerceIn(1, 60) * 1000L)
+                    if (intentionalStop) return@launch
+                    startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret)
+                    // startTunnel is itself async; give it room to land before judging it
+                    kotlinx.coroutines.delay(6000)
+                    if (_state.value == State.Connected) return@launch
+                }
+                lastError.value = getString(R.string.vm_reconnect_gave_up)
+                stopTunnel()
+            } finally { reconnecting = false }
+        }
     }
 
     /** Drops the tunnel, keeps the service and the last profile so Resume can restore it. */

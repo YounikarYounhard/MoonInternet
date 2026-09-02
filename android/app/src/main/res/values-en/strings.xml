@@ -435,6 +435,7 @@
     <string name="routing_geo_empty">"Geo files not downloaded yet — refresh them below"</string>
     <string name="routing_desc_lan">"Local addresses go direct"</string>
     <string name="vm_failover">"That server did not answer — switching to %1$s"</string>
+    <string name="vm_reconnect_gave_up">"The connection dropped and did not come back — stopped"</string>
     <string name="ping_kind">"PING TYPE"</string>
     <string name="ping_desc_moon">"Moon Ping is a latency test in which the TCP connection to the server is established outside the active tunnel, giving the latency to the server itself rather than to the VPN connection."</string>
     <string name="ping_desc_tcp">"TCP ping is a network latency test that measures the time required to establish a full TCP connection with the target server."</string>
