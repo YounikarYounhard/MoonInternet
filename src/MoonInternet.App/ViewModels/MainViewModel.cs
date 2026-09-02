@@ -1577,7 +1577,8 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private void ApplyLanguageTexts()
     {
-        Status = Localization.Loc.T("S_VM_236");
+        // Status is a transient toast now, not a field with a resting value. Re-localising it here
+        // put «Готово» on screen at every launch and on every language change, about nothing.
         GeoStatus = Localization.Loc.T("S_VM_064");
         SubscriptionName = Localization.Loc.T("S_VM_031");
         LogViewerTitle = Localization.Loc.T("S_VM_080");
