@@ -114,15 +114,31 @@ public partial class SubscriptionVM : ObservableObject
 
     public int Count => Servers.Count;
 
+    /// <summary>
+    /// Is this server starred? Set once by the view model, which owns the saved list.
+    ///
+    /// It lives here because SetServers builds every row from scratch and restoring the stars
+    /// afterwards was left to the caller — two of the four callers remembered and the two paste
+    /// paths did not, so a server you had starred came back from the clipboard plain.
+    /// </summary>
+    public static Func<string?, bool>? FavoriteLookup;
+
     public void SetServers(IEnumerable<OutboundProfile> profiles)
     {
+        // Every row is rebuilt here, so anything measured would go with it — and a subscription
+        // that refreshes on a timer would blank the whole column of numbers each time it did.
+        var lastPing = Servers.Where(x => x.FavKey is not null)
+                              .ToDictionary(x => x.FavKey!, x => x.Ping);
         Servers.Clear();
         var ann = new List<string>();
         int order = 0;
         foreach (var p in profiles)
         {
             if (IsAnnouncement(p)) { if (!string.IsNullOrWhiteSpace(p.Name)) ann.Add(p.Name.Trim()); continue; }
-            Servers.Add(new ServerItem(p) { SubscriptionName = Name, Order = order++ });
+            var item = new ServerItem(p) { SubscriptionName = Name, Order = order++ };
+            item.IsFavorite = FavoriteLookup?.Invoke(item.FavKey) ?? false;
+            if (item.FavKey is { } k && lastPing.TryGetValue(k, out var ms)) item.Ping = ms;
+            Servers.Add(item);
         }
         Announcement = string.Join("\n", ann);
     }

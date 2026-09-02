@@ -302,6 +302,18 @@ Check("server direct by ip", HasDirect("ip", "203.0.113.7"));
 Check("server direct by domain", HasDirect("domain", "domain:panel.example"));
 Check("original host kept", byIp.OriginalHost == "panel.example" && byIp.Address == "203.0.113.7");
 
+// The identity of every server. Panels rewrite the #remark — x-ui puts the traffic left and the
+// expiry date in it — so a key that includes it turns one server into a different one on every
+// refresh, and the stars, the selection and the measured pings all clear themselves.
+Check("key drops the remark", ServerKey.Of("vless://u@h:443?type=ws#🇫🇮 Финляндия") == "vless://u@h:443?type=ws");
+Check("key survives a rename", ServerKey.Of("trojan://p@h:443#Осталось 12 ГБ") == ServerKey.Of("trojan://p@h:443#Осталось 3 ГБ"));
+Check("key without a remark is itself", ServerKey.Of("ss://x@h:443") == "ss://x@h:443");
+Check("key of null is null", ServerKey.Of((string?)null) is null);
+Check("key falls back to the endpoint", ServerKey.Of(new OutboundProfile { Address = "h.example", Port = 443 }) == "h.example:443");
+Check("two remarks, one key",
+    ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#A"))
+    == ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#B")));
+
 // The whole matrix, because "we do not support X" turned out to mean "the builder had no case
 // for it and xray silently used defaults". Every protocol that can choose a transport, against
 // every transport, against every security: the link must parse and the config must come out with

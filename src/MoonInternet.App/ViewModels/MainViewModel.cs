@@ -84,19 +84,8 @@ public partial class ServerItem : ObservableObject
     [ObservableProperty] private bool isFavorite;  // starred by the user (persisted, keyed by FavKey)
     public string? ShareUrl => Profile.Raw;        // original share link (Copy URL / QR)
 
-    /// <summary>
-    /// What identifies this server across a subscription refresh: the share link without its
-    /// <c>#remark</c>. The remark is the display name, and panels rewrite it — x-ui puts the
-    /// traffic left and the expiry date in there — so keying anything off the whole link meant a
-    /// refresh silently produced a different server. That is how stars and the current selection
-    /// kept disappearing on their own.
-    ///
-    /// ponytail: vmess:// keeps its name inside the base64 payload, so renaming one still shifts
-    /// its key. Decode it here if that ever shows up in practice.
-    /// </summary>
-    public string? FavKey => KeyOf(Profile.Raw);
-    public static string? KeyOf(string? raw) =>
-        raw is null ? null : raw.IndexOf('#') is var i and >= 0 ? raw[..i] : raw;
+    /// <summary>What identifies this server across a subscription refresh — see <see cref="ServerKey"/>.</summary>
+    public string? FavKey => ServerKey.Of(Profile.Raw);
     public int Order { get; set; }                 // position in the subscription (for "Обычная" order)
 
     /// <summary>The reading is only worth showing when it is not mid-measurement.</summary>
@@ -1609,12 +1598,15 @@ public partial class MainViewModel : ObservableObject
         AutoConnectOnStart = _settings.AutoConnectOnStart;
         AutoConnectTarget = _settings.AutoConnectTarget;
 
+        // Every row is built by SubscriptionVM.SetServers, which asks this for the star.
+        SubscriptionVM.FavoriteLookup = k => k is not null && _settings.FavoriteServers.Contains(k);
+
         // Stars saved before FavKey existed carry the #remark and would never match again. Trim
         // them once, in place, so nobody loses the favourites they already have.
         if (_settings.FavoriteServers.Any(f => f.Contains('#')))
         {
             _settings.FavoriteServers = _settings.FavoriteServers
-                .Select(f => ServerItem.KeyOf(f)!).Distinct().ToList();
+                .Select(f => ServerKey.Of(f)!).Distinct().ToList();
             _settings.Save();
         }
 
@@ -2716,7 +2708,7 @@ public partial class MainViewModel : ObservableObject
     /// pasting the same link twice used to leave two identical rows.</summary>
     private static List<OutboundProfile> Merge(SubscriptionVM sub, IEnumerable<OutboundProfile> added) =>
         sub.Servers.Select(x => x.Profile).Concat(added)
-           .GroupBy(p => ServerItem.KeyOf(p.Raw) ?? $"{p.Address}:{p.Port}")
+           .GroupBy(ServerKey.Of)
            .Select(g => g.First()).ToList();
 
     private SubscriptionVM LooseSub()
@@ -2760,7 +2752,6 @@ public partial class MainViewModel : ObservableObject
             }
             if (profiles.Count == 0) continue;
             sub.SetServers(profiles);
-            foreach (var srv in sub.Servers) srv.IsFavorite = srv.FavKey is { } fu && _settings.FavoriteServers.Contains(fu);
             sub.SetAnnouncement(c.Announcement);
             sub.SetCachedInfo(c.TrafficText, c.ExpiryText);
             sub.ApplySort(ServerSort);
@@ -2848,7 +2839,6 @@ public partial class MainViewModel : ObservableObject
             if (sub is null) { sub = new SubscriptionVM(url, name, FilterServer); Subscriptions.Add(sub); }
             else if (!string.IsNullOrWhiteSpace(NewSubName)) sub.Name = NewSubName.Trim();  // keep name on plain refresh
             sub.SetServers(content.Servers);
-            foreach (var srv in sub.Servers) srv.IsFavorite = srv.FavKey is { } fu && _settings.FavoriteServers.Contains(fu);
             sub.SetInfo(info);
             WarnAboutSubscription(sub, info);
             sub.SetAnnouncement(announce);          // panel welcome/notice from the Announce header (overrides fake-node text)
