@@ -249,7 +249,7 @@ class MoonVpnService : VpnService() {
                 scope.launch {
                     runCatching {
                         val ms = runner?.measureDelay()
-                        linkDead.value = ms == null || ms < 0
+                        if (zapret == null) linkDead.value = ms == null || ms < 0
                         livePing.value = if (ms == null || ms < 0) null else "$ms ms"
                         updateNotification(profileName, connecting = false)
                     }
@@ -324,7 +324,10 @@ class MoonVpnService : VpnService() {
             // connection from an interface that is merely up. In its own coroutine: measureDelay
             // blocks for as long as its timeout, and on this thread that froze the speed line in
             // the notification for a second or two every minute.
-            if (tick % 60 == 30) scope.launch {
+            // Not in Zapret: everything there goes through byedpi, and whether one probe URL
+            // opens depends on the strategy rather than on the connection being up. That page has
+            // its own «Проверить», aimed at a site that is actually blocked.
+            if (tick % 60 == 30 && lastZapret == null) scope.launch {
                 runCatching { linkDead.value = (runner?.measureDelay() ?: -1) < 0 }
             }
             runner?.trafficTotals()?.let { (up, down) ->

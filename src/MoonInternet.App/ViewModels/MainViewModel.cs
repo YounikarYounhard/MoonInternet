@@ -873,6 +873,7 @@ public partial class MainViewModel : ObservableObject
         _settings.ConnMode = m;
         _settings.TunMode = TunMode = m == "tun";   // kept in step for the tray menu and old saves
         _settings.Save();
+        OnPropertyChanged(nameof(AllServersDown));   // Zapret has no servers to call unreachable
         ErrorText = "";
         if (ConnectionState != ConnectionState.Connected) return;
         // Switching mode while connected has to tear the old one down: a tunnel and запрет both
@@ -1160,7 +1161,8 @@ public partial class MainViewModel : ObservableObject
     /// never coming.
     /// </summary>
     public bool AllServersDown =>
-        !IsConnected && AllServers.Any() && AnyMeasured && !AllServers.Any(Reachable) && !Offline && !OfflineChecking;
+        !IsConnected && !IsZapretMode && AllServers.Any() && AnyMeasured
+        && !AllServers.Any(Reachable) && !Offline && !OfflineChecking;
 
     /// <summary>
     /// The machine itself has no internet. Checked only when a whole pass came back silent, because
@@ -2192,7 +2194,9 @@ public partial class MainViewModel : ObservableObject
         };
         // Skip a round rather than queue up: with "стабильность" a pass can outlast the interval,
         // and stacking them would leave several cores running at once.
-        t.Tick += async (_, _) => { if (!_autoPingBusy) { _autoPingBusy = true; try { await PingAll(auto: true); } finally { _autoPingBusy = false; } } };
+        // Not in Zapret: there are no servers on screen to fill in, and measuring them anyway is
+        // a volley at somebody's provider every quarter of an hour for a list nobody is looking at.
+        t.Tick += async (_, _) => { if (!_autoPingBusy && !IsZapretMode) { _autoPingBusy = true; try { await PingAll(auto: true); } finally { _autoPingBusy = false; } } };
         t.Start();
         _autoPingTimer = new TimerHandle(t);
     }
