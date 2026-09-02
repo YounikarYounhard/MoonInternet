@@ -161,6 +161,8 @@
 
     <!-- Settings: subscriptions -->
     <s:String x:Key="S_SettingsView_092">Auto-update</s:String>
+    <s:String x:Key="S_SettingsView_PinSub">Active subscription first</s:String>
+    <s:String x:Key="S_SettingsView_PinSubHint">The subscription you are connected through moves to the top of the list</s:String>
     <s:String x:Key="S_SettingsView_093">Refresh subscriptions on their own</s:String>
     <s:String x:Key="S_SettingsView_094">As the subscription says</s:String>
     <s:String x:Key="S_SettingsView_095">30 min</s:String>

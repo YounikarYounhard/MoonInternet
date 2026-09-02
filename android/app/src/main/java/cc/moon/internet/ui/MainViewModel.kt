@@ -437,6 +437,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun sortedServers(): List<ServerProfile> = store.sortedServers(_pings.value)
 
+    /**
+     * The subscription list as the Home and Servers pages should draw it: static by default, or
+     * with the one holding the active server at the top when «Активная подписка сверху» is on.
+     */
+    fun orderedSubscriptions(st: cc.moon.internet.data.AppState): List<Subscription> {
+        if (!st.pinActiveSub) return st.subscriptions
+        val active = st.selectedServerRaw ?: return st.subscriptions
+        return st.subscriptions.sortedByDescending { sub -> sub.servers.any { it.key == active } }
+    }
+
     /** Sorted servers of one subscription — Home and Servers both go through this. */
     fun sortedIn(sub: Subscription): List<ServerProfile> = store.sortedIn(sub, _pings.value)
 

@@ -1482,6 +1482,7 @@ public partial class MainViewModel : ObservableObject
         else _ = CheckConnection();                                   // auto-measure ping the moment we connect
         ServerComparers.ActiveRaw = PinActiveServer && value == ConnectionState.Connected
             ? SelectedServer?.FavKey : null;
+        if (value == ConnectionState.Connected) ReorderSubscriptions();
         foreach (var sub in Subscriptions) sub.Refresh();
         OnPropertyChanged(nameof(ElapsedDisplay));
         OnPropertyChanged(nameof(MoonAwake));
@@ -1596,6 +1597,7 @@ public partial class MainViewModel : ObservableObject
         PingTestUrl = _settings.PingTestUrl; PingTimeoutMs = _settings.PingTimeoutMs;
         PingStagger = _settings.PingStagger; PingStaggerMs = _settings.PingStaggerMs;
         ShowServerCount = _settings.ShowServerCount; PinActiveServer = _settings.PinActiveServer;
+        PinActiveSubscription = _settings.PinActiveSubscription;
         Language = Localization.Loc.Language;   // already applied at startup; mirror it here
         PingEveryMinutes = _settings.PingEveryMinutes;
         AutoUpdateSubs = _settings.AutoUpdateSubs; AutoUpdateSubsMinutes = _settings.AutoUpdateSubsMinutes;
@@ -2088,6 +2090,27 @@ public partial class MainViewModel : ObservableObject
         _settings.PinActiveServer = v; _settings.Save();
         ServerComparers.ActiveRaw = v && IsConnected ? SelectedServer?.FavKey : null;
         foreach (var sub in Subscriptions) sub.Refresh();
+    }
+
+    /// <summary>
+    /// Whether the subscription holding the active server floats to the top. Off is the static
+    /// list, which is what this has always been — the choice is the point: on a phone-shaped
+    /// window the one you are using can be three subscriptions down.
+    /// </summary>
+    [ObservableProperty] private bool pinActiveSubscription;
+    partial void OnPinActiveSubscriptionChanged(bool v)
+    { _settings.PinActiveSubscription = v; _settings.Save(); ReorderSubscriptions(); }
+
+    /// <summary>Moves the subscription that owns the selected server to the front. No-op when the
+    /// setting is off — and it never reorders on its own, only on connect or a deliberate pick, so
+    /// the list does not shuffle under a finger that is scrolling it.</summary>
+    private void ReorderSubscriptions()
+    {
+        if (!PinActiveSubscription || SelectedServer is null) return;
+        var owner = Subscriptions.FirstOrDefault(s => s.Servers.Contains(SelectedServer));
+        if (owner is null) return;
+        int i = Subscriptions.IndexOf(owner);
+        if (i > 0) Subscriptions.Move(i, 0);
     }
 
     [ObservableProperty] private bool showServerCount = true;

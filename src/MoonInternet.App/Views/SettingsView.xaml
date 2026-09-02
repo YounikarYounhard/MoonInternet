@@ -564,6 +564,15 @@
 
                 <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
                     <StackPanel>
+                        <!-- static list, or the one you are connected through comes to the top -->
+                        <Grid Margin="12,12,12,8">
+                            <StackPanel Margin="0,0,58,0">
+                                <TextBlock Text="{DynamicResource S_SettingsView_PinSub}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource S_SettingsView_PinSubHint}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding PinActiveSubscription}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <Grid Margin="12,12,12,8">
                             <StackPanel Margin="0,0,58,0">
                                 <TextBlock Text="{DynamicResource S_SettingsView_092}" FontSize="14" FontWeight="SemiBold"/>

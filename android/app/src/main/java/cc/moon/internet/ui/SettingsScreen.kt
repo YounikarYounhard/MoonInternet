@@ -486,6 +486,9 @@ private fun SubsPage(
             SwitchRow(stringResource(R.string.pin_active), stringResource(R.string.pin_active_sub),
                 state.pinActive) { v -> onSet { copy(pinActive = v) } }
             RowDivider()
+            SwitchRow(stringResource(R.string.pin_active_subscription), stringResource(R.string.pin_active_subscription_sub),
+                state.pinActiveSub) { v -> onSet { copy(pinActiveSub = v) } }
+            RowDivider()
             Column(Modifier.padding(12.dp)) {
                 Text(stringResource(R.string.submeter_title), color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text(stringResource(R.string.submeter_sub), color = Moon.TextSecondary, fontSize = 12.sp,

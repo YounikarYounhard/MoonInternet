@@ -309,7 +309,7 @@ class MainActivity : ComponentActivity() {
                                 onAutoPickZapret = { vm.autoPickZapret() },
                                 state = vpn,
                                 server = selected,
-                                subscriptions = state.subscriptions,
+                                subscriptions = vm.orderedSubscriptions(state),
                                 collapsed = collapsed,
                                 onToggleCollapse = vm::toggleCollapse,
                                 pings = pings,
@@ -342,7 +342,7 @@ class MainActivity : ComponentActivity() {
                                 connMode = state.connMode,
                                 zapretStrategy = state.zapretStrategy,
                                 onPickZapret = vm::pickZapret,
-                                subscriptions = state.subscriptions,
+                                subscriptions = vm.orderedSubscriptions(state),
                                 selected = selected,
                                 pings = pings,
                                 pinging = pinging,
@@ -395,7 +395,7 @@ class MainActivity : ComponentActivity() {
 
                                 else -> RoutingScreen(
                                     profiles = state.routings,
-                                    subscriptions = state.subscriptions,
+                                    subscriptions = vm.orderedSubscriptions(state),
                                     // the stored choice, not the resolved one: blank means Авто
                                     selectedId = state.selectedRoutingId,
                                     autoPick = vm.autoRouting(),

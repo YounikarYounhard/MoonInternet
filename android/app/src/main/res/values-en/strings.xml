@@ -382,6 +382,8 @@
     <string name="mode_tunnel">"Tunnel"</string>
     <string name="pin_active">"Active server first"</string>
     <string name="pin_active_sub">"While connected, keep that server at the top of the list"</string>
+    <string name="pin_active_subscription">"Active subscription first"</string>
+    <string name="pin_active_subscription_sub">"The subscription you are connected through moves to the top of the list"</string>
     <string name="notify_after">"What's new in this version"</string>
     <string name="notify_after_sub">"After an update installs, say once what changed"</string>
     <string name="upd_installed">"Updated to %1$s. %2$s"</string>

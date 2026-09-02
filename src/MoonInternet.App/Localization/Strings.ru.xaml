@@ -143,6 +143,8 @@
     <s:String x:Key="S_SettingsView_090">Последнее</s:String>
     <s:String x:Key="S_SettingsView_091">Мин. пинг</s:String>
     <s:String x:Key="S_SettingsView_092">Автообновление</s:String>
+    <s:String x:Key="S_SettingsView_PinSub">Активная подписка сверху</s:String>
+    <s:String x:Key="S_SettingsView_PinSubHint">Подписка, через которую идёт подключение, поднимается в начало списка</s:String>
     <s:String x:Key="S_SettingsView_093">Обновлять подписки автоматически</s:String>
     <s:String x:Key="S_SettingsView_094">По подписке</s:String>
     <s:String x:Key="S_SettingsView_095">30 мин</s:String>
