@@ -174,6 +174,9 @@ class ConfigDumpTest {
         // the knobs mKCP is actually for
         assertEquals(1350, wechat.getInt("mtu"))
         assertEquals(20, wechat.getInt("downlinkCapacity"))
+        // ON, unlike xray's own default: without it mKCP answers packet loss by retransmitting
+        // harder rather than backing off, which is exactly what stutters on a phone.
+        assertTrue("congestion control on", wechat.getBoolean("congestion"))
     }
 
     /**

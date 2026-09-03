@@ -296,7 +296,19 @@ Check("xray kcp no legacy seed", !kcps.GetProperty("kcpSettings").TryGetProperty
 foreach (var (k, want) in new[] { ("mtu", 1350), ("tti", 50), ("uplinkCapacity", 5),
                                   ("downlinkCapacity", 20), ("readBufferSize", 2), ("writeBufferSize", 2) })
     Check($"xray kcp {k} default", kcps.GetProperty("kcpSettings").GetProperty(k).GetInt32() == want);
-Check("xray kcp congestion default off", !kcps.GetProperty("kcpSettings").GetProperty("congestion").GetBoolean());
+// ON, unlike xray's own default. Without it mKCP does not back off when packets drop, it
+// retransmits harder — quick on a merely slow link, stuttery on a variable one.
+Check("xray kcp congestion on", kcps.GetProperty("kcpSettings").GetProperty("congestion").GetBoolean());
+
+// The capacities follow the measured link when there is a measurement. This is the number
+// NetworkQuality has been learning and storing across runs while nothing read it.
+XrayTuning.LinkCapacityBytesPerSecond = 12L * 1024 * 1024;   // ~12 MB/s
+var kcpMeasured = Proxy(Root(XrayConfigBuilder.Build(kcp))).GetProperty("streamSettings").GetProperty("kcpSettings");
+Check("kcp uplink follows the measurement", kcpMeasured.GetProperty("uplinkCapacity").GetInt32() == 12);
+Check("kcp downlink follows the measurement", kcpMeasured.GetProperty("downlinkCapacity").GetInt32() == 12);
+XrayTuning.LinkCapacityBytesPerSecond = 0;                   // nothing learned yet → xray's figures
+var kcpUnknown = Proxy(Root(XrayConfigBuilder.Build(kcp))).GetProperty("streamSettings").GetProperty("kcpSettings");
+Check("kcp falls back with no measurement", kcpUnknown.GetProperty("downlinkCapacity").GetInt32() == 20);
 
 // A panel that sends its own numbers wins; nonsense outside xray's documented range does not.
 var kcpTuned = ShareLinkParser.Parse(
@@ -306,7 +318,9 @@ var kcpTuned = ShareLinkParser.Parse(
 var kt = Proxy(Root(XrayConfigBuilder.Build(kcpTuned))).GetProperty("streamSettings").GetProperty("kcpSettings");
 Check("xray kcp mtu from link", kt.GetProperty("mtu").GetInt32() == 1200);
 Check("xray kcp capacity from link", kt.GetProperty("downlinkCapacity").GetInt32() == 200);
-Check("xray kcp congestion from link", kt.GetProperty("congestion").GetBoolean());
+Check("xray kcp congestion off from link", !Proxy(Root(XrayConfigBuilder.Build(ShareLinkParser.Parse(
+    "vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@host.example:2096?encryption=none&type=kcp&congestion=0#C"))))
+    .GetProperty("streamSettings").GetProperty("kcpSettings").GetProperty("congestion").GetBoolean());
 
 var kcpBad = ShareLinkParser.Parse(
     "vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@host.example:2096?encryption=none&type=kcp&mtu=99999&tti=0#B");

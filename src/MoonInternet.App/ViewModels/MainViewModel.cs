@@ -1400,6 +1400,8 @@ public partial class MainViewModel : ObservableObject
         // «Раздача в локальной сети» was saved, drawn and read by nothing: the inbounds stayed
         // pinned to 127.0.0.1, so no other device on the network could ever reach them.
         MoonInternet.Core.Generation.XrayTuning.AllowLan = AllowLan;
+        // The learned link speed finally goes somewhere: mKCP sizes its send window from it.
+        MoonInternet.Core.Generation.XrayTuning.LinkCapacityBytesPerSecond = _netQuality.TargetBytesPerSecond;
         MoonInternet.Core.Generation.XrayTuning.HttpAuth = HttpProxyAuth && Socks5Auth;
         if (Socks5Auth)
         {

@@ -350,9 +350,15 @@ public static class XrayConfigBuilder
                 {
                     ["mtu"] = KcpInt("mtu", 1350, 576, 1460),
                     ["tti"] = KcpInt("tti", 50, 10, 100),
-                    ["uplinkCapacity"] = KcpInt("uplinkCapacity", 5, 0, 1000),
-                    ["downlinkCapacity"] = KcpInt("downlinkCapacity", 20, 0, 1000),
-                    ["congestion"] = p.Extra.GetValueOrDefault("congestion") is "1" or "true",
+                    // From what the link was measured to carry, when that is known. See XrayTuning.
+                    ["uplinkCapacity"] = KcpInt("uplinkCapacity", XrayTuning.KcpCapacity(5), 0, 1000),
+                    ["downlinkCapacity"] = KcpInt("downlinkCapacity", XrayTuning.KcpCapacity(20), 0, 1000),
+                    // ON, where xray's own default is off. Without congestion control mKCP does not
+                    // back off when packets start dropping — it retransmits harder, which is what
+                    // makes it quick on a merely slow link and what makes it stutter on a variable
+                    // one. "Работало, но нестабильно" is that trade showing. A link that sets
+                    // congestion=0 gets the old behaviour back.
+                    ["congestion"] = p.Extra.GetValueOrDefault("congestion") is not ("0" or "false"),
                     ["readBufferSize"] = KcpInt("readBufferSize", 2, 1, 128),
                     ["writeBufferSize"] = KcpInt("writeBufferSize", 2, 1, 128),
                 };

@@ -25,6 +25,25 @@ public static class XrayTuning
     public static string ListenAddress => AllowLan ? "0.0.0.0" : "127.0.0.1";
 
     /// <summary>
+    /// What the link was measured to carry, in bytes per second, or 0 while nothing is known.
+    /// Fed from <c>NetworkQuality.TargetBytesPerSecond</c> — a number the app has been computing
+    /// and storing across runs for its own sake, since nothing read it.
+    ///
+    /// mKCP is what wants it: its uplinkCapacity and downlinkCapacity size the send window in
+    /// MB/s, and xray's stand-ins are 5 and 20 chosen for nobody in particular. Set them above the
+    /// real link and mKCP floods it, induces the loss it then has to retransmit, and stutters.
+    /// </summary>
+    public static long LinkCapacityBytesPerSecond;
+
+    /// <summary>Megabytes per second for mKCP, from the measurement when there is one.</summary>
+    public static int KcpCapacity(int fallbackMbs)
+    {
+        if (LinkCapacityBytesPerSecond <= 0) return fallbackMbs;
+        int mbs = (int)Math.Ceiling(LinkCapacityBytesPerSecond / (1024.0 * 1024.0));
+        return Math.Clamp(mbs, 1, 1000);
+    }
+
+    /// <summary>
     /// off | balance | games — how hard we let a bulk transfer fill the queue. BETA, off by default.
     ///
     /// The thing that ruins a voice call or a game while something downloads is not the speed, it

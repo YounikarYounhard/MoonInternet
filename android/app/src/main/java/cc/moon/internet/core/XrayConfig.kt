@@ -433,7 +433,11 @@ object XrayConfig {
                 .put("tti", kcpInt(s, "tti", 50, 10, 100))
                 .put("uplinkCapacity", kcpInt(s, "uplinkCapacity", 5, 0, 1000))
                 .put("downlinkCapacity", kcpInt(s, "downlinkCapacity", 20, 0, 1000))
-                .put("congestion", s.extra["congestion"] == "1" || s.extra["congestion"] == "true")
+                // ON, where xray's own default is off. Without congestion control mKCP does not
+                // back off when packets start dropping — it retransmits harder, which is what makes
+                // it quick on a merely slow link and what makes it stutter on a variable one, i.e.
+                // on a phone. A link that sets congestion=0 gets the old behaviour back.
+                .put("congestion", s.extra["congestion"] !in listOf("0", "false"))
                 .put("readBufferSize", kcpInt(s, "readBufferSize", 2, 1, 128))
                 .put("writeBufferSize", kcpInt(s, "writeBufferSize", 2, 1, 128))
                 // The obfuscation header moved. Up to xray 25 it was kcpSettings.header.type plus
