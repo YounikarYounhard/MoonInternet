@@ -41,19 +41,24 @@ public static class WireGuardUapi
         Set("i1", wg.I1); Set("i2", wg.I2); Set("i3", wg.I3); Set("i4", wg.I4); Set("i5", wg.I5);
 
         // 3.x: header protection proper, plus the timings that used to be constants.
-        Set("header_protection_key", wg.HeaderProtectionKey);
+        // The key is 32 bytes and the panel writes it base64, exactly like the WireGuard keys —
+        // and exactly like them, UAPI wants hex. Sending it through raw fails the whole config
+        // with "invalid byte: U+004A 'J'", which is the engine choking on base64's alphabet.
+        Set("header_protection_key", HexKey(wg.HeaderProtectionKey));
         Set("content_padding_addition", wg.ContentPaddingAddition);
         Set("rekey_after_time", wg.RekeyAfterTime);
         Set("rekey_timeout", wg.RekeyTimeout);
         Set("reject_after_time", wg.RejectAfterTime);
         Set("keepalive_timeout", wg.KeepaliveTimeout);
         Set("max_handshake_attempts", wg.MaxHandshakeAttempts);
-
-        // RandomTrailers and DisableCookies are deliberately NOT sent. The panel writes them into
-        // the config file, but the engine at the 3.0 commit has no such device keys — and an
-        // unrecognised key is not ignored there, it fails the whole IpcSet with "invalid UAPI
-        // device key". Sending them would break exactly the 3.0 profiles this exists for.
-        // They stay parsed and stored, so they cost nothing the day the core learns them.
+        // Both arrived in 3.1. They do not exist in the 3.0 engine, where an unknown key is not
+        // ignored but fails the whole IpcSet — so if this is ever built against an older commit,
+        // these two are the first things to drop.
+        // ...and both are booleans the core parses with Go's ParseBool, while the panel writes
+        // them the ini way — "on". Passing that through fails the whole config with
+        // «parsing "on": invalid syntax».
+        Set("random_trailers", Bool(wg.RandomTrailers));
+        Set("disable_cookies", Bool(wg.DisableCookies));
 
         // ---- peer --------------------------------------------------------
         Set("public_key", Hex(wg.PeerPublicKey));       // starts the peer section
@@ -66,6 +71,27 @@ public static class WireGuardUapi
 
         b.Append('\n');   // UAPI ends on a blank line; without it the core waits for more
         return b.ToString();
+    }
+
+    /// <summary>A config-file flag as the "true"/"false" Go's ParseBool accepts.</summary>
+    private static string? Bool(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        null or "" => null,
+        "on" or "yes" or "true" or "1" or "enabled" => "true",
+        _ => "false",
+    };
+
+    /// <summary>
+    /// Hex for a key that may already be hex. Panels are not consistent about this: 3x-ui writes
+    /// the header-protection key base64, the same way it writes the WireGuard keys, but the field
+    /// is documented as hex and another panel may well write it that way.
+    /// </summary>
+    private static string? HexKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        string v = value.Trim();
+        bool alreadyHex = v.Length % 2 == 0 && v.All(Uri.IsHexDigit);
+        return alreadyHex ? v.ToLowerInvariant() : Hex(v);
     }
 
     /// <summary>A base64 key from the config file as the 64 hex characters UAPI expects, or null.</summary>

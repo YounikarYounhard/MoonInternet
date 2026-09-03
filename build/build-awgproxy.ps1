@@ -17,8 +17,19 @@
             powershell ... -File build\build-awgproxy.ps1 -Android     # arm64 for the phone
 #>
 param(
-    [switch]$Android
+    [switch]$Android,
+    # Re-pin the engine to $awgRef below and update go.mod. Not done on every build: a build
+    # should not quietly change which cryptography it links.
+    [switch]$Sync
 )
+
+# The engine commit. NOT a tag: `@latest` resolves to v1.0.4, which predates AmneziaWG 3 entirely,
+# because the 3.x work lives on master under a LOWER version number. This one is master at
+# 28 Aug 2026 and includes "feat: awg 3.1 features" (1f50ad7, 12 Aug) plus the fixes after it.
+# Bump deliberately, and re-test against a real server when you do — 3.0 and 3.1 do not interoperate:
+# a 3.0 build against a 3.1 server sends handshake initiations that are simply never answered.
+# Note the /v3 module path — AmneziaWG 3 raised the major version, so the import paths carry it too.
+$awgRef = 'b5928efb6ca19f0153958460c3d141f04abc5c2e'
 
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
@@ -37,6 +48,15 @@ Write-Host "Go: $(& $go version)" -ForegroundColor Cyan
 
 Push-Location $proj
 try {
+    if ($Sync) {
+        Write-Host "Pinning amneziawg-go to $awgRef ..." -ForegroundColor Cyan
+        & $go get "github.com/amnezia-vpn/amneziawg-go/v3@$awgRef"
+        if ($LASTEXITCODE -ne 0) { throw 'go get failed' }
+        & $go get "github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack@$awgRef"
+        if ($LASTEXITCODE -ne 0) { throw 'go get netstack failed' }
+        & $go mod tidy
+    }
+
     if ($Android) {
         # arm64 only, like every other core we ship: the phone build is arm64 and shipping
         # other ABIs would just be an app that dies the moment it tries to connect.

@@ -13,6 +13,21 @@ if (args.Length >= 2 && args[0] == "wgparse")
     return 0;
 }
 
+// UAPI-dump mode: `dotnet run -- wguapi <config-or-link-file> [out]` writes the document
+// amneziawg-go is handed, plus the address/dns/mtu awgproxy needs on its command line. The
+// point is to drive the real engine with the real builder rather than something typed by hand.
+if (args.Length >= 2 && args[0] == "wguapi")
+{
+    string raw = File.ReadAllText(args[1]).Trim();
+    if (!WireGuardParser.TryParse(raw, out var uw) || uw is null) { Console.WriteLine("PARSE FAILED"); return 1; }
+    string doc = WireGuardUapi.Build(uw);
+    if (args.Length >= 3) File.WriteAllText(args[2], doc); else Console.Write(doc);
+    // everything else awgproxy is told, on one line, so a script can read it off
+    Console.Error.WriteLine($"addr={string.Join(",", uw.Address)} dns={string.Join(",", uw.Dns)} "
+        + $"mtu={uw.Mtu?.ToString() ?? "-"} generation={uw.AwgGeneration} name={uw.Label}");
+    return 0;
+}
+
 // Config-dump mode: `dotnet run -- xraycfg "<share link>" [outpath]` writes the real generated
 // config so the bundled xray can be asked whether it accepts it. Reading a schema and matching
 // it are different things, and only the core settles which.
@@ -608,13 +623,38 @@ Check("uapi carries header protection", u3.Contains("\nheader_protection_key=001
 Check("uapi carries the 3.x timings",
     u3.Contains("\nrekey_after_time=120\n") && u3.Contains("\nkeepalive_timeout=20\n")
     && u3.Contains("\nmax_handshake_attempts=5\n"));
-// NOT sent, on purpose. The panel writes RandomTrailers and DisableCookies into the config, but
-// the engine has no such device keys at the 3.0 commit — and it does not ignore what it does not
-// know, it fails the whole IpcSet with "invalid UAPI device key". Sending them would break
-// precisely the 3.0 profiles this was written for. Parsed and kept, just not handed over.
-Check("uapi omits the keys the core rejects",
-    !u3.Contains("random_trailers=") && !u3.Contains("disable_cookies="));
-Check("but they are still parsed", a3.RandomTrailers == "1" && a3.DisableCookies == "1");
+// Both of these arrived in AmneziaWG 3.1. They do not exist in the 3.0 engine, where an unknown
+// key is not ignored but fails the whole IpcSet — so building against an older commit means
+// dropping them first. Verified against v3.1.20260828, which is what the build script pins.
+// They are also booleans the core reads with Go's ParseBool, while the panel writes them the ini
+// way — "on". Passing that through fails the whole config with «parsing "on": invalid syntax».
+// Found on a live server, right after the header key: two encodings wrong in the same section.
+Check("uapi carries the 3.1 flags",
+    u3.Contains("\nrandom_trailers=true\n") && u3.Contains("\ndisable_cookies=true\n"));
+var flagCfg = new WireGuardConfig
+{
+    PrivateKey = a3.PrivateKey, PeerPublicKey = a3.PeerPublicKey, Endpoint = a3.Endpoint,
+    AllowedIps = new() { "0.0.0.0/0" }, RandomTrailers = "on", DisableCookies = "off",
+};
+string flagDoc = WireGuardUapi.Build(flagCfg);
+Check("uapi turns ini \"on\" into a Go bool", flagDoc.Contains("\nrandom_trailers=true\n"));
+Check("uapi turns ini \"off\" into a Go bool", flagDoc.Contains("\ndisable_cookies=false\n"));
+
+// The header-protection key is 32 bytes written base64 by the panel, exactly like the WireGuard
+// keys — and exactly like them UAPI wants hex. Passing it through raw fails the whole config
+// with "invalid byte: U+004A", the engine choking on base64's alphabet. Found on a live server.
+string hpkB64 = Convert.ToBase64String(Enumerable.Range(0, 32).Select(i => (byte)i).ToArray());
+var hpkCfg = new WireGuardConfig
+{
+    PrivateKey = a3.PrivateKey, PeerPublicKey = a3.PeerPublicKey, Endpoint = a3.Endpoint,
+    AllowedIps = new() { "0.0.0.0/0" }, HeaderProtectionKey = hpkB64,
+};
+Check("uapi hex-encodes a base64 header key",
+    System.Text.RegularExpressions.Regex.IsMatch(WireGuardUapi.Build(hpkCfg),
+        "header_protection_key=000102030405"));
+hpkCfg.HeaderProtectionKey = new string('a', 64);   // already hex — must pass through untouched
+Check("uapi leaves a hex header key alone",
+    WireGuardUapi.Build(hpkCfg).Contains("header_protection_key=" + new string('a', 64)));
 Check("uapi peer comes after the device", u3.IndexOf("public_key=") > u3.IndexOf("jc="));
 Check("uapi endpoint and allowed ip",
     u3.Contains("\nendpoint=192.124.181.110:41166\n") && u3.Contains("allowed_ip=0.0.0.0/0"));
