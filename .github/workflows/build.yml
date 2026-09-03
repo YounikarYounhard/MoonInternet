@@ -152,6 +152,11 @@ jobs:
       # installer still builds — it just installs an app that cannot connect to anything.
       - name: Put the cores next to the app
         run: |
+          # Remove first: Copy-Item -Recurse into an EXISTING directory nests the source inside it
+          # (cores\cores) rather than merging, so a second run ships a duplicate of every engine and
+          # a newly added one never appears at all. A fresh runner has no such directory, which is
+          # why this only ever bit local builds.
+          if (Test-Path dist\app\cores) { Remove-Item dist\app\cores -Recurse -Force }
           Copy-Item cores dist\app\cores -Recurse -Force
           foreach ($e in 'xray\xray.exe', 'singbox\sing-box.exe', 'tun2socks\tun2socks.exe', 'awg\awgproxy.exe') {
             if (-not (Test-Path "dist\app\cores\$e")) { throw "core missing: $e" }

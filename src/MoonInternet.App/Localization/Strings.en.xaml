@@ -429,7 +429,6 @@
     <s:String x:Key="S_VM_220">The subscription has no servers</s:String>
     <s:String x:Key="S_VM_221">No server answers — not connecting</s:String>
     <s:String x:Key="S_VM_222">The clipboard is empty</s:String>
-    <s:String x:Key="S_VM_223">AmneziaWG is not supported — plain WireGuard only</s:String>
     <s:String x:Key="S_VM_224">AmneziaWG server imported</s:String>
     <s:String x:Key="S_VM_225">The clipboard holds no subscription link or servers</s:String>
     <s:String x:Key="S_VM_226">QR scanning is coming in an update — use "Paste from clipboard" for now</s:String>

@@ -399,7 +399,6 @@
     <s:String x:Key="S_VM_220">В подписке нет серверов</s:String>
     <s:String x:Key="S_VM_221">Ни один сервер не отвечает — подключение не начато</s:String>
     <s:String x:Key="S_VM_222">Буфер обмена пуст</s:String>
-    <s:String x:Key="S_VM_223">AmneziaWG не поддерживается — нужен обычный WireGuard</s:String>
     <s:String x:Key="S_VM_224">Импортирован сервер AmneziaWG</s:String>
     <s:String x:Key="S_VM_225">В буфере нет ссылки на подписку или серверов</s:String>
     <s:String x:Key="S_VM_226">Сканирование QR добавим в обновлении — пока используйте «Вставить из буфера»</s:String>

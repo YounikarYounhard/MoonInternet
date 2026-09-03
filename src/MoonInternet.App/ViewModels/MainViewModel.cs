@@ -2938,10 +2938,10 @@ public partial class MainViewModel : ObservableObject
             return;
         }
         // A full AmneziaWG config (vpn://… or a multi-line [Interface]/[Peer]) → one WG server.
+        // AmneziaWG used to be turned away here; it has an engine now (awgproxy) and connects
+        // through the same path as everything else, so there is nothing left to refuse.
         if (WireGuardParser.TryParseProfile(text, out var wgp) && wgp is not null)
         {
-            if (wgp.Wireguard is { IsAmnezia: true })
-            { Status = Localization.Loc.T("S_VM_223"); return; }
             var wsub = LooseSub();
             wsub.SetServers(Merge(wsub, new[] { wgp }));
             wsub.ApplySort(ServerSort);
