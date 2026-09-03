@@ -22,6 +22,7 @@ public sealed class ConnectionManager : IDisposable
 {
     private readonly XrayRunner _xray;
     private readonly SingBoxProxyRunner _singbox;
+    private readonly AwgProxyRunner _awg;
     private IProxyRunner _runner;                 // active core: xray, or sing-box for Hysteria2
     private bool _tunActive;
     private bool _userDisconnect;   // distinguishes intentional disconnect from a drop
@@ -74,8 +75,10 @@ public sealed class ConnectionManager : IDisposable
     {
         _xray = new XrayRunner(coresDir);
         _singbox = new SingBoxProxyRunner(coresDir);
+        _awg = new AwgProxyRunner(coresDir);
         _xray.ProcessExited += OnCoreDropped;
         _singbox.ProcessExited += OnCoreDropped;
+        _awg.ProcessExited += OnCoreDropped;
         _runner = _xray;
         // A tunnel left over from a previous run (crash, re-login, autostart) still routes everything into a port
         // that no longer exists → "connected but no internet". Clear it before we do anything else.
@@ -175,12 +178,14 @@ public sealed class ConnectionManager : IDisposable
         Set(ConnectionState.Connecting);
         try
         {
-            // WireGuard family, always TUN, never xray:
-            //  • plain WG  → sing-box (TUN + wireguard outbound + router) so Direct/Proxy/Block rules apply;
-            //  • AmneziaWG → amneziawg-go, the only engine that speaks its obfuscation (no router → tunnel all).
-            if (profile.Wireguard is { } wgc)
+            // The WireGuard family splits by whether it is obfuscated:
+            //  • plain WG  → sing-box (TUN + wireguard outbound + router), which already works;
+            //  • AmneziaWG → awgproxy, the only engine that speaks the obfuscation. It falls through
+            //    to the ordinary path below rather than getting one of its own: awgproxy exposes a
+            //    SOCKS port, so xray dials it exactly as it dials the Hysteria2 sing-box, and every
+            //    routing rule applies without being written a second time.
+            if (profile.Wireguard is { } wgc && !wgc.IsAmnezia)
             {
-                if (wgc.IsAmnezia) throw new InvalidOperationException("AmneziaWG не поддерживается — используйте обычный WireGuard или другой протокол");
                 await ConnectWgSingBoxAsync(profile, wgc, routing, ct);
                 return;
             }
@@ -212,7 +217,8 @@ public sealed class ConnectionManager : IDisposable
             // is a SOCKS into it. That way xray still does ALL the routing → one routing for every protocol, and
             // it works in system-proxy mode too. Non-Hysteria2 servers connect straight through xray as before.
             bool isHy2 = profile.Protocol == ProtocolType.Hysteria2;
-            IReadOnlyList<string> serverIps = (mode == TunnelMode.Tun || isHy2)
+            bool isAwg = profile.Wireguard is { IsAmnezia: true };
+            IReadOnlyList<string> serverIps = (mode == TunnelMode.Tun || isHy2 || isAwg)
                 ? await ResolveServerIpsAsync(profile.Address) : Array.Empty<string>();
             ct.ThrowIfCancellationRequested();
             var connectProfile = serverIps.Count > 0 ? profile.CloneForConnectIp(serverIps[0]) : profile;
@@ -224,6 +230,17 @@ public sealed class ConnectionManager : IDisposable
                 _singbox.Start(connectProfile, null, null);
                 if (!await WaitPortAsync(_singbox.SocksPort, ct)) throw new InvalidOperationException("hysteria2 core did not start");
                 xrayProfile = new OutboundProfile { Protocol = ProtocolType.Socks, Address = "127.0.0.1", Port = _singbox.SocksPort, Name = profile.Name };
+            }
+            else if (isAwg)
+            {
+                if (!_awg.CoreAvailable)
+                    throw new InvalidOperationException("Ядро AmneziaWG не найдено — переустановите приложение");
+                _awg.Start(profile.Wireguard!);
+                if (!await WaitPortAsync(_awg.SocksPort, ct))
+                    throw new InvalidOperationException("AmneziaWG не поднялся — проверьте конфигурацию");
+                _awg.DropSecrets();   // the core has read it; the private key need not stay on disk
+                RoutingNote = $"AmneziaWG {profile.Wireguard!.AwgGeneration}.x";
+                xrayProfile = new OutboundProfile { Protocol = ProtocolType.Socks, Address = "127.0.0.1", Port = _awg.SocksPort, Name = profile.Name };
             }
             _xray.Start(xrayProfile, routing, geoDir);
             if (!await WaitPortAsync(_xray.SocksPort, ct)) throw new InvalidOperationException("core did not open the local proxy port");
@@ -261,6 +278,7 @@ public sealed class ConnectionManager : IDisposable
             try { if (_tunActive) { TunClient.StopTun(); _tunActive = false; } } catch { }
             try { SystemProxy.Disable(); } catch { }
             _runner.Stop();
+            _awg.Stop();
             Current = null;
             if (State != ConnectionState.Disconnected) Set(ConnectionState.Disconnected);
         }
@@ -332,6 +350,7 @@ public sealed class ConnectionManager : IDisposable
         try { SystemProxy.Disable(); } catch { /* best effort */ }
         _xray.Stop();
         _singbox.Stop();
+        _awg.Stop();
         Current = null;
         Set(ConnectionState.Disconnected);
     }

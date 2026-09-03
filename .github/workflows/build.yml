@@ -61,6 +61,12 @@ jobs:
       # The signing key never lives in the repo. Without the secret the job still runs and
       # produces an unsigned APK — useful for a PR check, useless for installing over an
       # existing copy, so the step says so out loud.
+      # Same script, arm64 output. It lands in jniLibs as libawgproxy.so — an executable wearing a
+      # library's name, because Android only makes files under jniLibs runnable.
+      - name: Build libawgproxy.so
+        shell: pwsh
+        run: pwsh -File build/build-awgproxy.ps1 -Android -Sync
+
       - name: Unpack the signing key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -126,6 +132,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: powershell -ExecutionPolicy Bypass -File build\get-cores.ps1
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      # awgproxy is the one core we build rather than download: it is amneziawg-go (MIT) linked as
+      # a library behind a SOCKS5 listener of ours. -Sync pins the engine commit — see the script
+      # for why a tag will not do.
+      - name: Build awgproxy
+        run: powershell -ExecutionPolicy Bypass -File build\build-awgproxy.ps1 -Sync
+
       - name: Publish
         run: |
           dotnet publish src\MoonInternet.App        -c Release -r win-x64 --self-contained true -o dist\app
@@ -137,7 +153,7 @@ jobs:
       - name: Put the cores next to the app
         run: |
           Copy-Item cores dist\app\cores -Recurse -Force
-          foreach ($e in 'xray\xray.exe', 'singbox\sing-box.exe', 'tun2socks\tun2socks.exe') {
+          foreach ($e in 'xray\xray.exe', 'singbox\sing-box.exe', 'tun2socks\tun2socks.exe', 'awg\awgproxy.exe') {
             if (-not (Test-Path "dist\app\cores\$e")) { throw "core missing: $e" }
           }
           "{0:N0} MB of app" -f ((Get-ChildItem dist\app -Recurse -File |

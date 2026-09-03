@@ -35,13 +35,13 @@ $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 $proj = Join-Path $here 'awgproxy'
 
-# Go is not on PATH on this machine — see the build-environment note.
-$goRoot = if ($env:MOON_GO) { $env:MOON_GO }
-          elseif (Test-Path 'C:\moonbuild\go126\bin\go.exe') { 'C:\moonbuild\go126' }
-          elseif (Test-Path 'C:\moonbuild\go\bin\go.exe') { 'C:\moonbuild\go' }
-          else { $null }
-if (-not $goRoot) { throw 'Go not found. Set MOON_GO to a Go installation.' }
-$go = Join-Path $goRoot 'bin\go.exe'
+# On PATH in CI; not on PATH on the development machine, where it lives under C:\moonbuild.
+$go = if ($env:MOON_GO) { Join-Path $env:MOON_GO (Join-Path 'bin' 'go') }
+      elseif (Get-Command go -ErrorAction SilentlyContinue) { (Get-Command go).Source }
+      elseif (Test-Path 'C:\moonbuild\go126\bin\go.exe') { 'C:\moonbuild\go126\bin\go.exe' }
+      elseif (Test-Path 'C:\moonbuild\go\bin\go.exe') { 'C:\moonbuild\go\bin\go.exe' }
+      else { $null }
+if (-not $go) { throw 'Go not found. Put it on PATH or set MOON_GO.' }
 if (-not $env:GOPATH -and (Test-Path 'C:\moonbuild\gopath')) { $env:GOPATH = 'C:\moonbuild\gopath' }
 
 Write-Host "Go: $(& $go version)" -ForegroundColor Cyan

@@ -28,6 +28,44 @@ if (args.Length >= 2 && args[0] == "wguapi")
     return 0;
 }
 
+// AmneziaWG end-to-end: `dotnet run -- awgtunnel <config-or-link-file> [coresDir]`.
+// Exactly the chain ConnectionManager builds — awgproxy carries the tunnel, xray dials it as an
+// ordinary SOCKS outbound — so what this proves is what the app does, not an approximation.
+if (args.Length >= 2 && args[0] == "awgtunnel")
+{
+    if (!WireGuardParser.TryParse(File.ReadAllText(args[1]).Trim(), out var aw) || aw is null)
+    { Console.WriteLine("PARSE FAILED"); return 1; }
+    string awCores = Path.GetFullPath(args.Length >= 3 ? args[2] : Path.Combine(Directory.GetCurrentDirectory(), "cores"));
+
+    using var awg = new AwgProxyRunner(awCores);
+    if (!awg.CoreAvailable) { Console.WriteLine($"awgproxy not found under {awCores}"); return 1; }
+    awg.Start(aw);
+    bool up = false;
+    for (int i = 0; i < 30 && !up; i++)
+    { up = await Pinger.TcpLatencyAsync("127.0.0.1", awg.SocksPort, 400) >= 0; if (!up) await Task.Delay(200); }
+    if (!up) { Console.WriteLine("awgproxy did not open its port"); return 1; }
+    awg.DropSecrets();
+    Console.WriteLine($"awgproxy up on {awg.SocksPort}, generation {aw.AwgGeneration}, {aw.Label}");
+
+    // ...and now xray on top, which is where the routing comes from.
+    using var core = new XrayRunner(awCores);
+    if (!core.CoreAvailable) { Console.WriteLine("xray core not found"); return 1; }
+    core.Start(new OutboundProfile
+    {
+        Protocol = ProtocolType.Socks, Address = "127.0.0.1", Port = awg.SocksPort, Name = aw.Label ?? "AWG",
+    });
+    using var awHttp = new HttpClient(new HttpClientHandler
+        { Proxy = new System.Net.WebProxy($"socks5://127.0.0.1:{core.SocksPort}") })
+        { Timeout = TimeSpan.FromSeconds(20) };
+    string exitIp = "";
+    for (int t = 0; t < 8 && exitIp.Length == 0; t++)
+    { try { exitIp = (await awHttp.GetStringAsync("https://api.ipify.org")).Trim(); } catch { await Task.Delay(800); } }
+    core.Stop();
+    awg.Stop();
+    Console.WriteLine($"exit IP through the chain: {(exitIp.Length == 0 ? "(failed)" : exitIp)}");
+    return exitIp.Length == 0 ? 1 : 0;
+}
+
 // Config-dump mode: `dotnet run -- xraycfg "<share link>" [outpath]` writes the real generated
 // config so the bundled xray can be asked whether it accepts it. Reading a schema and matching
 // it are different things, and only the core settles which.
