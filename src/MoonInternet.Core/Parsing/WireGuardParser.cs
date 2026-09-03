@@ -122,6 +122,18 @@ public static class WireGuardParser
                     case "s1": wg.S1 = val; break; case "s2": wg.S2 = val; break; case "s3": wg.S3 = val; break; case "s4": wg.S4 = val; break;
                     case "h1": wg.H1 = val; break; case "h2": wg.H2 = val; break; case "h3": wg.H3 = val; break; case "h4": wg.H4 = val; break;
                     case "i1": wg.I1 = val; break; case "i2": wg.I2 = val; break; case "i3": wg.I3 = val; break; case "i4": wg.I4 = val; break; case "i5": wg.I5 = val; break;
+                    // AmneziaWG 3.x. 3x-ui writes these into the client config now; reading the
+                    // file and dropping them produced a 2.0 profile that still connects, so the
+                    // protection would have gone quietly.
+                    case "headerprotectionkey": wg.HeaderProtectionKey = val; break;
+                    case "contentpaddingaddition": wg.ContentPaddingAddition = val; break;
+                    case "rekeyaftertime": wg.RekeyAfterTime = val; break;
+                    case "rekeytimeout": wg.RekeyTimeout = val; break;
+                    case "rejectaftertime": wg.RejectAfterTime = val; break;
+                    case "keepalivetimeout": wg.KeepaliveTimeout = val; break;
+                    case "maxhandshakeattempts": wg.MaxHandshakeAttempts = val; break;
+                    case "randomtrailers": wg.RandomTrailers = val; break;
+                    case "disablecookies": wg.DisableCookies = val; break;
                 }
             else if (section == "peer")
                 switch (key)

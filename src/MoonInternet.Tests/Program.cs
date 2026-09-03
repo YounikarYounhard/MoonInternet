@@ -555,6 +555,46 @@ Check("wg valid", wg.IsValid);
 // no longer exists — which is why nothing in this project has compiled since 0.9.0.
 Check("wg rejects garbage", !WireGuardParser.TryParse("vless://x@y:1", out _));
 
+// AmneziaWG 3.x. The panel writes these into the client config now, and a parser that drops
+// them yields a profile that still connects — as a 2.0 one, with the header protection quietly
+// gone. Generations are additive, which is why "do 3.0 and the rest is 3.0 with the protection
+// switched off" is the right way round: a 3.x engine runs a 1.x or 2.0 config unchanged.
+string awg3 = string.Join("\n", new[]
+{
+    "[Interface]",
+    "PrivateKey = FM74qJ0aM4jP7z0Zx0aQqk0m3iC1p0Xk9Yb4d1L0aVk=",
+    "Address = 10.8.1.3/32",
+    "Jc = 5", "S1 = 128", "H1 = 1000-2000",
+    "I1 = <b 0x85800001><r 2>",
+    "HeaderProtectionKey = 0011223344556677889900aabbccddeeff00112233445566778899aabbccddeeff",
+    "ContentPaddingAddition = 50-100",
+    "RekeyAfterTime = 120", "KeepaliveTimeout = 20", "MaxHandshakeAttempts = 5",
+    "RandomTrailers = 1", "DisableCookies = 1",
+    "[Peer]",
+    "PublicKey = DDIa0Yb4d1L0aVk3iC1p0Xk9Yb4d1L0aVk0m3iC1p0X=",
+    "Endpoint = 192.124.181.110:41166",
+});
+Check("awg3 parses", WireGuardParser.TryParse(awg3, out var a3) && a3 is not null);
+Check("awg3 header protection kept", a3!.HeaderProtectionKey!.StartsWith("00112233"));
+Check("awg3 padding kept", a3.ContentPaddingAddition == "50-100");
+Check("awg3 timings kept", a3.RekeyAfterTime == "120" && a3.KeepaliveTimeout == "20" && a3.MaxHandshakeAttempts == "5");
+Check("awg3 flags kept", a3.RandomTrailers == "1" && a3.DisableCookies == "1");
+Check("awg3 reads as generation 3", a3.AwgGeneration == 3);
+
+// And the older shapes still read as what they are.
+string plainIni = string.Join("\n", new[]
+{
+    "[Interface]",
+    "PrivateKey = FM74qJ0aM4jP7z0Zx0aQqk0m3iC1p0Xk9Yb4d1L0aVk=",
+    "Address = 10.0.0.2/32",
+    "[Peer]",
+    "PublicKey = DDIa0Yb4d1L0aVk3iC1p0Xk9Yb4d1L0aVk0m3iC1p0X=",
+    "Endpoint = 1.2.3.4:51820",
+});
+Check("plain wg is generation 0",
+    WireGuardParser.TryParse(plainIni, out var plain) && plain!.AwgGeneration == 0 && !plain.IsAmnezia);
+Check("awg with only junk knobs is generation 1", wg!.AwgGeneration is 1 or 2);
+
 // --- PortFinder ---
 int p1 = PortFinder.Free();
 Check("portfinder in range", p1 is > 0 and <= 65535);
