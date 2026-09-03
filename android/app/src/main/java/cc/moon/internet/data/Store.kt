@@ -466,7 +466,13 @@ internal fun orderServers(
     // for it in thirty others while it is live is the whole complaint.
     val pinned = { s: ServerProfile -> if (activeRaw != null && s.key == activeRaw) 0 else 1 }
     val fav = { s: ServerProfile -> if (s.key in favorites) 0 else 1 }
-    val kept = if (protocol.isEmpty()) list else list.filter { it.protocolLabel == protocol }
+    // A filter naming a protocol that is no longer in the list would hide EVERY server and leave
+    // no chip highlighted, so the app looks empty for no stated reason. That happens whenever the
+    // list changes under a chosen filter — a subscription deleted, or a protocol renamed, which is
+    // exactly what renaming WireGuard to AmneziaWG did. Show everything instead of nothing.
+    val kept =
+        if (protocol.isEmpty() || list.none { it.protocolLabel == protocol }) list
+        else list.filter { it.protocolLabel == protocol }
     return when (sort) {
         "ping" -> kept.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
         "name" -> kept.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))

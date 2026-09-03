@@ -194,6 +194,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(TrayServers));
         OnPropertyChanged(nameof(Protocols));
         OnPropertyChanged(nameof(FilterChips));
+        DropStaleFilter();
     }
 
     [ObservableProperty]
@@ -1460,6 +1461,17 @@ public partial class MainViewModel : ObservableObject
     }
 
     [ObservableProperty][NotifyPropertyChangedFor(nameof(Search))] private string filter = "Все";
+
+    /// <summary>
+    /// A filter naming a protocol that is no longer in the list hides EVERY server and highlights
+    /// no chip, so the app looks empty for no stated reason. That happens whenever the list changes
+    /// under a chosen filter — a subscription deleted, or a protocol renamed, which is exactly what
+    /// renaming WireGuard to AmneziaWG did. Fall back to "Все" instead of showing nothing.
+    /// </summary>
+    private void DropStaleFilter()
+    {
+        if (Filter != "Все" && !Protocols.Contains(Filter)) Filter = "Все";
+    }
     [ObservableProperty] private string search = "";
 
     [ObservableProperty]

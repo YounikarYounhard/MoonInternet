@@ -207,6 +207,13 @@ class CoreLogicTest {
         val only3 = cc.moon.internet.data.orderServers(
             list, emptyMap(), emptyList(), "default", "AmneziaWG 3.1", null)
         assertEquals(1, only3.size)
+
+        // A filter naming something no longer in the list shows everything, not nothing. The
+        // filter is remembered across runs, so renaming a protocol — or deleting the subscription
+        // that had it — used to empty every list with no chip selected to explain why.
+        val stale = cc.moon.internet.data.orderServers(
+            list, emptyMap(), emptyList(), "default", "AmneziaWG 3.x", null)
+        assertEquals(list.size, stale.size)
     }
 
     @Test

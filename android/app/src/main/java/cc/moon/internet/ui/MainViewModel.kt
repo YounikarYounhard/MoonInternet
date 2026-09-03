@@ -216,6 +216,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { vpnError.filterNotNull().collect { _status.value = it } }
         viewModelScope.launch { autoPingLoop() }
         viewModelScope.launch { autoUpdateSubsLoop() }
+        // The filter is remembered across runs, so a stale one survives a rename or a deleted
+        // subscription. orderServers already refuses to empty the list over it, but the chip row
+        // would still show nothing selected — so drop it once the servers are known.
+        viewModelScope.launch {
+            store.ready.first { it }
+            val chosen = store.state.value.protocol
+            if (chosen.isNotEmpty() && store.allServers.none { it.protocolLabel == chosen }) {
+                store.update { it.copy(protocol = "") }
+            }
+        }
     }
 
     /**
