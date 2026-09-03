@@ -762,7 +762,7 @@ Check("awg3 uapi renames the fields the core way",
 Check("plain wireguard is called WireGuard", plain!.ProtocolLabel == "WireGuard");
 Check("generation 1 is named", new WireGuardConfig { Jc = "5" }.ProtocolLabel == "AmneziaWG 1.0");
 Check("generation 2 is named", new WireGuardConfig { Jc = "5", I1 = "<b 0x01>" }.ProtocolLabel == "AmneziaWG 2.0");
-Check("generation 3 is named", a3.ProtocolLabel == "AmneziaWG 3.x");
+Check("generation 3 is named", a3.ProtocolLabel == "AmneziaWG 3.1");
 
 // The whole subscription, the way the app receives it: base64 of a list of links, three of them
 // AmneziaWG and one VLESS. This is the path that was silently dropping every AmneziaWG entry.

@@ -81,12 +81,13 @@ data class ServerProfile(
             // where you want them apart. The generation is part of the name because it decides
             // what a server can talk to.
             //
-            // "3.x" and not "3.0" on purpose: 3.0 and 3.1 carry the identical set of config
-            // fields, so a config cannot tell you which of the two it was written for.
+            // The number on generation 3 is the version we SPEAK, not one read from the config:
+            // 3.0 and 3.1 carry an identical set of fields. We ship the 3.1 engine and every
+            // generation-3 profile runs on it — same as the Amnezia client shows.
             Protocol.WIREGUARD -> when (wg?.awgGeneration ?: 0) {
                 1 -> "AmneziaWG 1.0"
                 2 -> "AmneziaWG 2.0"
-                3 -> "AmneziaWG 3.x"
+                3 -> "AmneziaWG 3.1"
                 else -> "WireGuard"
             }
             Protocol.SOCKS -> "SOCKS"

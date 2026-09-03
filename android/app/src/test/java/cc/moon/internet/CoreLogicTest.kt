@@ -197,7 +197,7 @@ class CoreLogicTest {
         assertEquals("WireGuard", profile().protocolLabel)
         assertEquals("AmneziaWG 1.0", profile("jc" to "5").protocolLabel)
         assertEquals("AmneziaWG 2.0", profile("jc" to "5", "i1" to "<b 0x01>").protocolLabel)
-        assertEquals("AmneziaWG 3.x", profile("jc" to "5", "hpk" to "00ff").protocolLabel)
+        assertEquals("AmneziaWG 3.1", profile("jc" to "5", "hpk" to "00ff").protocolLabel)
 
         // ...and the protocol filter keeps them apart, because it filters on that same label.
         val list = listOf(profile(), profile("jc" to "5"), profile("jc" to "5", "hpk" to "00ff"))
@@ -205,7 +205,7 @@ class CoreLogicTest {
             list, emptyMap(), emptyList(), "default", "WireGuard", null)
         assertEquals(1, onlyPlain.size)
         val only3 = cc.moon.internet.data.orderServers(
-            list, emptyMap(), emptyList(), "default", "AmneziaWG 3.x", null)
+            list, emptyMap(), emptyList(), "default", "AmneziaWG 3.1", null)
         assertEquals(1, only3.size)
     }
 

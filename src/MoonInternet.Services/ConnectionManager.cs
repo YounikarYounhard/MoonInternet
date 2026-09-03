@@ -239,7 +239,7 @@ public sealed class ConnectionManager : IDisposable
                 if (!await WaitPortAsync(_awg.SocksPort, ct))
                     throw new InvalidOperationException("AmneziaWG не поднялся — проверьте конфигурацию");
                 _awg.DropSecrets();   // the core has read it; the private key need not stay on disk
-                RoutingNote = $"AmneziaWG {profile.Wireguard!.AwgGeneration}.x";
+                RoutingNote = profile.Wireguard!.ProtocolLabel;   // the one place these are named
                 xrayProfile = new OutboundProfile { Protocol = ProtocolType.Socks, Address = "127.0.0.1", Port = _awg.SocksPort, Name = profile.Name };
             }
             _xray.Start(xrayProfile, routing, geoDir);

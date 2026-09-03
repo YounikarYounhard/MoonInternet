@@ -47,8 +47,10 @@ public sealed class WireGuardConfig
     /// different handshake, different engine, and a server speaking one will not answer the other —
     /// so the two are named apart, which is also what keeps them apart in the protocol filter.
     ///
-    /// "3.x" and not "3.0" on purpose: the two carry the identical set of config fields, so a
-    /// config cannot tell you which of them it was written for.
+    /// The number on generation 3 is the version we SPEAK, not one read from the config: 3.0 and
+    /// 3.1 carry an identical set of fields, so a config cannot say which it was written for. We
+    /// ship the 3.1 engine and every generation-3 profile runs on it, which is what the Amnezia
+    /// client shows too — so 3.1 is both the useful answer and a true one.
     ///
     /// It lives here rather than in the view model because the Android build has to say the same
     /// words, and because here it can be checked.
@@ -57,7 +59,7 @@ public sealed class WireGuardConfig
     {
         1 => "AmneziaWG 1.0",
         2 => "AmneziaWG 2.0",
-        3 => "AmneziaWG 3.x",
+        3 => "AmneziaWG 3.1",
         _ => "WireGuard",
     };
 
