@@ -595,6 +595,32 @@ Check("plain wg is generation 0",
     WireGuardParser.TryParse(plainIni, out var plain) && plain!.AwgGeneration == 0 && !plain.IsAmnezia);
 Check("awg with only junk knobs is generation 1", wg!.AwgGeneration is 1 or 2);
 
+// The UAPI document amneziawg-go is handed. It is not the .conf file: keys are lower_snake_case,
+// base64 keys become hex, a peer starts at the first public_key=, and it ends on a blank line.
+// The names come from device/uapi.go rather than the file spelling — the two differ.
+string u3 = WireGuardUapi.Build(a3);
+Check("uapi private_key is 64 hex", System.Text.RegularExpressions.Regex.IsMatch(u3, "private_key=[0-9a-f]{64}\n"));
+Check("uapi public_key is 64 hex", System.Text.RegularExpressions.Regex.IsMatch(u3, "public_key=[0-9a-f]{64}\n"));
+Check("uapi ends on a blank line", u3.EndsWith("\n\n"));
+Check("uapi carries the 1.x knobs", u3.Contains("\njc=5\n") && u3.Contains("\ns1=128\n") && u3.Contains("\nh1=1000-2000\n"));
+Check("uapi carries the 2.0 chain", u3.Contains("\ni1=<b 0x85800001><r 2>\n"));
+Check("uapi carries header protection", u3.Contains("\nheader_protection_key=00112233"));
+Check("uapi carries the 3.x timings",
+    u3.Contains("\nrekey_after_time=120\n") && u3.Contains("\nkeepalive_timeout=20\n")
+    && u3.Contains("\nmax_handshake_attempts=5\n"));
+Check("uapi carries the 3.x flags", u3.Contains("\nrandom_trailers=1\n") && u3.Contains("\ndisable_cookies=1\n"));
+Check("uapi peer comes after the device", u3.IndexOf("public_key=") > u3.IndexOf("jc="));
+Check("uapi endpoint and allowed ip",
+    u3.Contains("\nendpoint=192.124.181.110:41166\n") && u3.Contains("allowed_ip=0.0.0.0/0"));
+
+// A plain WireGuard profile produces the same document minus every knob — one builder, not three,
+// because the generations are additive and the core reads a short document happily.
+string u0 = WireGuardUapi.Build(plain!);
+Check("plain uapi has no awg knobs",
+    !u0.Contains("jc=") && !u0.Contains("i1=") && !u0.Contains("header_protection_key="));
+Check("plain uapi still has the essentials",
+    u0.Contains("private_key=") && u0.Contains("public_key=") && u0.Contains("endpoint=1.2.3.4:51820"));
+
 // --- PortFinder ---
 int p1 = PortFinder.Free();
 Check("portfinder in range", p1 is > 0 and <= 65535);
