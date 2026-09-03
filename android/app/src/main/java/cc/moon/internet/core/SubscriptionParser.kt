@@ -26,6 +26,12 @@ object SubscriptionParser {
             .forEach { line ->
                 // routing links (happ://routing/add/… , incy://routing/add/…) are handled elsewhere
                 if (line.startsWith("happ://", true) || line.startsWith("incy://", true)) return@forEach
+                // AmneziaWG arrives as vpn://, which ShareLinkParser knows nothing about — so a
+                // subscription carrying it used to deliver only the other protocols, silently.
+                if (WireGuardParser.isWireGuardLink(line)) {
+                    WireGuardParser.parseProfile(line)?.let { servers += it }
+                    return@forEach
+                }
                 val p = ShareLinkParser.parse(line) ?: return@forEach
                 if (p.address.lowercase() in placeholderHosts) {
                     if (p.name.isNotBlank()) notes += p.name.trim()

@@ -304,6 +304,13 @@ object XrayConfig {
                 .put("address", s.address)
                 .put("port", s.port)
 
+            // WireGuard/AmneziaWG never reaches xray as itself: awgproxy holds the tunnel and this
+            // outbound is a SOCKS dial into it on loopback. Doing it this way is what hands
+            // AmneziaWG the whole routing table without any of it being written a second time.
+            Protocol.WIREGUARD -> JSONObject().put("servers", JSONArray().put(
+                JSONObject().put("address", "127.0.0.1")
+                    .put("port", cc.moon.internet.vpn.AwgRunner.PORT)))
+
             else -> throw IllegalArgumentException("${s.protocolLabel} не поддерживается ядром xray")
         })
 
@@ -580,12 +587,17 @@ object XrayConfig {
         Protocol.SHADOWSOCKS -> "shadowsocks"
         Protocol.SOCKS -> "socks"
         Protocol.HYSTERIA2 -> "hysteria"   // xray names it without the version
+        // Not "wireguard": xray never speaks it. awgproxy holds the tunnel and this outbound is a
+        // SOCKS dial into it, which is what lends AmneziaWG the whole routing table for free.
+        Protocol.WIREGUARD -> "socks"
         else -> p.name.lowercase()
     }
 
     /** Protocols the xray core can actually dial — the rest are hidden from the picker. */
+    // WireGuard is on the list because AmneziaWG now has an engine: awgproxy carries the tunnel
+    // and xray dials it as a plain SOCKS outbound, so from here it is just another server.
     fun supports(p: Protocol) = p in setOf(
         Protocol.VLESS, Protocol.VMESS, Protocol.TROJAN, Protocol.SHADOWSOCKS,
-        Protocol.SOCKS, Protocol.HYSTERIA2,
+        Protocol.SOCKS, Protocol.HYSTERIA2, Protocol.WIREGUARD,
     )
 }

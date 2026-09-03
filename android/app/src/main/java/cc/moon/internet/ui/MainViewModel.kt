@@ -868,6 +868,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // flag + label: the notification headline, same as INCY's
             getApplication(), config, (flagOf(s) + " " + s.label).trim(),
             tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
+            // AmneziaWG needs its own engine up before the core; the service starts it.
+            awgConfig = if (s.wg?.isAmnezia == true) s.raw else null,
         )
     }
 

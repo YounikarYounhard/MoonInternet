@@ -33,6 +33,8 @@ class MoonVpnService : VpnService() {
         const val EXTRA_TUN = "tun"
         /** Strategy id when this is the запрет mode; absent means an ordinary tunnel. */
         const val EXTRA_ZAPRET = "zapret"
+        /** The AmneziaWG config text, when the chosen server is one. */
+        const val EXTRA_AWG = "awg"
         const val ACTION_RECONNECT = "cc.moon.internet.RECONNECT"
         const val ACTION_PING = "cc.moon.internet.PING"
         const val ACTION_PAUSE = "cc.moon.internet.PAUSE"
@@ -43,6 +45,7 @@ class MoonVpnService : VpnService() {
         @Volatile private var lastMtu: Int = 1500
         @Volatile private var lastTun: Boolean = true
         @Volatile private var lastZapret: String? = null
+        @Volatile private var lastAwg: String? = null
         @Volatile private var lastAppMode: String = "off"
         @Volatile private var lastApps: List<String> = emptyList()
 
@@ -107,6 +110,7 @@ class MoonVpnService : VpnService() {
             ctx: Context, config: String, profileName: String, mtu: Int = 1500,
             tun: Boolean = true, perAppMode: String = "off", perApps: List<String> = emptyList(),
             zapretStrategy: String? = null,
+            awgConfig: String? = null,
         ) {
             androidx.core.content.ContextCompat.startForegroundService(
                 ctx,
@@ -119,6 +123,7 @@ class MoonVpnService : VpnService() {
                 putExtra(EXTRA_APPS, perApps.toTypedArray())
                 putExtra(EXTRA_TUN, tun)
                 putExtra(EXTRA_ZAPRET, zapretStrategy)
+                putExtra(EXTRA_AWG, awgConfig)
             },
             )
         }
@@ -141,6 +146,7 @@ class MoonVpnService : VpnService() {
     @Volatile private var intentionalStop = false
     @Volatile private var reconnecting = false
     private val byedpi by lazy { ByedpiRunner(this) }
+    private val awgRunner by lazy { AwgRunner(this) }
     // see the companion: one clock, shared with the UI
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -167,7 +173,7 @@ class MoonVpnService : VpnService() {
                 val cfg = lastConfig
                 if (cfg.isNullOrBlank()) { stopSelf(); return START_NOT_STICKY }
                 // a paused tunnel closed its fd; startTunnel builds a fresh one
-                startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret)
+                startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret, lastAwg)
             }
 
             ACTION_PING -> {
@@ -188,6 +194,7 @@ class MoonVpnService : VpnService() {
                     intent.getStringArrayExtra(EXTRA_APPS)?.toList().orEmpty(),
                     intent.getBooleanExtra(EXTRA_TUN, true),
                     intent.getStringExtra(EXTRA_ZAPRET),
+                    intent.getStringExtra(EXTRA_AWG),
                 )
             }
         }
@@ -196,14 +203,14 @@ class MoonVpnService : VpnService() {
 
     private fun startTunnel(
         config: String, profileName: String, mtu: Int, appMode: String, apps: List<String>,
-        tun: Boolean = true, zapret: String? = null,
+        tun: Boolean = true, zapret: String? = null, awg: String? = null,
     ) {
         _state.value = State.Connecting
         _activeProfile.value = profileName
         lastError.value = null
         linkDead.value = false
         lastConfig = config; lastProfile = profileName; lastMtu = mtu
-        lastTun = tun; lastAppMode = appMode; lastApps = apps; lastZapret = zapret
+        lastTun = tun; lastAppMode = appMode; lastApps = apps; lastZapret = zapret; lastAwg = awg
         startForeground(NOTIFICATION_ID, notification(profileName, connecting = true))
 
         // One connect at a time. Tapping through the server list hunting for a working one sends
@@ -242,6 +249,20 @@ class MoonVpnService : VpnService() {
                         _state.value = State.Disconnected
                         stopTunnel()
                         return@launch
+                    }
+                }
+
+                // AmneziaWG: awgproxy carries the tunnel and xray's proxy outbound is a SOCKS dial
+                // into it, so it has to be listening before the core starts — same order as byedpi.
+                if (awg != null) {
+                    val wg = cc.moon.internet.core.WireGuardParser.parse(awg)
+                    if (wg == null) {
+                        lastError.value = "Конфигурация AmneziaWG не читается"
+                        _state.value = State.Disconnected; stopTunnel(); return@launch
+                    }
+                    awgRunner.start(wg)?.let { why ->
+                        lastError.value = why
+                        _state.value = State.Disconnected; stopTunnel(); return@launch
                     }
                 }
 
@@ -364,6 +385,7 @@ class MoonVpnService : VpnService() {
     private fun stopCore() {
         intentionalStop = true
         runCatching { byedpi.stop() }
+        runCatching { awgRunner.stop() }
         runCatching { runner?.stop() }
         runner = null
         runCatching { tunFd?.close() }
@@ -395,7 +417,7 @@ class MoonVpnService : VpnService() {
                 repeat(5) {
                     kotlinx.coroutines.delay(st.reconnectDelaySec.coerceIn(1, 60) * 1000L)
                     if (intentionalStop) return@launch
-                    startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret)
+                    startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret, lastAwg)
                     // startTunnel is itself async; give it room to land before judging it
                     kotlinx.coroutines.delay(6000)
                     if (_state.value == State.Connected) return@launch

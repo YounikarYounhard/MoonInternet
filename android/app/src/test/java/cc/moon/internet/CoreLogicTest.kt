@@ -165,9 +165,30 @@ class CoreLogicTest {
     }
 
     @Test
-    fun `unsupported protocols are refused instead of producing a broken config`() {
-        assertFalse(XrayConfig.supports(Protocol.WIREGUARD))
+    fun `the picker offers what the core can actually dial`() {
         assertTrue(XrayConfig.supports(Protocol.HYSTERIA2))
         assertTrue(XrayConfig.supports(Protocol.VLESS))
+        // WireGuard used to be refused here because nothing could carry it. awgproxy does now, and
+        // xray reaches it as an ordinary SOCKS outbound — which is what lends AmneziaWG the same
+        // routing as everything else rather than a second implementation of it.
+        assertTrue(XrayConfig.supports(Protocol.WIREGUARD))
+    }
+
+    @Test
+    fun `an AmneziaWG server becomes a socks dial into awgproxy`() {
+        val wg = ServerProfile(
+            raw = "vpn://x", name = "AWG", protocol = Protocol.WIREGUARD,
+            address = "1.2.3.4", port = 51820,
+            wg = cc.moon.internet.core.WireGuardConfig(
+                privateKey = "aGVsbG8=", peerPublicKey = "d29ybGQ=", endpoint = "1.2.3.4:51820",
+                address = listOf("10.8.1.2/32"), jc = "5", h1 = "1",
+            ),
+        )
+        val out = JSONObject(XrayConfig.build(server = wg, routing = null, dns = "1.1.1.1"))
+            .getJSONArray("outbounds").getJSONObject(0)
+        assertEquals("socks", out.getString("protocol"))
+        val target = out.getJSONObject("settings").getJSONArray("servers").getJSONObject(0)
+        assertEquals("127.0.0.1", target.getString("address"))
+        assertEquals(cc.moon.internet.vpn.AwgRunner.PORT, target.getInt("port"))
     }
 }

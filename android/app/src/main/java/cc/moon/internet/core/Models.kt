@@ -133,9 +133,53 @@ data class WireGuardConfig(
     val endpoint: String = "",
     val persistentKeepalive: Int = 25,
     val mtu: Int = 0,
+    /** The name, which for a panel-written config lives in a leading `#` comment. */
+    val label: String? = null,
+    // AmneziaWG 1.x: junk packets and the magic header values. Strings throughout — H1-H4 may be
+    // ranges ("1000-2000") and I1-I5 are free-form tag chains.
+    val jc: String? = null, val jmin: String? = null, val jmax: String? = null,
+    val s1: String? = null, val s2: String? = null, val s3: String? = null, val s4: String? = null,
+    val h1: String? = null, val h2: String? = null, val h3: String? = null, val h4: String? = null,
+    // 2.0: the signature chain sent ahead of a handshake so the flow opens like something else.
+    val i1: String? = null, val i2: String? = null, val i3: String? = null,
+    val i4: String? = null, val i5: String? = null,
+    // 3.x: header protection proper, plus the timings that used to be constants.
+    val headerProtectionKey: String? = null,
+    val contentPaddingAddition: String? = null,
+    val rekeyAfterTime: String? = null, val rekeyTimeout: String? = null,
+    val rejectAfterTime: String? = null, val keepaliveTimeout: String? = null,
+    val maxHandshakeAttempts: String? = null,
+    val randomTrailers: String? = null, val disableCookies: String? = null,
 ) {
     val endpointHost: String get() = endpoint.substringBeforeLast(':', endpoint)
     val endpointPort: Int get() = endpoint.substringAfterLast(':', "51820").toIntOrNull() ?: 51820
+    val isValid: Boolean get() = privateKey.isNotEmpty() && peerPublicKey.isNotEmpty() && ':' in endpoint
+
+    /**
+     * Which AmneziaWG generation this profile was written for: 0 plain WireGuard, 1 the original
+     * junk-and-magic-headers set, 2 once I1-I5 appear, 3 once the fields added in 3.x do.
+     *
+     * Generations are additive — a 3.x engine runs a 1.x or 2.0 config unchanged — which is why
+     * there is one code path and not three. J1-J3 and Itime are deliberately absent: they existed
+     * in 1.5 only and were dropped in 2.0.
+     */
+    val awgGeneration: Int
+        get() = when {
+            !headerProtectionKey.isNullOrEmpty() || !contentPaddingAddition.isNullOrEmpty() ||
+                !rekeyAfterTime.isNullOrEmpty() || !rekeyTimeout.isNullOrEmpty() ||
+                !rejectAfterTime.isNullOrEmpty() || !keepaliveTimeout.isNullOrEmpty() ||
+                !maxHandshakeAttempts.isNullOrEmpty() || !randomTrailers.isNullOrEmpty() ||
+                !disableCookies.isNullOrEmpty() -> 3
+            !i1.isNullOrEmpty() || !i2.isNullOrEmpty() || !i3.isNullOrEmpty() ||
+                !i4.isNullOrEmpty() || !i5.isNullOrEmpty() -> 2
+            !jc.isNullOrEmpty() || !jmin.isNullOrEmpty() || !jmax.isNullOrEmpty() ||
+                !s1.isNullOrEmpty() || !s2.isNullOrEmpty() || !s3.isNullOrEmpty() ||
+                !s4.isNullOrEmpty() || !h1.isNullOrEmpty() || !h2.isNullOrEmpty() ||
+                !h3.isNullOrEmpty() || !h4.isNullOrEmpty() -> 1
+            else -> 0
+        }
+
+    val isAmnezia: Boolean get() = awgGeneration > 0
 }
 
 /** Direct / Proxy / Block rules — the same shape the desktop app imports from HAPP/INCY. */
