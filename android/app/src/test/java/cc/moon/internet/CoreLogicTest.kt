@@ -175,6 +175,41 @@ class CoreLogicTest {
     }
 
     @Test
+    fun `AmneziaWG is named apart from WireGuard, generation and all`() {
+        fun profile(vararg knobs: Pair<String, String>): ServerProfile {
+            var wg = cc.moon.internet.core.WireGuardConfig(
+                privateKey = "aGVsbG8=", peerPublicKey = "d29ybGQ=", endpoint = "1.2.3.4:51820",
+            )
+            for ((k, v) in knobs) wg = when (k) {
+                "jc" -> wg.copy(jc = v)
+                "i1" -> wg.copy(i1 = v)
+                "hpk" -> wg.copy(headerProtectionKey = v)
+                else -> wg
+            }
+            return ServerProfile(
+                raw = "vpn://x", name = "n", protocol = Protocol.WIREGUARD,
+                address = "1.2.3.4", port = 51820, wg = wg,
+            )
+        }
+        // Built on WireGuard, but not it: different handshake, different engine, and a server
+        // speaking one will not answer the other. The generation is part of the name because it
+        // decides what a server can talk to.
+        assertEquals("WireGuard", profile().protocolLabel)
+        assertEquals("AmneziaWG 1.0", profile("jc" to "5").protocolLabel)
+        assertEquals("AmneziaWG 2.0", profile("jc" to "5", "i1" to "<b 0x01>").protocolLabel)
+        assertEquals("AmneziaWG 3.x", profile("jc" to "5", "hpk" to "00ff").protocolLabel)
+
+        // ...and the protocol filter keeps them apart, because it filters on that same label.
+        val list = listOf(profile(), profile("jc" to "5"), profile("jc" to "5", "hpk" to "00ff"))
+        val onlyPlain = cc.moon.internet.data.orderServers(
+            list, emptyMap(), emptyList(), "default", "WireGuard", null)
+        assertEquals(1, onlyPlain.size)
+        val only3 = cc.moon.internet.data.orderServers(
+            list, emptyMap(), emptyList(), "default", "AmneziaWG 3.x", null)
+        assertEquals(1, only3.size)
+    }
+
+    @Test
     fun `an AmneziaWG server becomes a socks dial into awgproxy`() {
         val wg = ServerProfile(
             raw = "vpn://x", name = "AWG", protocol = Protocol.WIREGUARD,

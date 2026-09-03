@@ -75,7 +75,20 @@ data class ServerProfile(
             Protocol.TROJAN -> "Trojan"
             Protocol.SHADOWSOCKS -> "SS"
             Protocol.HYSTERIA2 -> "Hysteria2"
-            Protocol.WIREGUARD -> "WireGuard"
+            // AmneziaWG is built on WireGuard but is not it: different handshake, different
+            // engine, and a server that speaks one will not answer the other. Calling both
+            // "WireGuard" also lumped them together in the protocol filter, which is exactly
+            // where you want them apart. The generation is part of the name because it decides
+            // what a server can talk to.
+            //
+            // "3.x" and not "3.0" on purpose: 3.0 and 3.1 carry the identical set of config
+            // fields, so a config cannot tell you which of the two it was written for.
+            Protocol.WIREGUARD -> when (wg?.awgGeneration ?: 0) {
+                1 -> "AmneziaWG 1.0"
+                2 -> "AmneziaWG 2.0"
+                3 -> "AmneziaWG 3.x"
+                else -> "WireGuard"
+            }
             Protocol.SOCKS -> "SOCKS"
         }
 

@@ -56,9 +56,14 @@ public partial class ServerItem : ObservableObject
     {
         ProtocolType.Vless => "VLESS", ProtocolType.Vmess => "VMess", ProtocolType.Trojan => "Trojan",
         ProtocolType.Shadowsocks => "SS", ProtocolType.Hysteria2 => "Hysteria2", ProtocolType.Socks => "SOCKS",
-        // AmneziaWG = WireGuard + obfuscation params (junk packets Jc/Jmin/Jmax, magic headers S1/H1…). No params = plain WG.
-        ProtocolType.Wireguard => Profile.Wireguard is { } w
-            && (!string.IsNullOrEmpty(w.Jc) || !string.IsNullOrEmpty(w.S1) || !string.IsNullOrEmpty(w.H1)) ? "AmneziaWG" : "WireGuard",
+        // AmneziaWG is built on WireGuard but is not it: different handshake, different engine, and
+        // a server speaking one will not answer the other. The generation is part of the name
+        // because it decides what a server can talk to — and because these are separate entries in
+        // the protocol filter, which is where you want them apart.
+        //
+        // "3.x" and not "3.0" on purpose: 3.0 and 3.1 carry the identical set of config fields, so
+        // a config cannot say which of the two it was written for.
+        ProtocolType.Wireguard => Profile.Wireguard?.ProtocolLabel ?? "WireGuard",
         _ => Profile.Protocol.ToString()
     };
     /// <summary>

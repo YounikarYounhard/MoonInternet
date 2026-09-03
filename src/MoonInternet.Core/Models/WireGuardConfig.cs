@@ -43,6 +43,25 @@ public sealed class WireGuardConfig
     public bool IsAmnezia => AwgGeneration > 0;
 
     /// <summary>
+    /// What to call this in the interface. AmneziaWG is built on WireGuard but is not it —
+    /// different handshake, different engine, and a server speaking one will not answer the other —
+    /// so the two are named apart, which is also what keeps them apart in the protocol filter.
+    ///
+    /// "3.x" and not "3.0" on purpose: the two carry the identical set of config fields, so a
+    /// config cannot tell you which of them it was written for.
+    ///
+    /// It lives here rather than in the view model because the Android build has to say the same
+    /// words, and because here it can be checked.
+    /// </summary>
+    public string ProtocolLabel => AwgGeneration switch
+    {
+        1 => "AmneziaWG 1.0",
+        2 => "AmneziaWG 2.0",
+        3 => "AmneziaWG 3.x",
+        _ => "WireGuard",
+    };
+
+    /// <summary>
     /// Which AmneziaWG generation this profile was written for: 0 plain WireGuard, 1 the original
     /// junk-and-magic-headers set, 2 once I1-I5 signature packets appear, 3 once the fields added
     /// in 3.0 do.
