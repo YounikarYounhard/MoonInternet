@@ -13,6 +13,18 @@ if (args.Length >= 2 && args[0] == "wgparse")
     return 0;
 }
 
+// Config-dump mode: `dotnet run -- xraycfg "<share link>" [outpath]` writes the real generated
+// config so the bundled xray can be asked whether it accepts it. Reading a schema and matching
+// it are different things, and only the core settles which.
+if (args.Length >= 2 && args[0] == "xraycfg")
+{
+    if (!ShareLinkParser.TryParse(args[1], out var dumpP, out var dumpErr) || dumpP is null)
+    { Console.WriteLine("PARSE FAILED: " + dumpErr); return 1; }
+    string dumpJson = XrayConfigBuilder.Build(dumpP);
+    if (args.Length >= 3) File.WriteAllText(args[2], dumpJson); else Console.WriteLine(dumpJson);
+    return 0;
+}
+
 // Tun-config mode: `dotnet run -- tuncfg [outpath] [socksPort]` writes the sing-box TUN config for `sing-box check`.
 if (args.Length >= 1 && args[0] == "tuncfg")
 {
@@ -272,8 +284,35 @@ var kcp = ShareLinkParser.Parse(
     "?encryption=none&type=kcp&headerType=wechat-video&seed=hunter2#KCP");
 var kcps = Proxy(Root(XrayConfigBuilder.Build(kcp))).GetProperty("streamSettings");
 Check("xray kcp network", kcps.GetProperty("network").GetString() == "kcp");
-Check("xray kcp header", kcps.GetProperty("kcpSettings").GetProperty("header").GetProperty("type").GetString() == "wechat-video");
-Check("xray kcp seed", kcps.GetProperty("kcpSettings").GetProperty("seed").GetString() == "hunter2");
+// mKCP's masking moved between xray 25 and 26: kcpSettings.header + seed are REJECTED by the core
+// we ship, so a share link written the old way has to be translated. Names differ too — the link
+// says wechat-video, the core wants wechat. Verified against cores/xray/xray.exe run -test.
+Check("xray kcp finalmask", kcps.GetProperty("kcpSettings").GetProperty("finalmask").GetString() == "udp header-wechat");
+Check("xray kcp no legacy header", !kcps.GetProperty("kcpSettings").TryGetProperty("header", out _));
+Check("xray kcp no legacy seed", !kcps.GetProperty("kcpSettings").TryGetProperty("seed", out _));
+// The whole knob set, written out even at its defaults. uplinkCapacity and downlinkCapacity size
+// the congestion window in MB/s — leave them implicit and a fast link is shaped by a number
+// nobody chose and nobody can see. INCY and v2RayTun both send all of these.
+foreach (var (k, want) in new[] { ("mtu", 1350), ("tti", 50), ("uplinkCapacity", 5),
+                                  ("downlinkCapacity", 20), ("readBufferSize", 2), ("writeBufferSize", 2) })
+    Check($"xray kcp {k} default", kcps.GetProperty("kcpSettings").GetProperty(k).GetInt32() == want);
+Check("xray kcp congestion default off", !kcps.GetProperty("kcpSettings").GetProperty("congestion").GetBoolean());
+
+// A panel that sends its own numbers wins; nonsense outside xray's documented range does not.
+var kcpTuned = ShareLinkParser.Parse(
+    "vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@host.example:2096" +
+    "?encryption=none&type=kcp&seed=s&mtu=1200&tti=20&uplinkCapacity=50&downlinkCapacity=200" +
+    "&congestion=true&readBufferSize=4&writeBufferSize=4#T");
+var kt = Proxy(Root(XrayConfigBuilder.Build(kcpTuned))).GetProperty("streamSettings").GetProperty("kcpSettings");
+Check("xray kcp mtu from link", kt.GetProperty("mtu").GetInt32() == 1200);
+Check("xray kcp capacity from link", kt.GetProperty("downlinkCapacity").GetInt32() == 200);
+Check("xray kcp congestion from link", kt.GetProperty("congestion").GetBoolean());
+
+var kcpBad = ShareLinkParser.Parse(
+    "vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@host.example:2096?encryption=none&type=kcp&mtu=99999&tti=0#B");
+var kb = Proxy(Root(XrayConfigBuilder.Build(kcpBad))).GetProperty("streamSettings").GetProperty("kcpSettings");
+Check("xray kcp rejects an mtu out of range", kb.GetProperty("mtu").GetInt32() == 1350);
+Check("xray kcp rejects a tti out of range", kb.GetProperty("tti").GetInt32() == 50);
 
 var hup = ShareLinkParser.Parse(
     "trojan://pass@host.example:8443?security=tls&type=httpupgrade&path=%2Fmoon&host=cdn.example#HU");

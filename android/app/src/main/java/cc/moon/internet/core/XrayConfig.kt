@@ -422,9 +422,26 @@ object XrayConfig {
             // mKCP: UDP carrying its own retransmission, which is why it holds up on a link that
             // makes TCP crawl. The seed is a shared secret — without it the obfuscation header
             // does not match and the server drops everything.
+            //
+            // Everything below the header is written out even at its default value, on purpose.
+            // These are the knobs mKCP IS: uplinkCapacity and downlinkCapacity size the congestion
+            // window in MB/s, so leaving them implicit means a fast link is shaped by a number
+            // nobody chose and nobody can see. INCY and v2RayTun both send the whole set — that
+            // was the gap here, not the ability to connect. Same figures as the desktop builder.
             "kcp" -> st.put("kcpSettings", JSONObject()
-                .put("header", JSONObject().put("type", s.headerType?.takeIf { it.isNotBlank() } ?: "none"))
-                .apply { s.extra["seed"]?.takeIf { it.isNotBlank() }?.let { put("seed", it) } })
+                .put("mtu", kcpInt(s, "mtu", 1350, 576, 1460))
+                .put("tti", kcpInt(s, "tti", 50, 10, 100))
+                .put("uplinkCapacity", kcpInt(s, "uplinkCapacity", 5, 0, 1000))
+                .put("downlinkCapacity", kcpInt(s, "downlinkCapacity", 20, 0, 1000))
+                .put("congestion", s.extra["congestion"] == "1" || s.extra["congestion"] == "true")
+                .put("readBufferSize", kcpInt(s, "readBufferSize", 2, 1, 128))
+                .put("writeBufferSize", kcpInt(s, "writeBufferSize", 2, 1, 128))
+                // The obfuscation header moved. Up to xray 25 it was kcpSettings.header.type plus
+                // a seed; the cores we ship now refuse that config outright — "the feature mkcp
+                // header & seed has been removed and migrated to finalmask/udp header-* &
+                // mkcp-original & mkcp-aes128gcm". A link written for the old shape is translated,
+                // and the names differ: wechat-video is spelled wechat now.
+                .apply { kcpFinalMask(s.headerType)?.let { put("finalmask", it) } })
 
             "tcp" -> if (s.headerType == "http") {
                 st.put("tcpSettings", JSONObject()
@@ -472,6 +489,26 @@ object XrayConfig {
      */
     private fun bootstrapDns(routing: RoutingProfile?): String =
         routing?.domesticDns?.trim()?.takeIf { isIpLiteral(it) } ?: "8.8.8.8"
+
+    /**
+     * The share link's headerType as current xray spells it, or null for no masking. Vocabulary
+     * read out of the shipped binary, not from memory.
+     *
+     * ponytail: the seed half has no mapping. It became mkcp-original / mkcp-aes128gcm, and xray
+     * accepts ANY string in finalmask without checking it — so a guess at that grammar would load
+     * happily and carry nothing, which is worse than admitting we do not know it. Left out until
+     * it can be confirmed against a real mKCP server.
+     */
+    private fun kcpFinalMask(headerType: String?): String? = when (headerType) {
+        null, "", "none" -> null
+        "wechat-video", "wechat" -> "udp header-wechat"
+        "srtp", "utp", "dtls", "wireguard", "dns", "custom" -> "udp header-$headerType"
+        else -> null
+    }
+
+    /** An mKCP knob from the link when a panel sends one, otherwise xray's documented default. */
+    private fun kcpInt(s: ServerProfile, key: String, fallback: Int, lo: Int, hi: Int): Int =
+        s.extra[key]?.toIntOrNull()?.takeIf { it in lo..hi } ?: fallback
 
     private fun buildRouting(
         routing: RoutingProfile?, server: ServerProfile, geo: Boolean, blockUdp: Boolean = false,

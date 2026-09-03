@@ -331,15 +331,37 @@ public static class XrayConfigBuilder
                 s["httpupgradeSettings"] = hu;
                 break;
             case "kcp":
-                // mKCP: UDP with its own retransmission, which is why it holds up on a link that
-                // makes TCP crawl. The seed is a shared secret — without it the obfuscation
+                // mKCP: UDP carrying its own retransmission, which is why it holds up on a link
+                // that makes TCP crawl. The seed is a shared secret — without it the obfuscation
                 // header does not match and the server drops everything.
+                //
+                // Everything below the header is written out even at its default value, on purpose.
+                // These are the knobs mKCP IS: uplinkCapacity and downlinkCapacity size the
+                // congestion window in MB/s, so leaving them implicit means a fast link is being
+                // shaped by a number nobody chose and nobody can see. INCY and v2RayTun both send
+                // the whole set — that was the gap here, not the ability to connect.
+                //
+                // ponytail: no UI for these yet. They come from the link when a panel sends them,
+                // otherwise xray's documented defaults. Add a settings page if anyone ever needs
+                // to tune them by hand — INCY exposes mtu, tti and seed.
+                int KcpInt(string key, int fallback, int lo, int hi) =>
+                    int.TryParse(p.Extra.GetValueOrDefault(key), out var v) && v >= lo && v <= hi ? v : fallback;
                 var kcp = new Dictionary<string, object?>
                 {
-                    ["header"] = new Dictionary<string, object?>
-                    { ["type"] = string.IsNullOrEmpty(p.HeaderType) ? "none" : p.HeaderType },
+                    ["mtu"] = KcpInt("mtu", 1350, 576, 1460),
+                    ["tti"] = KcpInt("tti", 50, 10, 100),
+                    ["uplinkCapacity"] = KcpInt("uplinkCapacity", 5, 0, 1000),
+                    ["downlinkCapacity"] = KcpInt("downlinkCapacity", 20, 0, 1000),
+                    ["congestion"] = p.Extra.GetValueOrDefault("congestion") is "1" or "true",
+                    ["readBufferSize"] = KcpInt("readBufferSize", 2, 1, 128),
+                    ["writeBufferSize"] = KcpInt("writeBufferSize", 2, 1, 128),
                 };
-                if (p.Extra.GetValueOrDefault("seed") is { Length: > 0 } seed) kcp["seed"] = seed;
+                // The obfuscation header moved. Up to xray 25 it was kcpSettings.header.type plus a
+                // seed; the core we ship refuses that config outright — "the feature mkcp header &
+                // seed has been removed and migrated to finalmask/udp header-* & mkcp-original &
+                // mkcp-aes128gcm". So a share link written for the old shape has to be translated,
+                // and the names are not the same: wechat-video is spelled wechat now.
+                if (KcpFinalMask(p.HeaderType) is { } mask) kcp["finalmask"] = mask;
                 s["kcpSettings"] = kcp;
                 break;
             case "tcp":
@@ -349,6 +371,25 @@ public static class XrayConfigBuilder
         }
         return s;
     }
+
+    /// <summary>
+    /// The share link's <c>headerType</c> as current xray spells it, or null for no masking.
+    ///
+    /// Vocabulary taken from the shipped binary, not from memory: header-custom, header-wechat,
+    /// header-dns, header-utp, header-dtls, header-srtp, header-wireguard.
+    ///
+    /// ponytail: the seed half has no mapping here. It became mkcp-original / mkcp-aes128gcm, and
+    /// xray accepts ANY string in finalmask without checking it — so a guess at that grammar would
+    /// load happily and then carry nothing, which is worse than saying we do not know. Left out
+    /// until it can be confirmed against a real mKCP server.
+    /// </summary>
+    private static string? KcpFinalMask(string? headerType) => headerType switch
+    {
+        null or "" or "none" => null,
+        "wechat-video" or "wechat" => "udp header-wechat",
+        "srtp" or "utp" or "dtls" or "wireguard" or "dns" or "custom" => "udp header-" + headerType,
+        _ => null,
+    };
 
     // ---- small builders -------------------------------------------------
 

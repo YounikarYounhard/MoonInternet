@@ -147,6 +147,36 @@ class ConfigDumpTest {
     }
 
     /**
+     * mKCP's masking moved between xray 25 and 26: kcpSettings.header and seed are REJECTED by the
+     * cores we ship — the config does not load at all. A share link written the old way has to be
+     * translated to finalmask, and the names differ: the link says wechat-video, the core wants
+     * wechat. Verified against cores/xray/xray.exe run -test on the desktop side.
+     */
+    @Test fun mkcpUsesFinalmaskNotTheRemovedHeader() {
+        fun kcp(header: String?): JSONObject {
+            val p = ServerProfile(
+                raw = "x://h.example:2096?type=kcp", name = "K",
+                protocol = cc.moon.internet.core.Protocol.VLESS, address = "h.example", port = 2096,
+                id = "00000000-0000-0000-0000-000000000000",
+                security = "none", network = "kcp", headerType = header,
+                extra = mapOf("seed" to "hunter2"),
+            )
+            return JSONObject(XrayConfig.build(server = p, routing = null, dns = "1.1.1.1"))
+                .getJSONArray("outbounds").getJSONObject(0)
+                .getJSONObject("streamSettings").getJSONObject("kcpSettings")
+        }
+        val wechat = kcp("wechat-video")
+        assertEquals("udp header-wechat", wechat.getString("finalmask"))
+        assertTrue("header removed in xray 26", !wechat.has("header"))
+        assertTrue("seed removed in xray 26", !wechat.has("seed"))
+        assertEquals("udp header-srtp", kcp("srtp").getString("finalmask"))
+        assertTrue("none means no mask at all", !kcp("none").has("finalmask"))
+        // the knobs mKCP is actually for
+        assertEquals(1350, wechat.getInt("mtu"))
+        assertEquals(20, wechat.getInt("downlinkCapacity"))
+    }
+
+    /**
      * Every transport against every security, for the protocols that can choose. "We do not
      * support X" turned out to mean "the builder had no case for it": xray was handed the
      * transport name with nothing behind it and quietly used its defaults, so a server expecting

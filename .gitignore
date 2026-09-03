@@ -76,3 +76,5 @@ android/local.properties
 # prebuilt core, produced by android/build-xray.ps1 (19 MB)
 android/app/libs/*.aar
 
+.testshots/
+.refapk/
