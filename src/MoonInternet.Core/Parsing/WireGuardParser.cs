@@ -39,9 +39,14 @@ public static class WireGuardParser
 
     private static string NameFromInput(string input, WireGuardConfig wg)
     {
-        // vpn:// links carry no clean name here; label by endpoint host. Keep any #fragment on a wireguard:// link.
+        // A wireguard:// link may carry a #fragment. A vpn:// one does not — but the config it
+        // wraps is commented, and that comment is where 3x-ui puts the label ("# AWG 3.0"). Without
+        // reading it every AmneziaWG row was called "AmneziaWG <ip>" and they were indistinguishable.
         int hash = input.IndexOf('#');
-        if (hash >= 0 && hash < input.Length - 1) return Uri.UnescapeDataString(input[(hash + 1)..].Trim());
+        if (input.StartsWith("wireguard://", StringComparison.OrdinalIgnoreCase)
+            && hash >= 0 && hash < input.Length - 1)
+            return Uri.UnescapeDataString(input[(hash + 1)..].Trim());
+        if (!string.IsNullOrWhiteSpace(wg.Label)) return wg.Label!;
         return $"AmneziaWG {wg.EndpointHost}";
     }
 
@@ -69,10 +74,23 @@ public static class WireGuardParser
         }
     }
 
-    // Amnezia's vpn://: base64url( qCompress(json) ). qCompress = 4-byte big-endian length + zlib stream.
+    /// <summary>
+    /// The payload of a <c>vpn://</c> link, which comes in two shapes.
+    ///
+    /// The Amnezia client writes base64url( qCompress(json) ) and buries the config inside.
+    /// 3x-ui writes base64url of the <c>[Interface]/[Peer]</c> text itself — no compression, no
+    /// JSON — and that is what a subscription from the panel actually contains. Only the first
+    /// shape was handled, so every AmneziaWG entry in such a subscription failed to parse.
+    /// </summary>
     private static string? ExtractIniFromVpnUri(string b64)
     {
         byte[] packed = Base64Ext.DecodeBytes(b64);
+        if (packed.Length == 0) return null;
+
+        // The plain shape announces itself: the text starts with the section header.
+        string asText = Encoding.UTF8.GetString(packed);
+        if (asText.TrimStart().StartsWith("[Interface]", StringComparison.OrdinalIgnoreCase)) return asText;
+
         if (packed.Length <= 4) return null;
         using var ms = new MemoryStream(packed, 4, packed.Length - 4);
         using var zs = new ZLibStream(ms, CompressionMode.Decompress);
@@ -101,7 +119,15 @@ public static class WireGuardParser
         foreach (var raw in ini.Replace("\r", "").Split('\n'))
         {
             string line = raw.Trim();
-            if (line.Length == 0 || line.StartsWith('#')) continue;
+            if (line.Length == 0) continue;
+            if (line.StartsWith('#'))
+            {
+                // The panel labels a config with a comment and nothing else, so this is the only
+                // place its name exists. First one wins; later comments are ordinary remarks.
+                string label = line.TrimStart('#').Trim();
+                if (wg.Label is null && label.Length > 0) wg.Label = label;
+                continue;
+            }
             if (line.StartsWith('[') && line.EndsWith(']')) { section = line[1..^1].Trim().ToLowerInvariant(); continue; }
 
             int eq = line.IndexOf('=');
@@ -118,6 +144,10 @@ public static class WireGuardParser
                     case "privatekey": wg.PrivateKey = val; break;
                     case "address": wg.Address = Csv(); break;
                     case "dns": wg.Dns = Csv().Where(d => !d.StartsWith('$')).ToList(); break; // skip $PRIMARY_DNS placeholders
+                    // Every config the panel writes sets one, and dropping it left the tunnel on a
+                    // default that is larger than the link — the packets that then need fragmenting
+                    // are the ones a censor's box is most interested in.
+                    case "mtu": if (int.TryParse(val, out var mtu) && mtu is >= 576 and <= 1500) wg.Mtu = mtu; break;
                     case "jc": wg.Jc = val; break; case "jmin": wg.Jmin = val; break; case "jmax": wg.Jmax = val; break;
                     case "s1": wg.S1 = val; break; case "s2": wg.S2 = val; break; case "s3": wg.S3 = val; break; case "s4": wg.S4 = val; break;
                     case "h1": wg.H1 = val; break; case "h2": wg.H2 = val; break; case "h3": wg.H3 = val; break; case "h4": wg.H4 = val; break;

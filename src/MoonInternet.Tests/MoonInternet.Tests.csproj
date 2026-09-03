@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <None Include="fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MoonInternet.Core\MoonInternet.Core.csproj" />
     <ProjectReference Include="..\MoonInternet.Services\MoonInternet.Services.csproj" />
   </ItemGroup>

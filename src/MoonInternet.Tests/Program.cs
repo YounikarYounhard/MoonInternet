@@ -621,6 +621,75 @@ Check("plain uapi has no awg knobs",
 Check("plain uapi still has the essentials",
     u0.Contains("private_key=") && u0.Contains("public_key=") && u0.Contains("endpoint=1.2.3.4:51820"));
 
+// ---- the real thing --------------------------------------------------------------------
+// Three configs straight off a 3x-ui panel, one per AmneziaWG generation, keys replaced. Every
+// one of them failed to parse before: the panel writes vpn:// as base64url of the config TEXT,
+// while the parser only knew Amnezia's own shape, base64url(qCompress(json)). Reading the
+// documentation would never have shown that — only the subscription did.
+string FixtureDir()
+{
+    var d = new DirectoryInfo(AppContext.BaseDirectory);
+    while (d is not null && !Directory.Exists(Path.Combine(d.FullName, "fixtures"))) d = d.Parent;
+    return d is null ? "fixtures" : Path.Combine(d.FullName, "fixtures");
+}
+string fixtures = FixtureDir();
+Check("fixtures are there", Directory.Exists(fixtures));
+
+foreach (var (file, generation, label) in new[]
+         { ("awg1", 1, "AWG 1.0"), ("awg2", 2, "AWG 2.0"), ("awg3", 3, "AWG 3.0") })
+{
+    string conf = File.ReadAllText(Path.Combine(fixtures, file + ".conf"));
+    string link = File.ReadAllText(Path.Combine(fixtures, file + ".link")).Trim();
+
+    Check($"{file}: the panel's vpn:// link parses",
+        WireGuardParser.TryParse(link, out var fw) && fw is not null);
+    Check($"{file}: the bare config parses the same way",
+        WireGuardParser.TryParse(conf, out var fc) && fc is not null && fc!.Endpoint == fw!.Endpoint);
+    Check($"{file}: reads as generation {generation}", fw!.AwgGeneration == generation);
+    Check($"{file}: name comes from the comment", fw.Label is not null && fw.Label.StartsWith(label));
+    Check($"{file}: MTU is kept", fw.Mtu == 1380);
+    Check($"{file}: endpoint and address", fw.Endpoint.StartsWith("31.76.114.75:") && fw.Address.Count > 0);
+
+    // and the document the engine gets is well formed whichever generation it came from
+    string u = WireGuardUapi.Build(fw);
+    Check($"{file}: uapi has hex keys", System.Text.RegularExpressions.Regex.IsMatch(u, "private_key=[0-9a-f]{64}"));
+    Check($"{file}: uapi ends on a blank line", u.EndsWith("\n\n"));
+    Check($"{file}: uapi carries the junk knobs", u.Contains("\njc=") && u.Contains("\nh1="));
+}
+
+// The generation-specific bits, each checked where it actually lives.
+WireGuardParser.TryParse(File.ReadAllText(Path.Combine(fixtures, "awg2.conf")), out var g2);
+Check("awg2 carries a signature packet", !string.IsNullOrEmpty(g2!.I1));
+Check("awg2 h1 is a range", g2.H1!.Contains('-'));
+
+WireGuardParser.TryParse(File.ReadAllText(Path.Combine(fixtures, "awg3.conf")), out var g3);
+Check("awg3 has header protection", !string.IsNullOrEmpty(g3!.HeaderProtectionKey));
+Check("awg3 has the new timings",
+    !string.IsNullOrEmpty(g3.RekeyAfterTime) && !string.IsNullOrEmpty(g3.KeepaliveTimeout));
+Check("awg3 uapi renames the fields the core way",
+    WireGuardUapi.Build(g3).Contains("\nheader_protection_key=")
+    && WireGuardUapi.Build(g3).Contains("\nmax_handshake_attempts="));
+
+// The whole subscription, the way the app receives it: base64 of a list of links, three of them
+// AmneziaWG and one VLESS. This is the path that was silently dropping every AmneziaWG entry.
+string subBody = string.Join("\n", new[]
+{
+    File.ReadAllText(Path.Combine(fixtures, "awg1.link")).Trim(),
+    File.ReadAllText(Path.Combine(fixtures, "awg2.link")).Trim(),
+    File.ReadAllText(Path.Combine(fixtures, "awg3.link")).Trim(),
+    "vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@31.76.114.75:2096?encryption=none&security=tls&type=xhttp#VLESS",
+});
+string subB64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(subBody));
+var subContent = SubscriptionParser.ParseFull(subB64);
+Check("subscription yields all four servers", subContent.Servers.Count == 4);
+Check("three of them are AmneziaWG",
+    subContent.Servers.Count(x => x.Wireguard is { IsAmnezia: true }) == 3);
+Check("their generations come through 1, 2, 3",
+    string.Join(",", subContent.Servers.Where(x => x.Wireguard is not null)
+        .Select(x => x.Wireguard!.AwgGeneration).OrderBy(x => x)) == "1,2,3");
+Check("and they are named, not numbered",
+    subContent.Servers.Where(x => x.Wireguard is not null).All(x => x.Name.StartsWith("AWG ")));
+
 // --- PortFinder ---
 int p1 = PortFinder.Free();
 Check("portfinder in range", p1 is > 0 and <= 65535);

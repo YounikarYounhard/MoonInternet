@@ -17,6 +17,10 @@ public sealed class WireGuardConfig
     public List<string> AllowedIps { get; set; } = new();  // "0.0.0.0/0", "::/0"
     public string Endpoint { get; set; } = "";             // host:port
     public int PersistentKeepalive { get; set; } = 25;
+    /// <summary>Tunnel MTU from the config, or null to let the engine choose. The panel always sets one.</summary>
+    public int? Mtu;
+    /// <summary>The name, which for a panel-written config lives in a leading <c>#</c> comment.</summary>
+    public string? Label;
     // AmneziaWG obfuscation (strings — H1-H4 may be ranges "a-b", I1-I5 are packet specs)
     public string? Jc, Jmin, Jmax, S1, S2, S3, S4, H1, H2, H3, H4, I1, I2, I3, I4, I5;
 
