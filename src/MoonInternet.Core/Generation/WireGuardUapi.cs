@@ -48,8 +48,12 @@ public static class WireGuardUapi
         Set("reject_after_time", wg.RejectAfterTime);
         Set("keepalive_timeout", wg.KeepaliveTimeout);
         Set("max_handshake_attempts", wg.MaxHandshakeAttempts);
-        Set("random_trailers", wg.RandomTrailers);
-        Set("disable_cookies", wg.DisableCookies);
+
+        // RandomTrailers and DisableCookies are deliberately NOT sent. The panel writes them into
+        // the config file, but the engine at the 3.0 commit has no such device keys — and an
+        // unrecognised key is not ignored there, it fails the whole IpcSet with "invalid UAPI
+        // device key". Sending them would break exactly the 3.0 profiles this exists for.
+        // They stay parsed and stored, so they cost nothing the day the core learns them.
 
         // ---- peer --------------------------------------------------------
         Set("public_key", Hex(wg.PeerPublicKey));       // starts the peer section

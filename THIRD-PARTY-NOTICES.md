@@ -54,6 +54,32 @@ byedpi is **compiled by us** from unmodified upstream sources — see
 not a library: Android only makes files under `jniLibs` runnable, so a binary
 that has to be run has to be named that way.
 
+## AmneziaWG
+
+| Component | License | Source |
+|---|---|---|
+| [amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) | MIT | the protocol itself — obfuscated WireGuard |
+
+`awgproxy` (`build/awgproxy/`) is **ours**: it links amneziawg-go as a library and
+exposes a SOCKS5 listener on loopback, so xray can route into AmneziaWG the same way
+it routes into everything else. The obfuscation and the cryptography are entirely
+amneziawg-go's and are used unmodified — our code is the SOCKS handshake and the
+copying either side of it.
+
+MIT requires the notice to travel with the software, so here it is:
+
+```
+MIT License
+
+Copyright (C) 2017-2025 WireGuard LLC. All Rights Reserved.
+```
+
+The wider [AmneziaVPN project](https://github.com/amnezia-vpn) is open source; the
+[client](https://github.com/amnezia-vpn/amnezia-client),
+[Android library](https://github.com/amnezia-vpn/amneziawg-android) and
+[Windows client](https://github.com/amnezia-vpn/amneziawg-windows-client) were read
+while working out how the protocol is configured.
+
 ## Geo databases (downloaded at runtime, not bundled)
 
 | Component | License | Source |

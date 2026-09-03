@@ -608,7 +608,13 @@ Check("uapi carries header protection", u3.Contains("\nheader_protection_key=001
 Check("uapi carries the 3.x timings",
     u3.Contains("\nrekey_after_time=120\n") && u3.Contains("\nkeepalive_timeout=20\n")
     && u3.Contains("\nmax_handshake_attempts=5\n"));
-Check("uapi carries the 3.x flags", u3.Contains("\nrandom_trailers=1\n") && u3.Contains("\ndisable_cookies=1\n"));
+// NOT sent, on purpose. The panel writes RandomTrailers and DisableCookies into the config, but
+// the engine has no such device keys at the 3.0 commit — and it does not ignore what it does not
+// know, it fails the whole IpcSet with "invalid UAPI device key". Sending them would break
+// precisely the 3.0 profiles this was written for. Parsed and kept, just not handed over.
+Check("uapi omits the keys the core rejects",
+    !u3.Contains("random_trailers=") && !u3.Contains("disable_cookies="));
+Check("but they are still parsed", a3.RandomTrailers == "1" && a3.DisableCookies == "1");
 Check("uapi peer comes after the device", u3.IndexOf("public_key=") > u3.IndexOf("jc="));
 Check("uapi endpoint and allowed ip",
     u3.Contains("\nendpoint=192.124.181.110:41166\n") && u3.Contains("allowed_ip=0.0.0.0/0"));
