@@ -23,6 +23,19 @@ public static class ShareLinkParser
         try
         {
             link = link.Trim();
+
+            // AmneziaWG comes first because it is not shaped like the others: a whole config
+            // rather than a query string, and it can arrive with no scheme at all when someone
+            // pastes the [Interface] block straight out of the official client. Only the
+            // subscription reader used to know about it, so a single link pasted by hand — which
+            // is exactly how Amnezia hands you a server — was refused.
+            if (WireGuardParser.IsWireGuardLink(link))
+            {
+                if (WireGuardParser.TryParseProfile(link, out profile) && profile is not null) return true;
+                error = "AmneziaWG config not understood";
+                return false;
+            }
+
             int sep = link.IndexOf("://", StringComparison.Ordinal);
             if (sep <= 0) { error = "no scheme"; return false; }
             string scheme = link[..sep].ToLowerInvariant();

@@ -78,8 +78,16 @@ public partial class ServerItem : ObservableObject
         ? "UDP" : Profile.Network.ToUpperInvariant();
     public string Security => Profile.Security.ToUpperInvariant();
     public bool HasSecurity => Profile.Security is not ("none" or "");
-    // Pretty JSON of this server's outbound — shown in the per-server "⋯" config dialog.
-    public string ConfigJson => MoonInternet.Core.Generation.XrayConfigBuilder.OutboundJson(Profile);
+    // What the per-server "⋯ → Configuration" dialog shows.
+    //
+    // For an AmneziaWG server that is its own config, not an xray outbound: ours is a SOCKS dial
+    // into the tunnel on loopback, so the dialog used to answer "what is my server?" with
+    // 127.0.0.1:1091, which tells you nothing at all. The config is what the official client shows
+    // and what you would compare against.
+    public string ConfigJson =>
+        (Profile.Protocol == ProtocolType.Wireguard && Profile.Raw is not null
+            ? MoonInternet.Core.Parsing.WireGuardParser.ConfigText(Profile.Raw) : null)
+        ?? MoonInternet.Core.Generation.XrayConfigBuilder.OutboundJson(Profile);
 
     [ObservableProperty] private int ping = -2; // -2 unknown, -1 timeout, >=0 ms
 

@@ -338,28 +338,33 @@ fun HomeScreen(
 
         if (!zapret) items(groups.size) { i ->
             val (sub, shown) = groups[i]
-            SubscriptionCard(
+            // Nothing left to show, nothing shown. Picking a protocol one subscription does not
+            // carry left its card sitting there open and empty, as though its servers had gone
+            // missing. One that is genuinely empty keeps its card — that card is how you refresh it.
+            if (shown.isNotEmpty() || sub.servers.isEmpty()) {
+                SubscriptionCard(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
-                sub = sub,
-                collapsed = sub.url in collapsed,
-                showHeader = showSubHeader,
-                selected = server,
-                pings = pings,
-                pinging = pinging,
-                pingDisplay = pingDisplay,
-                favorites = favorites,
-                servers = shown,
-                onToggleCollapse = { onToggleCollapse(sub.url) },
-                onMenu = { onSubMenu(sub) },
-                pingBusy = shown.any { it.pingKey in pinging },
-                refreshBusy = sub.url in refreshing,
-                onPing = { onPingSub(sub) },
-                onRefresh = { onRefreshSub(sub) },
-                onSelect = onSelect,
-                onServerMenu = onServerMenu,
-            )
-            Spacer(Modifier.height(10.dp))
+                    sub = sub,
+                    collapsed = sub.url in collapsed,
+                    showHeader = showSubHeader,
+                    selected = server,
+                    pings = pings,
+                    pinging = pinging,
+                    pingDisplay = pingDisplay,
+                    favorites = favorites,
+                    servers = shown,
+                    onToggleCollapse = { onToggleCollapse(sub.url) },
+                    onMenu = { onSubMenu(sub) },
+                    pingBusy = shown.any { it.pingKey in pinging },
+                    refreshBusy = sub.url in refreshing,
+                    onPing = { onPingSub(sub) },
+                    onRefresh = { onRefreshSub(sub) },
+                    onSelect = onSelect,
+                    onServerMenu = onServerMenu,
+                )
+                Spacer(Modifier.height(10.dp))
+            }
         }
 
         item {
@@ -513,8 +518,8 @@ private fun SubscriptionCard(
                     Column {
                         Text(sub.name, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                              maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        SubMeter(sub.trafficText, sub.expiryText,
-                                 sub.trafficFraction, sub.expiryFraction, subMeter)
+                        if (!sub.isLoose) SubMeter(sub.trafficText, sub.expiryText,
+                                                   sub.trafficFraction, sub.expiryFraction, subMeter)
                     }
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -523,7 +528,7 @@ private fun SubscriptionCard(
                              color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                     BusyIconButton(Icons.Filled.Speed, busy = pingBusy, onClick = onPing)
-                    BusyIconButton(Icons.Filled.Refresh, busy = refreshBusy, onClick = onRefresh)
+                    if (!sub.isLoose) BusyIconButton(Icons.Filled.Refresh, busy = refreshBusy, onClick = onRefresh)
                     IconButton(onMenu, Modifier.size(30.dp)) {
                         Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }

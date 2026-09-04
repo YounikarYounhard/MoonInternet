@@ -747,6 +747,18 @@ foreach (var (file, generation, label) in new[]
     Check($"{file}: uapi has hex keys", System.Text.RegularExpressions.Regex.IsMatch(u, "private_key=[0-9a-f]{64}"));
     Check($"{file}: uapi ends on a blank line", u.EndsWith("\n\n"));
     Check($"{file}: uapi carries the junk knobs", u.Contains("\njc=") && u.Contains("\nh1="));
+
+    // Adding one server by hand is how the official client hands you one, and it went through a
+    // parser that had never heard of vpn:// — so the paste was refused and only a subscription
+    // could bring AmneziaWG in. The bare [Interface] text has no scheme at all and must work too.
+    Check($"{file}: the link is accepted as a single server",
+        ShareLinkParser.TryParse(link, out var fp, out _) && fp is not null
+        && fp!.Protocol == ProtocolType.Wireguard && fp.Wireguard is not null);
+    Check($"{file}: the pasted config is accepted as a single server",
+        ShareLinkParser.TryParse(conf, out var fpc, out _) && fpc is not null
+        && fpc!.Address == fw.EndpointHost && fpc.Port == fw.EndpointPort);
+    Check($"{file}: the config view shows the config, not our loopback plumbing",
+        WireGuardParser.ConfigText(link)?.Contains("[Peer]") == true);
 }
 
 // The generation-specific bits, each checked where it actually lives.

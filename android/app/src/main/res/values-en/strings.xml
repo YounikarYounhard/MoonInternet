@@ -347,6 +347,7 @@
     <string name="speed_mbit" formatted="false">"%.1f Mbit/s"</string>
     <string name="speed_gbit" formatted="false">"%.2f Gbit/s"</string>
     <string name="fmt_sub_meta_noexp">"%1$d servers · %2$s"</string>
+    <string name="fmt_sub_servers">"%1$d servers"</string>
     <string name="section_protocol">"PROTOCOL"</string>
     <string name="ping_use_stability">"Use “Stability”"</string>
     <string name="auto_delay">"Wait before trying again"</string>

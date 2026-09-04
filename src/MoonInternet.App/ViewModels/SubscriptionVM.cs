@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -109,10 +110,30 @@ public partial class SubscriptionVM : ObservableObject
         this.name = name;
         ServersView = CollectionViewSource.GetDefaultView(Servers);
         ServersView.Filter = filter;
-        Servers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Count));
+        Servers.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(nameof(IsVisible));
+        };
     }
 
     public int Count => Servers.Count;
+
+    /// <summary>
+    /// Servers added by hand rather than fetched from somewhere. There is nothing to re-fetch them
+    /// from and no plan behind them, so a refresh button and traffic and expiry meters would be
+    /// answers to questions this group cannot be asked.
+    /// </summary>
+    public bool IsLoose => Url.StartsWith("clipboard:", StringComparison.Ordinal);
+    public bool IsSubscription => !IsLoose;
+
+    /// <summary>
+    /// Whether this plate is worth drawing. Picking a protocol that one subscription does not
+    /// carry used to leave its plate sitting there, open and empty, as though the servers had gone
+    /// missing. A subscription with no servers at all keeps its plate — that plate is the only way
+    /// to refresh or remove it.
+    /// </summary>
+    public bool IsVisible => Servers.Count == 0 || ServersView.Cast<object>().Any();
 
     /// <summary>
     /// Is this server starred? Set once by the view model, which owns the saved list.
@@ -165,7 +186,11 @@ public partial class SubscriptionVM : ObservableObject
     public void SetCachedInfo(string traffic, string expiry) { TrafficText = traffic; ExpiryText = expiry; }
 
     public void SetRouting(IReadOnlyList<RoutingProfile> r) => Routing = r;
-    public void Refresh() => ServersView.Refresh();
+    public void Refresh()
+    {
+        ServersView.Refresh();
+        OnPropertyChanged(nameof(IsVisible));   // the filter decides whether the plate is drawn
+    }
 
     /// <summary>default = subscription order, ping = fastest first (unknown/timeout last), name = A→Z, favorite = starred first.</summary>
     public void ApplySort(string mode)

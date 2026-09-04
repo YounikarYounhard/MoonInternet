@@ -33,13 +33,21 @@ object WireGuardParser {
         )
     }
 
-    fun parse(input: String): WireGuardConfig? {
+    /**
+     * The config as plain text — the `[Interface]` / `[Peer]` document itself, for showing people
+     * what they actually have. An AmneziaWG server has no xray outbound worth printing.
+     */
+    fun configText(input: String): String? {
         val text = input.trim()
-        val ini = when {
-            text.startsWith("vpn://", true) -> decodeVpnUri(text.substring(6)) ?: return null
+        return when {
+            text.startsWith("vpn://", true) -> decodeVpnUri(text.substring(6))
             text.startsWith("[Interface]", true) -> text
-            else -> return null
+            else -> null
         }
+    }
+
+    fun parse(input: String): WireGuardConfig? {
+        val ini = configText(input) ?: return null
         return parseIni(ini).takeIf { it.isValid }
     }
 

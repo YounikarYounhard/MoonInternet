@@ -208,12 +208,14 @@ class CoreLogicTest {
             list, emptyMap(), emptyList(), "default", "AmneziaWG 3.1", null)
         assertEquals(1, only3.size)
 
-        // A filter naming something no longer in the list shows everything, not nothing. The
-        // filter is remembered across runs, so renaming a protocol — or deleting the subscription
-        // that had it — used to empty every list with no chip selected to explain why.
-        val stale = cc.moon.internet.data.orderServers(
-            list, emptyMap(), emptyList(), "default", "AmneziaWG 3.x", null)
-        assertEquals(list.size, stale.size)
+        // A subscription that does not carry the chosen protocol shows NOTHING, so its card can be
+        // left out of the page entirely. This used to hand back the whole list: the guard against a
+        // protocol that has vanished was asked of one subscription at a time, so "this lot has none
+        // of it" and "nobody has any of it" gave the same answer and the filter did the opposite of
+        // filtering. The real guard lives in Store.order(), which asks about every server there is.
+        val none = cc.moon.internet.data.orderServers(
+            list, emptyMap(), emptyList(), "default", "Hysteria2", null)
+        assertEquals(0, none.size)
     }
 
     @Test

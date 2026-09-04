@@ -50,16 +50,32 @@ public static class WireGuardParser
         return $"AmneziaWG {wg.EndpointHost}";
     }
 
+    /// <summary>
+    /// The config as plain text — the <c>[Interface]</c> / <c>[Peer]</c> document itself.
+    ///
+    /// For showing people what they actually have. An AmneziaWG server has no xray outbound worth
+    /// printing: ours is a SOCKS dial into the tunnel on loopback, which says nothing about their
+    /// server and reads as gibberish. This is what the official client shows instead.
+    /// </summary>
+    public static string? ConfigText(string input)
+    {
+        input = input.Trim();
+        try
+        {
+            return input.StartsWith("vpn://", StringComparison.OrdinalIgnoreCase) ? ExtractIniFromVpnUri(input[6..])
+                : input.StartsWith("[Interface]", StringComparison.OrdinalIgnoreCase) ? input
+                : null;
+        }
+        catch { return null; }
+    }
+
     public static bool TryParse(string input, out WireGuardConfig? config)
     {
         config = null;
         try
         {
             input = input.Trim();
-            string? ini =
-                input.StartsWith("vpn://", StringComparison.OrdinalIgnoreCase) ? ExtractIniFromVpnUri(input[6..]) :
-                input.StartsWith("[Interface]", StringComparison.OrdinalIgnoreCase) ? input :
-                null;
+            string? ini = ConfigText(input);
             if (ini is null) return false;
 
             var wg = ParseIni(ini);

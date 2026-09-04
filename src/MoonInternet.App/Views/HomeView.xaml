@@ -368,7 +368,10 @@
                     <ItemsControl ItemsSource="{Binding Subscriptions}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10">
+                                <!-- Emptied by the filter means not drawn: an open, empty plate reads
+                                     as though the servers had gone missing. -->
+                                <Border CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10"
+                                        Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
                                     <StackPanel>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -382,7 +385,8 @@
                                                                 <TextBlock Grid.Column="0" x:Name="chev" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Margin="0,0,11,0"/>
                                                                 <StackPanel Grid.Column="1">
                                                                     <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SubMeter}"/>
+                                                                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SubMeter}"
+                                                                                      Visibility="{Binding IsSubscription, Converter={StaticResource BoolVis}}"/>
                                                                 </StackPanel>
                                                             </Grid>
                                                         </Border>
@@ -415,6 +419,7 @@
                                                     </Ellipse>
                                                 </Grid>
                                                 <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE72C;"
+                                                        Visibility="{Binding IsSubscription, Converter={StaticResource BoolVis}}"
                                                         Command="{Binding DataContext.RefreshSubscriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                                 <Button Style="{StaticResource GlyphButton}" Width="30" Height="28" FontSize="13" Content="&#xE712;"
                                                         Command="{Binding DataContext.OpenSubSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>

@@ -188,7 +188,11 @@ fun ServersScreen(
 
         if (!zapret) items(groups.size) { i ->
             val (sub, shown) = groups[i]
-            if (shown.isNotEmpty() || query.isBlank()) {
+            // A group with nothing left to show is left out entirely. Picking a protocol that one
+            // subscription happens not to carry used to leave its card sitting there, open and
+            // empty, as though the servers had gone missing. A subscription that is genuinely
+            // empty keeps its card, because that card is the only way to refresh or remove it.
+            if (shown.isNotEmpty() || sub.servers.isEmpty()) {
                 SubGroup(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -269,8 +273,8 @@ private fun SubGroup(
                     Column {
                         Text(sub.name, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                              maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        SubMeter(sub.trafficText, sub.expiryText,
-                                 sub.trafficFraction, sub.expiryFraction, subMeter)
+                        if (!sub.isLoose) SubMeter(sub.trafficText, sub.expiryText,
+                                                   sub.trafficFraction, sub.expiryFraction, subMeter)
                     }
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -279,7 +283,7 @@ private fun SubGroup(
                              color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                     BusyIconButton(Icons.Filled.Speed, busy = pingBusy, onClick = onPing)
-                    BusyIconButton(Icons.Filled.Refresh, busy = refreshBusy, onClick = onRefresh)
+                    if (!sub.isLoose) BusyIconButton(Icons.Filled.Refresh, busy = refreshBusy, onClick = onRefresh)
                     IconButton(onMenu, Modifier.size(30.dp)) {
                         Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }

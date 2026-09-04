@@ -71,6 +71,8 @@
                 <data android:scheme="hysteria2"/>
                 <data android:scheme="hy2"/>
                 <data android:scheme="wireguard"/>
+                <!-- what the Amnezia client actually hands out; "wireguard" alone caught nothing -->
+                <data android:scheme="vpn"/>
             </intent-filter>
         </activity>
 

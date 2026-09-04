@@ -271,4 +271,11 @@ data class Subscription(
     val expiryFraction: Double = -1.0,
     val updateIntervalMinutes: Int = 0,
     val fetchedAt: Long = 0,
-)
+) {
+    /**
+     * Servers added by hand rather than fetched from somewhere. There is nothing to re-fetch them
+     * from and no plan behind them, so a refresh button and traffic and expiry meters are answers
+     * to questions this group cannot be asked.
+     */
+    val isLoose: Boolean get() = url.startsWith("clipboard:")
+}

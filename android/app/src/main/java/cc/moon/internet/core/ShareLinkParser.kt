@@ -14,7 +14,11 @@ object ShareLinkParser {
 
     fun parse(link: String): ServerProfile? = try {
         val s = link.trim()
-        when (s.substringBefore("://").lowercase()) {
+        // AmneziaWG first: it is a whole config rather than a query string, and pasting the
+        // [Interface] block straight out of the official client means there is no scheme to read.
+        // Only the subscription reader knew about it, so a single link pasted by hand was refused.
+        if (WireGuardParser.isWireGuardLink(s)) WireGuardParser.parseProfile(s)
+        else when (s.substringBefore("://").lowercase()) {
             "vless" -> parseVless(s)
             "vmess" -> parseVmess(s)
             "trojan" -> parseTrojan(s)

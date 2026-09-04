@@ -442,7 +442,14 @@ class Store(private val ctx: Context) {
 
     private fun order(list: List<ServerProfile>, pings: Map<String, Int>): List<ServerProfile> {
         val st = _state.value
-        return orderServers(list, pings, st.favorites, st.sort, st.protocol,
+        // Whether the chosen protocol still exists anywhere is a question about EVERY server, not
+        // about the handful in this one subscription. Asked per subscription, one that simply does
+        // not carry the protocol looked like one where the protocol had vanished — so it showed all
+        // of its servers instead of none of them, which is the opposite of filtering.
+        val protocol =
+            if (st.protocol.isEmpty() || allServers.any { it.protocolLabel == st.protocol }) st.protocol
+            else ""
+        return orderServers(list, pings, st.favorites, st.sort, protocol,
                             if (st.pinActive) st.selectedServerRaw else null)
     }
 }
@@ -466,13 +473,10 @@ internal fun orderServers(
     // for it in thirty others while it is live is the whole complaint.
     val pinned = { s: ServerProfile -> if (activeRaw != null && s.key == activeRaw) 0 else 1 }
     val fav = { s: ServerProfile -> if (s.key in favorites) 0 else 1 }
-    // A filter naming a protocol that is no longer in the list would hide EVERY server and leave
-    // no chip highlighted, so the app looks empty for no stated reason. That happens whenever the
-    // list changes under a chosen filter — a subscription deleted, or a protocol renamed, which is
-    // exactly what renaming WireGuard to AmneziaWG did. Show everything instead of nothing.
-    val kept =
-        if (protocol.isEmpty() || list.none { it.protocolLabel == protocol }) list
-        else list.filter { it.protocolLabel == protocol }
+    // Filtering plainly. A protocol that no longer exists ANYWHERE would empty every list with no
+    // chip selected to explain why, so it is caught before it gets here — see order(), which asks
+    // that question of the whole collection rather than of one subscription at a time.
+    val kept = if (protocol.isEmpty()) list else list.filter { it.protocolLabel == protocol }
     return when (sort) {
         "ping" -> kept.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
         "name" -> kept.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))

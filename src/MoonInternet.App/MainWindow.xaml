@@ -282,9 +282,14 @@
                 <StackPanel>
                     <Border Width="38" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding SheetSub.Name}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE713;" Content="{DynamicResource S_MainWindow_028}" Command="{Binding SheetSubSettingsCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="{DynamicResource S_MainWindow_029}" Command="{Binding SheetCopySubUrlCommand}"/>
-                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="{DynamicResource S_MainWindow_030}" Command="{Binding SheetSubQrCommand}"/>
+                    <!-- Servers added by hand have no address to fetch from, so the lines that act
+                         on one are left out rather than offered and then doing nothing. -->
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE713;" Content="{DynamicResource S_MainWindow_028}" Command="{Binding SheetSubSettingsCommand}"
+                            Visibility="{Binding SheetSub.IsSubscription, Converter={StaticResource BoolVis}}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="{DynamicResource S_MainWindow_029}" Command="{Binding SheetCopySubUrlCommand}"
+                            Visibility="{Binding SheetSub.IsSubscription, Converter={StaticResource BoolVis}}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="{DynamicResource S_MainWindow_030}" Command="{Binding SheetSubQrCommand}"
+                            Visibility="{Binding SheetSub.IsSubscription, Converter={StaticResource BoolVis}}"/>
                     <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,6"/>
                     <Button Style="{StaticResource SheetRowDanger}" Tag="&#xE74D;" Content="{DynamicResource S_MainWindow_031}" Command="{Binding SheetDeleteSubCommand}"/>
                 </StackPanel>

@@ -349,6 +349,7 @@
     <string name="speed_mbit" formatted="false">"%.1f Мбит/с"</string>
     <string name="speed_gbit" formatted="false">"%.2f Гбит/с"</string>
     <string name="fmt_sub_meta_noexp">"%1$d серверов · %2$s"</string>
+    <string name="fmt_sub_servers">"%1$d серверов"</string>
     <string name="section_protocol">"ПРОТОКОЛ"</string>
     <string name="ping_use_stability">"Использовать «Стабильность»"</string>
     <string name="auto_delay">"Пауза перед повторной попыткой"</string>

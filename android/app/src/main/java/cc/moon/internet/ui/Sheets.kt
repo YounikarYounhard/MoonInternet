@@ -45,12 +45,20 @@ fun SubscriptionSheet(
     onDelete: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Moon.Card) {
-        SheetHeader(sub.name, if (sub.expiryText == "∞") stringResource(R.string.fmt_sub_meta_noexp, sub.servers.size, sub.trafficText)
-                              else stringResource(R.string.fmt_sub_meta, sub.servers.size, sub.trafficText, sub.expiryText))
-        SheetItem(Icons.Filled.Refresh, stringResource(R.string.settingsscreen_086), onUpdate)
+        // Servers added by hand have no address to fetch from, so every line that acts on one is
+        // left out rather than offered and then quietly doing nothing: no refresh, no URL to copy,
+        // no QR of a URL that does not exist, and no traffic or expiry in the subtitle.
+        SheetHeader(sub.name, when {
+            sub.isLoose -> stringResource(R.string.fmt_sub_servers, sub.servers.size)
+            sub.expiryText == "∞" -> stringResource(R.string.fmt_sub_meta_noexp, sub.servers.size, sub.trafficText)
+            else -> stringResource(R.string.fmt_sub_meta, sub.servers.size, sub.trafficText, sub.expiryText)
+        })
+        if (!sub.isLoose) SheetItem(Icons.Filled.Refresh, stringResource(R.string.settingsscreen_086), onUpdate)
         SheetItem(Icons.Filled.Speed, stringResource(R.string.sheets_001), onPing)
-        SheetItem(Icons.Filled.ContentCopy, stringResource(R.string.sheets_002), onCopy)
-        SheetItem(Icons.Filled.QrCode2, stringResource(R.string.sheets_003), onQr)
+        if (!sub.isLoose) {
+            SheetItem(Icons.Filled.ContentCopy, stringResource(R.string.sheets_002), onCopy)
+            SheetItem(Icons.Filled.QrCode2, stringResource(R.string.sheets_003), onQr)
+        }
         Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
             .height(1.dp).background(Moon.BorderSoft))
         SheetItem(Icons.Filled.Delete, stringResource(R.string.settingsscreen_084), onDelete, Moon.Danger)
@@ -93,12 +101,20 @@ fun ServerSheet(
     }
 }
 
-/** Read-only outbound JSON — the same thing the desktop menu shows, with a copy button. */
+/**
+ * What this server's config actually is, read-only, with a copy button.
+ *
+ * For AmneziaWG that is its own [Interface]/[Peer] document rather than an xray outbound: ours is
+ * a SOCKS dial into the tunnel on loopback, so the dialog used to answer "what is my server?"
+ * with 127.0.0.1:1091, which tells you nothing. The config is what the official client shows.
+ */
 @Composable
 fun JsonDialog(server: ServerProfile, onCopy: (String) -> Unit, onDismiss: () -> Unit) {
     val errFmt = stringResource(R.string.fmt_config_error)
     val json = remember(server, errFmt) {
-        runCatching { XrayConfig.buildOutbound(server).toString(2) }.getOrElse { errFmt.format(it.message) }
+        server.raw?.takeIf { server.protocol == cc.moon.internet.core.Protocol.WIREGUARD }
+            ?.let { cc.moon.internet.core.WireGuardParser.configText(it) }
+            ?: runCatching { XrayConfig.buildOutbound(server).toString(2) }.getOrElse { errFmt.format(it.message) }
     }
     AlertDialog(
         onDismissRequest = onDismiss,
