@@ -37,20 +37,22 @@ import (
 const (
 	cmdConnect   = 1
 	cmdAssociate = 3
-	// The largest tunnel MTU we will use, whatever the config asks for.
+	// What to use when the profile does not say. The same number and the same rule as the official
+	// client, whose Android backend is one line: config MTU if there is one, else this.
 	//
-	// Measured against a live 3.1 server on a path that carries 1500 bytes unfragmented: 1340
-	// worked, 1360 did not, sharply. So AmneziaWG 3 spends about 160 bytes a packet — the 60 of
-	// ordinary WireGuard plus its content padding and random trailers — while 3x-ui still writes
-	// the plain-WireGuard 1380 into the config. Obeying it gave a tunnel where small packets went
-	// through and anything full-sized was dropped: DNS answered, pings were fine, pages hung.
+	// A profile's own figure is honoured as written. It is tempting to cap it "for safety", and I
+	// did, on the strength of a measurement where 1380 failed and 1280 worked — but the large
+	// values had simply been tested first, and the run that failed was a bad minute on the link,
+	// not a size limit. The engine settles it: a full transport packet costs MTU + 20 (IPv4) +
+	// 8 (UDP) + S4 + 16 (header) + 16 (tag), and AmneziaWG 3's content padding is bounded by the
+	// largest packet already sent, so it never inflates a full-sized one. With this server's S4
+	// of 23 that puts the real ceiling at 1417 on a 1500-byte path — which is why 1420 genuinely
+	// did fail, and why 1380 never had any business failing.
 	//
-	// 1280 is the IPv6 minimum, so every path has to carry it, and it leaves 220 bytes of headroom
-	// where 160 were needed.
-	//
-	// ponytail: a fixed ceiling rather than path-MTU discovery. Costs a few percent of throughput;
-	// worth doing properly only if someone is counting megabits.
-	maxMtu = 1280
+	// So: no invented ceiling. A profile asking for more than its path can carry is wrong in the
+	// official client too, and guessing a limit from one connection is how you slow down everyone
+	// else's.
+	defaultMtu = 1280
 	// How long a silent datagram flow is held open. Long enough to sit between QUIC keepalives,
 	// short enough that a phone which has moved on is not still holding hundreds of them.
 	udpIdle = 90 * time.Second
@@ -61,7 +63,7 @@ func main() {
 	listen := flag.String("listen", "127.0.0.1:1090", "address for the SOCKS5 listener")
 	addrs := flag.String("addr", "", "tunnel addresses, comma separated (10.8.1.2/32)")
 	dns := flag.String("dns", "1.1.1.1", "resolvers inside the tunnel, comma separated")
-	mtu := flag.Int("mtu", maxMtu, "tunnel MTU; an upper bound of "+strconv.Itoa(maxMtu)+" applies")
+	mtu := flag.Int("mtu", defaultMtu, "tunnel MTU, as the profile gives it")
 	verbose := flag.Bool("v", false, "log what the device is doing")
 	flag.Parse()
 
@@ -87,8 +89,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *mtu <= 0 || *mtu > maxMtu {
-		*mtu = maxMtu
+	if *mtu <= 0 {
+		*mtu = defaultMtu
 	}
 
 	// A userspace interface: no TUN device, no admin rights, nothing for another VPN to collide
