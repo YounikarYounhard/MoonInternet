@@ -1096,7 +1096,7 @@
                     <StackPanel>
                         <TextBlock Text="{DynamicResource S_SettingsView_198}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,6"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12.5" LineHeight="20" TextWrapping="Wrap"
-                                   Text="• xray-core — MPL-2.0&#x0a;• sing-box — GPL-3.0&#x0a;• tun2socks (hev-socks5-tunnel)&#x0a;• amneziawg-go"/>
+                                   Text="• xray-core — MPL-2.0&#x0a;• sing-box — GPL-3.0&#x0a;• tun2socks (hev-socks5-tunnel)&#x0a;• amneziawg-go — MIT, © WireGuard LLC"/>
                         <TextBlock Text="{DynamicResource S_SettingsView_199}" FontWeight="SemiBold" FontSize="13" Margin="0,14,0,6"/>
                         <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="12.5" LineHeight="20" TextWrapping="Wrap"
                                    Text="• CommunityToolkit.Mvvm — MIT&#x0a;• H.NotifyIcon.Wpf — MIT&#x0a;• QRCoder — MIT"/>

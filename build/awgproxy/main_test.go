@@ -45,12 +45,12 @@ func TestParseDatagram(t *testing.T) {
 
 	t.Run("refused", func(t *testing.T) {
 		for name, pkt := range map[string][]byte{
-			"fragment":      {0, 0, 1, 1, 1, 1, 1, 1, 0, 53},
-			"short header":  {0, 0, 0, 1},
-			"address cut":   {0, 0, 0, 1, 1, 1},
-			"port cut":      {0, 0, 0, 1, 1, 1, 1, 1, 0},
-			"domain cut":    {0, 0, 0, 3, 9, 'm', 'o'},
-			"unknown atyp":  {0, 0, 0, 9, 1, 1, 1, 1, 0, 53},
+			"fragment":       {0, 0, 1, 1, 1, 1, 1, 1, 0, 53},
+			"short header":   {0, 0, 0, 1},
+			"address cut":    {0, 0, 0, 1, 1, 1},
+			"port cut":       {0, 0, 0, 1, 1, 1, 1, 1, 0},
+			"domain cut":     {0, 0, 0, 3, 9, 'm', 'o'},
+			"unknown atyp":   {0, 0, 0, 9, 1, 1, 1, 1, 0, 53},
 			"nothing at all": {},
 		} {
 			if _, _, _, ok := parseDatagram(pkt); ok {

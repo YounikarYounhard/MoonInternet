@@ -32,7 +32,6 @@ import (
 	// newest tag (v1.0.4) predates the protocol entirely.
 	"github.com/amnezia-vpn/amneziawg-go/v3/conn"
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
-	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
 )
 
 const (
@@ -93,8 +92,9 @@ func main() {
 	}
 
 	// A userspace interface: no TUN device, no admin rights, nothing for another VPN to collide
-	// with. tnet is a full TCP/IP stack whose packets go through the tunnel.
-	tun, tnet, err := netstack.CreateNetTUN(localAddrs, resolvers, *mtu)
+	// with. tnet is a full TCP/IP stack whose packets go through the tunnel — ours rather than the
+	// one amneziawg-go ships, for the two reasons set out in tunnel.go.
+	tun, tnet, err := createTunnel(localAddrs, resolvers, *mtu)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "awgproxy: cannot create the userspace interface:", err)
 		os.Exit(1)
@@ -169,7 +169,7 @@ func parseAddrs(list string) ([]netip.Addr, error) {
 // with it: the resolver queries died, xray fell through to its "localhost" entry, and name lookups
 // went out to the phone's own resolver outside the tunnel. The tunnel was up, the ping was good,
 // and half the internet answered wrongly or not at all.
-func serve(client net.Conn, tnet *netstack.Net) {
+func serve(client net.Conn, tnet *tunnel) {
 	defer client.Close()
 
 	cmd, target, err := socksHandshake(client)
@@ -265,7 +265,7 @@ func socksHandshake(c net.Conn) (byte, string, error) {
 // serveAssociate opens the datagram side of the proxy and keeps it for exactly as long as the TCP
 // connection that asked for it — that lifetime is the whole reason the control connection stays
 // open, and it is what stops a relay socket outliving the core that was using it.
-func serveAssociate(client net.Conn, tnet *netstack.Net) {
+func serveAssociate(client net.Conn, tnet *tunnel) {
 	// A real OS socket on loopback: the core sends its datagrams here, and only what comes out of
 	// the far side of this function goes into the tunnel.
 	local, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
@@ -288,7 +288,7 @@ func serveAssociate(client net.Conn, tnet *netstack.Net) {
 
 // relayDatagrams carries datagrams between the core and the tunnel, one tunnel socket per
 // destination so that replies from somewhere else are dropped the way a connected socket drops them.
-func relayDatagrams(local *net.UDPConn, tnet *netstack.Net) {
+func relayDatagrams(local *net.UDPConn, tnet *tunnel) {
 	var mu sync.Mutex
 	flows := map[string]net.Conn{}
 	defer func() {
