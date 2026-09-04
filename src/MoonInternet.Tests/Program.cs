@@ -60,10 +60,18 @@ if (args.Length >= 2 && args[0] == "awgtunnel")
     string exitIp = "";
     for (int t = 0; t < 8 && exitIp.Length == 0; t++)
     { try { exitIp = (await awHttp.GetStringAsync("https://api.ipify.org")).Trim(); } catch { await Task.Delay(800); } }
+
+    // And now the other half of the traffic. A tunnel that carries only TCP looks healthy from
+    // every angle right until you notice QUIC and the name lookups went somewhere else entirely.
+    string? resolved = null;
+    for (int t = 0; t < 3 && resolved is null; t++)
+    { try { resolved = await MoonInternet.Tests.Socks5Udp.ResolveAsync(core.SocksPort, "1.1.1.1", "example.com"); } catch { await Task.Delay(800); } }
+
     core.Stop();
     awg.Stop();
     Console.WriteLine($"exit IP through the chain: {(exitIp.Length == 0 ? "(failed)" : exitIp)}");
-    return exitIp.Length == 0 ? 1 : 0;
+    Console.WriteLine($"DNS over UDP through the chain: {resolved ?? "(failed)"}");
+    return exitIp.Length == 0 || resolved is null ? 1 : 0;
 }
 
 // Config-dump mode: `dotnet run -- xraycfg "<share link>" [outpath]` writes the real generated
