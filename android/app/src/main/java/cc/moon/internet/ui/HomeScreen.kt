@@ -345,7 +345,11 @@ fun HomeScreen(
             // carry left its card sitting there open and empty, as though its servers had gone
             // missing. One that is genuinely empty keeps its card — that card is how you refresh it.
             if (shown.isNotEmpty() || sub.servers.isEmpty()) {
-                Column(Modifier.animateItem()) {
+                Column(Modifier.animateItem(
+                    fadeInSpec = tween(220),
+                    placementSpec = tween(420, easing = FastOutSlowInEasing),
+                    fadeOutSpec = tween(180),
+                )) {
                 SubscriptionCard(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -557,6 +561,10 @@ private fun SubscriptionCard(
             if (!collapsed) {
                 Column(Modifier.padding(horizontal = 7.dp).padding(bottom = 7.dp)) {
                     servers.forEach { s ->
+                        // Each row slides to its new place rather than turning up there: picking a
+                        // server lifts it to the top of its card, and in a plain Column that is a
+                        // jump between two frames.
+                        Column(Modifier.animatePlacement()) {
                         ServerRowCompact(
                             server = s,
                             selected = s.key == selected?.key,
@@ -568,6 +576,7 @@ private fun SubscriptionCard(
                             onMenu = { onServerMenu(s) },
                         )
                         Spacer(Modifier.height(6.dp))
+                        }
                     }
                 }
             }

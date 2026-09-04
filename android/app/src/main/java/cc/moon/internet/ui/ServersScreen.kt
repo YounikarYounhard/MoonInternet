@@ -1,5 +1,7 @@
 package cc.moon.internet.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -195,7 +197,11 @@ fun ServersScreen(
             // empty, as though the servers had gone missing. A subscription that is genuinely
             // empty keeps its card, because that card is the only way to refresh or remove it.
             if (shown.isNotEmpty() || sub.servers.isEmpty()) {
-                Column(Modifier.animateItem()) {
+                Column(Modifier.animateItem(
+                    fadeInSpec = tween(220),
+                    placementSpec = tween(420, easing = FastOutSlowInEasing),
+                    fadeOutSpec = tween(180),
+                )) {
                 SubGroup(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -308,6 +314,10 @@ private fun SubGroup(
             if (!collapsed) {
                 Column(Modifier.padding(horizontal = 7.dp).padding(bottom = 7.dp)) {
                     servers.forEach { s ->
+                        // Each row slides to its new place rather than turning up there: picking a
+                        // server lifts it to the top of its card, and in a plain Column that is a
+                        // jump between two frames.
+                        Column(Modifier.animatePlacement()) {
                         ServerRowCompact(
                             server = s,
                             selected = s.key == selected?.key,
@@ -319,6 +329,7 @@ private fun SubGroup(
                             onMenu = { onServerMenu(s) },
                         )
                         Spacer(Modifier.height(6.dp))
+                        }
                     }
                 }
             }

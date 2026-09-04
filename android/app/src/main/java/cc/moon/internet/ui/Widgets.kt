@@ -19,6 +19,11 @@ import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.composed
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.foundation.layout.offset
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.PathEffect
@@ -517,4 +522,46 @@ fun Paragraph(text: String, top: Int = 0) {
 fun SubHeading(text: String) {
     Text(text, Modifier.padding(top = 14.dp, bottom = 4.dp),
          color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+}
+
+/**
+ * Slide a child to its new place instead of letting it appear there.
+ *
+ * The rows inside a subscription card live in an ordinary Column, which has no notion of an item
+ * changing position — so when the server you picked jumped to the top of its card, it simply was
+ * somewhere else on the next frame. Lazy lists get [androidx.compose.foundation.lazy.LazyItemScope.animateItem]
+ * for this; a Column gets it by remembering where it was drawn last and animating the difference.
+ *
+ * Slow enough to be followed by eye and with no bounce at the end: this is a list settling, not a
+ * thing being thrown.
+ */
+fun Modifier.animatePlacement(): Modifier = composed {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var target by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(androidx.compose.ui.unit.IntOffset.Zero) }
+    var animatable by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<androidx.compose.animation.core.Animatable<androidx.compose.ui.unit.IntOffset, androidx.compose.animation.core.AnimationVector2D>?>(null)
+    }
+    this
+        .onPlaced {
+            target = androidx.compose.ui.unit.IntOffset(
+                it.positionInParent().x.toInt(), it.positionInParent().y.toInt(),
+            )
+        }
+        .offset {
+            val anim = animatable ?: androidx.compose.animation.core.Animatable(
+                target, androidx.compose.ui.unit.IntOffset.VectorConverter,
+            ).also { animatable = it }
+            if (anim.targetValue != target) {
+                scope.launch {
+                    anim.animateTo(
+                        target,
+                        androidx.compose.animation.core.tween(
+                            durationMillis = 420,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                        ),
+                    )
+                }
+            }
+            anim.value - target
+        }
 }
