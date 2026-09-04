@@ -25,7 +25,8 @@ public sealed class ConnectionManager : IDisposable
     private readonly AwgProxyRunner _awg;
     /// <summary>The live AmneziaWG profile, or null when no such tunnel is up. See <see cref="OnNetworkMoved"/>.</summary>
     private WireGuardConfig? _roamingAwg;
-    private int _roamPending;   // a burst of address changes is one move, not twenty
+    private int _roamPending;      // a burst of address changes is one move, not twenty
+    private int? _roamIfIndex;     // the real card we went out through when the tunnel was built
     private IProxyRunner _runner;                 // active core: xray, or sing-box for Hysteria2
     private bool _tunActive;
     private bool _userDisconnect;   // distinguishes intentional disconnect from a drop
@@ -245,6 +246,7 @@ public sealed class ConnectionManager : IDisposable
                 _awg.DropSecrets();   // the core has read it; the private key need not stay on disk
                 RoutingNote = profile.Wireguard!.ProtocolLabel;   // the one place these are named
                 _roamingAwg = profile.Wireguard;                  // rebuild it when the network moves
+                _roamIfIndex = Pinger.PhysicalIfIndex();          // the card we are going out through
                 xrayProfile = new OutboundProfile { Protocol = ProtocolType.Socks, Address = "127.0.0.1", Port = _awg.SocksPort, Name = profile.Name };
             }
             _xray.Start(xrayProfile, routing, geoDir);
@@ -284,7 +286,7 @@ public sealed class ConnectionManager : IDisposable
             try { SystemProxy.Disable(); } catch { }
             _runner.Stop();
             _awg.Stop();
-            _roamingAwg = null;
+            _roamingAwg = null; _roamIfIndex = null;
             Current = null;
             if (State != ConnectionState.Disconnected) Set(ConnectionState.Disconnected);
         }
@@ -357,7 +359,7 @@ public sealed class ConnectionManager : IDisposable
         _xray.Stop();
         _singbox.Stop();
         _awg.Stop();
-        _roamingAwg = null;
+        _roamingAwg = null; _roamIfIndex = null;
         Current = null;
         Set(ConnectionState.Disconnected);
     }
@@ -372,6 +374,12 @@ public sealed class ConnectionManager : IDisposable
     /// fix — a fresh socket, a fresh handshake, and the server moves the peer across on its own.
     ///
     /// It comes back on the same port, because xray is still dialling that number.
+    ///
+    /// What it must not do is fire on our own doing. Building the tunnel creates an adapter, which
+    /// is itself an address change — so a version that restarted on every such event tore the
+    /// proxy down moments after it had been built, and made connecting less reliable than having
+    /// no fix at all. The question is not "did addresses change" but "are we still going out
+    /// through the same card", which our own adapter cannot alter.
     /// </summary>
     private async void OnNetworkMoved(object? sender, EventArgs e)
     {
@@ -384,6 +392,11 @@ public sealed class ConnectionManager : IDisposable
             await Task.Delay(2000);
             System.Threading.Interlocked.Exchange(ref _roamPending, 0);
             if (_roamingAwg is not { } wg) return;
+
+            int? nowOut = Pinger.PhysicalIfIndex();
+            if (nowOut is null || nowOut == _roamIfIndex) return;   // same card, nothing to rebuild
+            _roamIfIndex = nowOut;
+
             _awg.Start(wg, keepPort: true);
             if (await WaitPortAsync(_awg.SocksPort, CancellationToken.None)) _awg.DropSecrets();
         }

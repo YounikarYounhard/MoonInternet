@@ -397,23 +397,48 @@ class MoonVpnService : VpnService() {
      * Restarting the little proxy is the whole fix: it opens a fresh socket on the network that is
      * actually there and handshakes again, and the server moves the peer to the new address on its
      * own. xray keeps dialling the same loopback port and never knows anything happened.
+     *
+     * Two things this must NOT do, both learned the hard way when the first version of it made
+     * connecting less reliable than having no fix at all:
+     *
+     *  - It must not watch the DEFAULT network. Bringing a VPN up makes the VPN the default, so
+     *    every single connection reported "the network changed" and restarted the proxy while the
+     *    core was still starting on top of it. Hence NOT_VPN: only the real networks underneath.
+     *  - It must not act when a network merely APPEARS. Android keeps the old one alive while it
+     *    can, so our socket is still fine and a restart would be a break we caused ourselves.
+     *    Losing the one we were using is the only event that actually kills the socket.
      */
     private fun watchNetworkFor(wg: cc.moon.internet.core.WireGuardConfig) {
         stopWatchingNetwork()
         val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val request = android.net.NetworkRequest.Builder()
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
         val callback = object : android.net.ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: android.net.Network) {
-                val previous = currentNetwork
-                currentNetwork = network
-                // The first callback is the network we are already on, not a change.
-                if (previous == null || previous == network) return
+                // Remember the first real network we see; a second one appearing beside it changes
+                // nothing for a socket that is already open.
+                if (currentNetwork == null) currentNetwork = network
+            }
+
+            override fun onLost(network: android.net.Network) {
+                if (network != currentNetwork) return
+                currentNetwork = null
                 scope.launch {
-                    if (_state.value != State.Connected) return@launch
+                    // Let the replacement settle: right after a loss there is often nothing to
+                    // bind to yet, and a proxy that fails to start is worse than one that waits.
+                    kotlinx.coroutines.delay(2000)
+                    if (_state.value != State.Connected || lastAwg == null) return@launch
+                    currentNetwork = cm.activeNetwork?.takeIf { net ->
+                        cm.getNetworkCapabilities(net)
+                            ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN) == true
+                    }
                     awgRunner.start(wg)?.let { why -> android.util.Log.w("MoonVpn", "awg roam: $why") }
                 }
             }
         }
-        runCatching { cm.registerDefaultNetworkCallback(callback) }
+        runCatching { cm.registerNetworkCallback(request, callback) }
             .onSuccess { networkCallback = callback }
     }
 
