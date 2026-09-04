@@ -106,6 +106,7 @@
                         <!-- A plate the filter has emptied is not drawn at all: it used to sit there
                              open and empty, as though its servers had gone missing. -->
                         <Border CornerRadius="14" Background="#120C24" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10"
+                                app:FluidMove.Animate="True"
                                 Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
                             <StackPanel>
                                 <!-- header: collapse area + actions -->
@@ -176,7 +177,7 @@
                                               ItemsSource="{Binding ServersView}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border CornerRadius="12" Padding="14,11" Margin="0,3" Cursor="Hand" BorderThickness="1">
+                                            <Border CornerRadius="12" Padding="14,11" Margin="0,3" Cursor="Hand" BorderThickness="1" app:FluidMove.Animate="True">
                                                 <Border.InputBindings>
                                                     <MouseBinding MouseAction="LeftClick"
                                                                   Command="{Binding DataContext.SelectServerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

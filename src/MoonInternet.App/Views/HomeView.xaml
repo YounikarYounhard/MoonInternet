@@ -371,6 +371,7 @@
                                 <!-- Emptied by the filter means not drawn: an open, empty plate reads
                                      as though the servers had gone missing. -->
                                 <Border CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10"
+                                        app:FluidMove.Animate="True"
                                         Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
                                     <StackPanel>
                                         <Grid>
@@ -438,7 +439,7 @@
                                                       ItemsSource="{Binding ServersView}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border x:Name="row" CornerRadius="12" Padding="14,11" Margin="0,3" Cursor="Hand" BorderThickness="1">
+                                                    <Border x:Name="row" CornerRadius="12" Padding="14,11" Margin="0,3" Cursor="Hand" BorderThickness="1" app:FluidMove.Animate="True">
                                                         <Border.InputBindings>
                                                             <MouseBinding MouseAction="LeftClick"
                                                                           Command="{Binding DataContext.SelectServerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

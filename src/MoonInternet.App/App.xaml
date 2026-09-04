@@ -505,6 +505,29 @@
         </Style>
 
         <!-- ===== Action-sheet row (in-window menus): icon + label, full-width tap target ===== -->
+        <!-- The "⋯" sheet, coming up from the bottom edge the way the phone's does. IsVisible
+             rather than Visibility: the sheet card is always visible in itself, it is the dimmed
+             backdrop above it that is switched, and IsVisible is the one that follows an ancestor.
+             The transform is declared on each sheet rather than here, because a Transform set from
+             a style is shared between everything using it and comes back frozen. -->
+        <Style x:Key="SheetCard" TargetType="Border">
+            <Style.Triggers>
+                <Trigger Property="IsVisible" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18"/>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                 From="52" To="0" Duration="0:0:0.30">
+                                    <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="SheetRow" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>

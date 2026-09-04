@@ -269,7 +269,9 @@
                 Visibility="{Binding ShowServerSheet, Converter={StaticResource BoolVis}}">
             <Border.InputBindings><MouseBinding MouseAction="LeftClick" Command="{Binding CloseServerSheetCommand}"/></Border.InputBindings>
             <Border VerticalAlignment="Bottom" CornerRadius="18,18,0,0" Background="{StaticResource Card}"
-                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,1,1,0" Padding="10,10,10,14">
+                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,1,1,0" Padding="10,10,10,14"
+                    Style="{StaticResource SheetCard}">
+                <Border.RenderTransform><TranslateTransform/></Border.RenderTransform>
                 <StackPanel>
                     <Border Width="38" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding SheetServer.Label}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
@@ -290,7 +292,9 @@
                 Visibility="{Binding ShowSubSheet, Converter={StaticResource BoolVis}}">
             <Border.InputBindings><MouseBinding MouseAction="LeftClick" Command="{Binding CloseSubSheetCommand}"/></Border.InputBindings>
             <Border VerticalAlignment="Bottom" CornerRadius="18,18,0,0" Background="{StaticResource Card}"
-                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,1,1,0" Padding="10,10,10,14">
+                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,1,1,0" Padding="10,10,10,14"
+                    Style="{StaticResource SheetCard}">
+                <Border.RenderTransform><TranslateTransform/></Border.RenderTransform>
                 <StackPanel>
                     <Border Width="38" Height="4" CornerRadius="2" Background="{StaticResource BorderSoft}" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding SheetSub.Name}" FontWeight="SemiBold" FontSize="13.5" Margin="14,0,14,8" TextTrimming="CharacterEllipsis"/>
