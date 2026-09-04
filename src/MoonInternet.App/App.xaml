@@ -554,10 +554,11 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Grid Grid.Column="0" Width="30" Height="26" Margin="0,0,11,0" VerticalAlignment="Center">
-                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <Image Source="{Binding FlagImage}" Width="30" Stretch="Uniform" VerticalAlignment="Center"/>
-                </Grid>
+                <!-- No flag, no picture and no gap either: a server we cannot name a country for
+                     simply starts at its name. A globe used to stand in here, which turned every
+                     unknown row into the same symbol repeated down the list. -->
+                <Image Grid.Column="0" Source="{Binding FlagImage}" Width="30" Margin="0,0,11,0" Stretch="Uniform"
+                       VerticalAlignment="Center" Visibility="{Binding HasFlag, Converter={StaticResource BoolVis}}"/>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Label}" FontSize="13.5" TextTrimming="CharacterEllipsis"/>
                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0">

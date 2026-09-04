@@ -21,15 +21,18 @@ public enum AppPage { Home, Servers, Settings, Add, Language, Connection, Tunnel
 public partial class ServerItem : ObservableObject
 {
     public OutboundProfile Profile { get; }
-    public string Flag { get; }
     public string Label { get; private set; }
     public ImageSource? FlagImage { get; }   // real flag picture (Windows renders flag emoji as "FI" text, useless)
+    /// <summary>Whether to give the row a picture at all. A server whose country we cannot name gets
+    /// no stand-in symbol: an icon that means "unknown" is still an icon, and a line of them tells
+    /// you nothing while looking like it should.</summary>
+    public bool HasFlag => FlagImage is not null;
     public string? SubscriptionName { get; set; }
 
     public ServerItem(OutboundProfile p)
     {
         Profile = p;
-        (Flag, Label, var code) = SplitFlag(p.Name);
+        (Label, var code) = SplitFlag(p.Name);
         FlagImage = LoadFlag(code);
         // A link with no remark, or one whose remark was nothing but the flag, left the row with a
         // blank name — a server you cannot tell apart from the next blank one. Its endpoint is
@@ -132,8 +135,10 @@ public partial class ServerItem : ObservableObject
     };
     partial void OnPingChanged(int value) { OnPropertyChanged(nameof(PingText)); OnPropertyChanged(nameof(PingBrush)); OnPropertyChanged(nameof(PingSignal)); }
 
-    // Returns the leading flag emoji, the name without it, and the ISO-3166 alpha-2 code (for the flag picture).
-    private static (string flag, string label, string? code) SplitFlag(string name)
+    // Returns the name without its leading flag emoji, and the ISO-3166 alpha-2 code that emoji
+    // spelled out — which is what picks the flag picture, since Windows draws the emoji itself as
+    // the letters "FI".
+    private static (string label, string? code) SplitFlag(string name)
     {
         if (name.Length >= 4 && char.IsHighSurrogate(name[0]) && char.IsHighSurrogate(name[2]))
         {
@@ -142,10 +147,10 @@ public partial class ServerItem : ObservableObject
             if (cp1 is >= 0x1F1E6 and <= 0x1F1FF && cp2 is >= 0x1F1E6 and <= 0x1F1FF)
             {
                 string code = $"{(char)('a' + cp1 - 0x1F1E6)}{(char)('a' + cp2 - 0x1F1E6)}";
-                return (name[..4], name[4..].Trim(), code);
+                return (name[4..].Trim(), code);
             }
         }
-        return ("\U0001F310", name, null); // globe, unknown country
+        return (name, null); // no flag in the name, and nothing stands in for one
     }
 }
 
@@ -1558,11 +1563,13 @@ public partial class MainViewModel : ObservableObject
     public bool HasSelectedServer => SelectedServer is not null;
     public string SelectedServerLabel => SelectedServer?.Label ?? Localization.Loc.T("S_VM_022");
     public ImageSource? SelectedServerFlag => SelectedServer?.FlagImage;
+    public bool SelectedServerHasFlag => SelectedServer?.HasFlag ?? false;
     private bool _restoringServer;
     partial void OnSelectedServerChanged(ServerItem? value)
     {
         OnPropertyChanged(nameof(SelectedServerLabel));
         OnPropertyChanged(nameof(SelectedServerFlag));
+        OnPropertyChanged(nameof(SelectedServerHasFlag));
         OnPropertyChanged(nameof(HasSelectedServer));
         OnPropertyChanged(nameof(StateText));   // "Нет активного соединения" ⇄ "Не подключено"
         foreach (var s in AllServers) s.IsSelected = ReferenceEquals(s, value);   // highlight the picked row on Home

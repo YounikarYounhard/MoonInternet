@@ -183,8 +183,11 @@ fun HomeScreen(
             } else if (server != null) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(flagOf(server), fontSize = 15.sp)
-                    Spacer(Modifier.width(7.dp))
+                    val flag = flagOf(server)
+                    if (flag.isNotEmpty()) {
+                        Text(flag, fontSize = 15.sp)
+                        Spacer(Modifier.width(7.dp))
+                    }
                     Text(
                         server.label,
                         color = Moon.AccentText, fontSize = 14.5.sp, fontWeight = FontWeight.Bold,
@@ -580,8 +583,11 @@ fun ServerRowCompact(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     ) {
         Row(Modifier.padding(14.dp, 11.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(flagOf(server), fontSize = 20.sp)
-            Spacer(Modifier.width(11.dp))
+            val flag = flagOf(server)
+            if (flag.isNotEmpty()) {
+                Text(flag, fontSize = 20.sp)
+                Spacer(Modifier.width(11.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(server.label, color = Moon.TextPrimary, fontSize = 13.5.sp,
                      maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -611,9 +617,16 @@ private fun Tag(text: String, fg: Color, bg: Color) {
     }
 }
 
+/**
+ * The flag for a server, or nothing at all.
+ *
+ * A globe used to stand in when the country was unknown, which gave every unnamed server the same
+ * symbol: a column of identical stickers that told you nothing while looking as though it should.
+ * Callers check for the empty string rather than laying out room for it.
+ */
 fun flagOf(s: ServerProfile): String = s.countryCode?.let { cc ->
     String(Character.toChars(0x1F1E6 + (cc[0] - 'a'))) + String(Character.toChars(0x1F1E6 + (cc[1] - 'a')))
-} ?: "🌐"
+} ?: ""
 
 fun pingColorOf(ms: Int) = when {
     ms < 0 -> Moon.Danger
