@@ -186,13 +186,16 @@ fun ServersScreen(
             }
         }
 
-        if (!zapret) items(groups.size) { i ->
+        // Keyed by the subscription, so a plate that changes place slides there instead of the
+        // whole column redrawing itself in the new order between two frames.
+        if (!zapret) items(groups.size, key = { groups[it].first.url }) { i ->
             val (sub, shown) = groups[i]
             // A group with nothing left to show is left out entirely. Picking a protocol that one
             // subscription happens not to carry used to leave its card sitting there, open and
             // empty, as though the servers had gone missing. A subscription that is genuinely
             // empty keeps its card, because that card is the only way to refresh or remove it.
             if (shown.isNotEmpty() || sub.servers.isEmpty()) {
+                Column(Modifier.animateItem()) {
                 SubGroup(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -208,6 +211,7 @@ fun ServersScreen(
                     onSelect = onSelect, onServerMenu = onServerMenu,
                 )
                 Spacer(Modifier.height(10.dp))
+                }
             }
         }
 

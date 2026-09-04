@@ -240,6 +240,22 @@ class Store(private val ctx: Context) {
         return allServers.firstOrNull { it.key == raw } ?: allServers.firstOrNull()
     }
 
+    /**
+     * Write the fallback down when the saved selection no longer names anything.
+     *
+     * [selectedServer] quietly falls back to the first server, which keeps the app usable but
+     * leaves the state disagreeing with itself: the row highlighted on screen is one server and
+     * the saved value names another, so everything asked in terms of the saved value answers about
+     * the wrong one. That is how a subscription refresh could highlight the server you were on and
+     * still give it a ping measured as though it were somebody else's.
+     */
+    suspend fun healSelection() {
+        val raw = _state.value.selectedServerRaw
+        if (raw != null && allServers.any { it.key == raw }) return
+        val resolved = selectedServer()?.key ?: return
+        update { it.copy(selectedServerRaw = resolved) }
+    }
+
     fun isFavorite(s: ServerProfile) = s.key in _state.value.favorites
 
     suspend fun toggleFavorite(s: ServerProfile) {

@@ -225,6 +225,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (chosen.isNotEmpty() && store.allServers.none { it.protocolLabel == chosen }) {
                 store.update { it.copy(protocol = "") }
             }
+            store.healSelection()
         }
     }
 
@@ -366,7 +367,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!silent) _busy.value = true
         _refreshing.update { it + url }
         val ok = refreshOne(url)
-        if (!silent) _status.value = if (ok) s(R.string.vm_sub_updated) else s(R.string.vm_sub_update_failed)
+        if (!silent) {
+            // Which one. With several subscriptions "Подписка обновлена" leaves you guessing
+            // whether the button you pressed is the one that answered.
+            val name = store.state.value.subscriptions.firstOrNull { it.url == url }?.name
+                ?.takeIf { it.isNotBlank() }
+            _status.value = when {
+                ok && name != null -> s(R.string.vm_sub_updated_named, name)
+                ok -> s(R.string.vm_sub_updated)
+                name != null -> s(R.string.vm_sub_update_failed_named, name)
+                else -> s(R.string.vm_sub_update_failed)
+            }
+        }
         _refreshing.update { it - url }
         if (!silent) _busy.value = false   // a background pass must not clear somebody else's spinner
     }
@@ -419,6 +431,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 })
             }
             importRoutings(u, f.routingLinks)
+            // A refresh can retire the server the selection named. Write down whatever we fall
+            // back to, so the saved value and the highlighted row stay the same server.
+            store.healSelection()
         }.isSuccess
 
     /**
@@ -585,23 +600,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             kotlinx.coroutines.delay(i.toLong() * st.pingStaggerMs)
                         }
                         gate.withPermit {
-                            val ms = measurePing(s, method)
+                            // One server, one number. The row for the server we are connected
+                            // THROUGH is measured through the tunnel, exactly as the button
+                            // measures it — otherwise the two ask different questions (does that
+                            // address answer a probe / does this connection work) and answer with
+                            // two different figures for the same row, which is what "the ping from
+                            // below does not match the one on top" was.
+                            // Against the server actually selected, not against the saved string:
+                            // when that string names nothing the app falls back to the first server
+                            // in the list, so the two are not always the same thing.
+                            val active = store.selectedServer()?.key
+                            val live = vpnState.value == MoonVpnService.Companion.State.Connected &&
+                                s.pingKey == active
+                            val ms = if (live) tunnelPing() else measurePing(s, method)
                             s.pingKey.let { raw ->
                                 _pings.update { it + (raw to ms) }
                                 _pinging.update { it - raw }
-                                // The other half of the link: checkConnection already writes its
-                                // reading into the row, and measuring the row has to reach the
-                                // pill by the button, or the two show different numbers for the
-                                // same server after a subscription ping.
-                                //
-                                // Only while there is no tunnel, though. With one up the two are
-                                // answering different questions — the row probes the server's own
-                                // address, the pill asks whether the tunnel carries traffic — and
-                                // letting the row win wiped a good reading seconds after the button
-                                // had given it. On AmneziaWG it did so every time: the address is a
-                                // UDP port, and a TCP probe of one never answers.
-                                if (raw == store.state.value.selectedServerRaw &&
-                                    vpnState.value != MoonVpnService.Companion.State.Connected) {
+                                // ...and the same figure goes to the pill by the button, so the two
+                                // cannot disagree by construction rather than by luck.
+                                if (raw == active) {
                                     _checkPing.value = if (ms >= 0) "$ms ms" else s(R.string.vm_no_reply)
                                 }
                             }
@@ -644,6 +661,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * path to gstatic and handed every server the same number no matter what — that is the
      * "only our method works" report.
      */
+    /**
+     * The live tunnel's own round trip, in ms, or -1.
+     *
+     * The one measurement that answers "does this connection work", as opposed to "does that
+     * address answer a probe". The core's own figure first, then a real request through our local
+     * SOCKS port if it declines to give one — it has come back empty on a tunnel demonstrably
+     * carrying hundreds of kilobytes, and a check that says "no reply" over a working connection
+     * is worse than no check at all.
+     */
+    private fun tunnelPing(): Int =
+        (MoonVpnService.runner?.measureDelay()?.takeIf { it >= 0 } ?: socksCheck())?.toInt() ?: -1
+
     private fun measurePing(s: ServerProfile, method: String): Int {
         val st = store.state.value
         val timeout = st.pingTimeoutMs
@@ -748,12 +777,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // empty on a tunnel that was demonstrably carrying hundreds of kilobytes, and a check that
         // says "нет ответа" over a working connection is worse than no check at all. Falling back
         // to a real request through our own SOCKS listener measures the same path the apps use.
-        val ms = MoonVpnService.runner?.measureDelay()?.takeIf { it >= 0 } ?: socksCheck()
-        _checkPing.value = when {
-            ms == null -> s(R.string.vm_no_reply)
-            ms < 0 -> s(R.string.vm_no_reply)
-            else -> "$ms ms"
-        }
+        val ms = tunnelPing()
+        _checkPing.value = if (ms < 0) s(R.string.vm_no_reply) else "$ms ms"
         // The same number goes into the row, so the pill by the button and the list cannot show
         // two different figures for one server.
         if (ms != null && ms >= 0) store.selectedServer()?.let { sel ->

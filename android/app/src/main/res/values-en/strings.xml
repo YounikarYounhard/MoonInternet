@@ -306,7 +306,9 @@
     <string name="vm_loaded">"Servers loaded: %1$d"</string>
     <string name="vm_load_error">"Load error: %1$s"</string>
     <string name="vm_sub_updated">"Subscription updated"</string>
+    <string name="vm_sub_updated_named">"“%1$s” updated"</string>
     <string name="vm_sub_update_failed">"Could not update"</string>
+    <string name="vm_sub_update_failed_named">"Could not update “%1$s”"</string>
     <string name="vm_sub_removed">"Subscription removed"</string>
     <string name="vm_pinging">"Pinging %1$d…"</string>
     <string name="vm_no_reply">"no reply"</string>

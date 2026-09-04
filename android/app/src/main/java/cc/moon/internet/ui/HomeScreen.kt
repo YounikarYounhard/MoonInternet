@@ -336,12 +336,16 @@ fun HomeScreen(
             }
         }
 
-        if (!zapret) items(groups.size) { i ->
+        // Keyed by the subscription, so the list can animate a plate moving instead of redrawing
+        // the column in its new order. Connecting makes the live subscription jump to the top, and
+        // without this it teleports there between two frames.
+        if (!zapret) items(groups.size, key = { groups[it].first.url }) { i ->
             val (sub, shown) = groups[i]
             // Nothing left to show, nothing shown. Picking a protocol one subscription does not
             // carry left its card sitting there open and empty, as though its servers had gone
             // missing. One that is genuinely empty keeps its card — that card is how you refresh it.
             if (shown.isNotEmpty() || sub.servers.isEmpty()) {
+                Column(Modifier.animateItem()) {
                 SubscriptionCard(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -364,6 +368,7 @@ fun HomeScreen(
                     onServerMenu = onServerMenu,
                 )
                 Spacer(Modifier.height(10.dp))
+                }
             }
         }
 

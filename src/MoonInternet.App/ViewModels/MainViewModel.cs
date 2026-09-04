@@ -2660,6 +2660,9 @@ public partial class MainViewModel : ObservableObject
         if (s is null) return;
         int? outIf = _conn.State == ConnectionState.Connected && _conn.ActiveMode == TunnelMode.Tun ? Pinger.PhysicalIfIndex() : null;
         s.Ping = await ProbeAsync(s, outIf);
+        // One server, one number: measuring the row of the server we are connected through has to
+        // reach the pill by the button too, or the two show different figures for the same row.
+        if (ReferenceEquals(s, SelectedServer)) _pillPingMs = s.Ping;
         OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
     }
 
@@ -2922,8 +2925,13 @@ public partial class MainViewModel : ObservableObject
             NotifyServerListChanged();
             RestartAutoUpdateTimer();               // (re)arm periodic auto-refresh now that a subscription exists
             SelectedServer ??= sub.Servers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? sub.Servers.FirstOrDefault();
+            // Name the subscription. With several of them "Загружено серверов: 37" left you
+            // guessing whether the button you pressed is the one that answered.
             Status = TotalServers > 0
-                ? string.Format(Localization.Loc.T("S_VM_121"), TotalServers) + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
+                ? (sub.Name is { Length: > 0 } named
+                    ? string.Format(Localization.Loc.T("S_VM_SubLoaded"), named, sub.Count)
+                    : string.Format(Localization.Loc.T("S_VM_121"), TotalServers))
+                  + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
                 : Localization.Loc.T("S_VM_220");
             await MaybeAutoConnect(sub);
         }
@@ -3359,7 +3367,13 @@ public partial class MainViewModel : ObservableObject
                     // and the whole list snapping to numbers before the spinners are even seen.
                     if (PingStagger && PingStaggerMs > 0) await Task.Delay(i * PingStaggerMs).ConfigureAwait(false);
                     await gate.WaitAsync().ConfigureAwait(false);
-                    try { s.Ping = await ProbeAsync(s, outIf).ConfigureAwait(false); }
+                    try
+                    {
+                        s.Ping = await ProbeAsync(s, outIf).ConfigureAwait(false);
+                        // The pill follows the row it belongs to, so a pass over the subscription
+                        // cannot leave the two disagreeing about the server you are connected to.
+                        if (ReferenceEquals(s, SelectedServer)) _pillPingMs = s.Ping;
+                    }
                     finally { gate.Release(); s.Pinging = false; }
                 });
                 await Task.WhenAll(tasks).ConfigureAwait(false);

@@ -308,7 +308,9 @@
     <string name="vm_loaded">"Загружено серверов: %1$d"</string>
     <string name="vm_load_error">"Ошибка загрузки: %1$s"</string>
     <string name="vm_sub_updated">"Подписка обновлена"</string>
+    <string name="vm_sub_updated_named">"«%1$s» обновлена"</string>
     <string name="vm_sub_update_failed">"Не удалось обновить"</string>
+    <string name="vm_sub_update_failed_named">"Не удалось обновить «%1$s»"</string>
     <string name="vm_sub_removed">"Подписка удалена"</string>
     <string name="vm_pinging">"Пингую %1$d…"</string>
     <string name="vm_no_reply">"нет ответа"</string>
