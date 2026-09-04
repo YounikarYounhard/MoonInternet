@@ -1717,7 +1717,7 @@ public partial class MainViewModel : ObservableObject
         LoadCachedSubs();                                                     // offline-first: show last known servers immediately
         foreach (var u in _settings.SubscriptionUrls.ToList()) _ = ImportUrl(u);   // then refresh from the network
         _themeReady = true; // now theme edits (via UI) may apply+save
-        _ = CheckUpdate();  // quiet: only lights the badge, never interrupts the launch
+        _ = WatchForUpdatesAsync();  // quiet: only lights the badge, never interrupts the launch
     }
 
     private bool _themeReady;
@@ -1835,7 +1835,17 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty][NotifyPropertyChangedFor(nameof(UpdateButtonHint))] private bool updateAvailable;
     [ObservableProperty] private bool showUpdateDialog;
     [ObservableProperty] private string latestVersion = "—";
-    [ObservableProperty] private string updateNotes = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateNoteLines))]
+    private string updateNotes = "";
+
+    /// <summary>
+    /// The release notes laid out rather than dumped. GitHub sends Markdown and we were putting the
+    /// literal ## and ** on screen, which reads far worse here than the same text does on the
+    /// release page.
+    /// </summary>
+    public IReadOnlyList<NoteLine> UpdateNoteLines =>
+        MoonInternet.Core.Parsing.ReleaseNotes.Parse(UpdateNotes).Select(NoteLine.From).ToList();
     [ObservableProperty] private string updateStatus = "";
     [ObservableProperty] private bool updateChecking;
 
@@ -1846,17 +1856,35 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void OpenUpdateDialog() { ShowUpdateDialog = true; if (LatestVersion == "—") _ = CheckUpdate(); }
     [RelayCommand] private void CloseUpdateDialog() => ShowUpdateDialog = false;
 
-    /// <summary>Asks GitHub. Runs once at startup too, quietly — a failure just leaves the badge off.</summary>
-    [RelayCommand]
-    private async Task CheckUpdate()
+    /// <summary>
+    /// Keep asking GitHub.
+    ///
+    /// One attempt at startup is one attempt at the worst possible moment — the machine has just
+    /// come up, the network often has not — and when it failed nothing ever asked again, so the
+    /// About page sat on "could not check" until somebody pressed the button. A minute apart while
+    /// it is failing, six hours apart once it has answered.
+    /// </summary>
+    private async Task WatchForUpdatesAsync()
     {
-        if (UpdateChecking) return;
+        while (true)
+        {
+            bool answered = false;
+            try { answered = await CheckUpdate(); } catch { }
+            await Task.Delay(TimeSpan.FromMinutes(answered ? 360 : 1));
+        }
+    }
+
+    /// <summary>Asks GitHub once. True when it answered.</summary>
+    [RelayCommand]
+    private async Task<bool> CheckUpdate()
+    {
+        if (UpdateChecking) return false;
         UpdateChecking = true;
         UpdateStatus = Localization.Loc.T("S_VM_072");
         try
         {
             var rel = await UpdateService.LatestAsync();
-            if (rel is null) { UpdateStatus = Localization.Loc.T("S_VM_073"); return; }
+            if (rel is null) { UpdateStatus = Localization.Loc.T("S_VM_073"); return false; }
 
             LatestVersion = rel.Version;
             UpdateNotes = rel.Notes;
@@ -1868,6 +1896,7 @@ public partial class MainViewModel : ObservableObject
                 : Localization.Loc.T("S_VM_075");
             // The badge on Home is easy to miss when the window starts minimised to the tray.
             if (UpdateAvailable) Notifier.AppUpdate("Moon Internet", string.Format(Localization.Loc.T("S_VM_074"), rel.Version));
+            return true;
         }
         finally { UpdateChecking = false; }
     }

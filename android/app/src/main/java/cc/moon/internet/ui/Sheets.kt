@@ -248,8 +248,10 @@ fun UpdateDialog(
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2150)),
                         modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp),
                     ) {
-                        Text(release!!.notes, color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp,
-                             modifier = Modifier.verticalScroll(rememberScrollState()).padding(14.dp, 12.dp))
+                        ReleaseNotesText(
+                            release!!.notes,
+                            Modifier.verticalScroll(rememberScrollState()).padding(14.dp, 12.dp),
+                        )
                     }
                 }
             }
@@ -358,5 +360,41 @@ private fun LogButton(text: String, onClick: () -> Unit, primary: Boolean = fals
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+/**
+ * The release notes laid out rather than dumped.
+ *
+ * GitHub sends Markdown and we were putting the literal `##` and `**` on screen, which reads far
+ * worse here than the same text does on the release page. The parsing lives in core so the desktop
+ * and this one cannot drift apart about the same text.
+ */
+@Composable
+fun ReleaseNotesText(markdown: String, modifier: Modifier = Modifier) {
+    val blocks = remember(markdown) { cc.moon.internet.core.ReleaseNotes.parse(markdown) }
+    Column(modifier) {
+        blocks.forEach { b ->
+            when (b.kind) {
+                cc.moon.internet.core.NoteKind.HEADING -> Text(
+                    b.text, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 14.dp, bottom = 6.dp),
+                )
+                cc.moon.internet.core.NoteKind.GROUP -> Text(
+                    b.text, color = Moon.AccentText, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 9.dp, bottom = 3.dp),
+                )
+                // The dash is put back rather than kept, so every bullet lines up under the same
+                // one whichever of the three the notes happened to use.
+                cc.moon.internet.core.NoteKind.BULLET -> Text(
+                    "–  ${b.text}", color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp,
+                    modifier = Modifier.padding(start = 6.dp, bottom = 4.dp),
+                )
+                else -> Text(
+                    b.text, color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+        }
     }
 }

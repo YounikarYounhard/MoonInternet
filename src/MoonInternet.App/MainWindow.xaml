@@ -379,7 +379,17 @@
                             Padding="14,12" Margin="0,12,0,0" MaxHeight="230"
                             Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <TextBlock Text="{Binding UpdateNotes}" Foreground="#CFC7EC" FontSize="12" TextWrapping="Wrap" LineHeight="18"/>
+                            <!-- Laid out rather than dumped: the notes arrive as Markdown and the
+                                 literal ## and ** used to go straight onto the screen. -->
+                            <ItemsControl ItemsSource="{Binding UpdateNoteLines}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Text}" FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}"
+                                                   Foreground="{Binding Foreground}" Margin="{Binding Margin}"
+                                                   TextWrapping="Wrap" LineHeight="18"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </ScrollViewer>
                     </Border>
 

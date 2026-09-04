@@ -724,6 +724,23 @@ string FixtureDir()
     while (d is not null && !Directory.Exists(Path.Combine(d.FullName, "fixtures"))) d = d.Parent;
     return d is null ? "fixtures" : Path.Combine(d.FullName, "fixtures");
 }
+// --- Release notes: the shapes our own notes are written in, straight off a real release ---
+{
+    var notes = MoonInternet.Core.Parsing.ReleaseNotes.Parse(
+        "Это бета.\r\n\r\nПоявился третий режим.\r\n\r\n---\r\n\r\n## Что нового\r\n\r\n**Zapret**\r\n\r\n"
+        + "– Новый режим рядом с «Прокси».\r\n- Дефис тоже список.\r\n* И звёздочка.\r\n\r\n"
+        + "Хвост с **выделением** внутри.");
+    Check("notes: the rule and the blank lines are dropped",
+        notes.Count == 8 && notes.All(b => b.Text.Length > 0));
+    Check("notes: ## is a heading", notes[2] is { Kind: NoteKind.Heading, Text: "Что нового" });
+    Check("notes: a bold line on its own is a group", notes[3] is { Kind: NoteKind.Group, Text: "Zapret" });
+    Check("notes: all three bullet marks are bullets",
+        notes.Skip(4).Take(3).All(b => b.Kind == NoteKind.Bullet) && notes[5].Text == "Дефис тоже список.");
+    Check("notes: emphasis inside a line is stripped, not printed",
+        notes[7] is { Kind: NoteKind.Paragraph } p && p.Text == "Хвост с выделением внутри.");
+    Check("notes: nothing in, nothing out", MoonInternet.Core.Parsing.ReleaseNotes.Parse(null).Count == 0);
+}
+
 string fixtures = FixtureDir();
 Check("fixtures are there", Directory.Exists(fixtures));
 

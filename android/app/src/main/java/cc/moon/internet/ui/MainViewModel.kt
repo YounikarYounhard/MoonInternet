@@ -158,10 +158,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
-    fun checkUpdate() = viewModelScope.launch {
+    fun checkUpdate() = viewModelScope.launch { checkUpdateOnce() }
+
+    /** True when GitHub answered. */
+    private suspend fun checkUpdateOnce(): Boolean {
         _updateStatus.value = s(R.string.vm_checking)
         val r = cc.moon.internet.data.UpdateService.latest()
-        if (r == null) { _updateStatus.value = s(R.string.vm_check_failed); return@launch }
+        if (r == null) { _updateStatus.value = s(R.string.vm_check_failed); return false }
         _release.value = r
         _updateAvailable.value = cc.moon.internet.data.UpdateService.isNewer(r.version, appVersion)
         _updateStatus.value =
@@ -169,6 +172,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val st = store.state.value
         if (_updateAvailable.value && st.notificationsEnabled && st.notifyAppUpdate)
             postNotice(s(R.string.vm_update_available, r.version))
+        return true
+    }
+
+    /**
+     * Keep asking. One attempt at launch is one attempt at the worst possible moment — the phone
+     * has just woken, the tunnel is not up, the network often is not either — and when it failed
+     * nothing ever asked again, so the About page sat on "could not check" until somebody pressed
+     * the button. That is what "the update thing works sometimes" was.
+     *
+     * A minute apart while it is failing, six hours apart once it has answered.
+     */
+    private fun watchForUpdates() = viewModelScope.launch {
+        while (true) {
+            val answered = runCatching { checkUpdateOnce() }.getOrDefault(false)
+            kotlinx.coroutines.delay(if (answered) 6 * 60 * 60_000L else 60_000L)
+        }
     }
 
     init {
@@ -193,7 +212,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // Always check at launch. Gating the check itself on the notification setting left the
         // About page showing a dash for the GitHub version and "you are up to date" for something
         // nobody had looked up — the setting belongs on the popup, not on the lookup.
-        checkUpdate()
+        watchForUpdates()
         viewModelScope.launch { watchTraffic() }
         viewModelScope.launch {
             vpnState.collect { s ->
