@@ -266,7 +266,7 @@ class MoonVpnService : VpnService() {
                         lastError.value = why
                         _state.value = State.Disconnected; stopTunnel(); return@launch
                     }
-                    watchNetworkFor(wg)
+                    watchNetwork()
                 }
 
                 intentionalStop = false
@@ -394,21 +394,22 @@ class MoonVpnService : VpnService() {
      * engine watches for that, so the tunnel sat there looking connected while carrying nothing,
      * and the only cure was reconnecting by hand.
      *
-     * Restarting the little proxy is the whole fix: it opens a fresh socket on the network that is
-     * actually there and handshakes again, and the server moves the peer to the new address on its
-     * own. xray keeps dialling the same loopback port and never knows anything happened.
+     * The cure is the one that already works when done by hand: take the tunnel down and put it
+     * back up. Restarting only the proxy underneath a running core was the clever version, and it
+     * was worse — so this goes through onCoreDropped, the same path a dead core takes, retries and
+     * the auto-reconnect setting included.
      *
-     * Two things this must NOT do, both learned the hard way when the first version of it made
-     * connecting less reliable than having no fix at all:
+     * Two things it must NOT do, both learned the hard way when the first version made connecting
+     * less reliable than having no fix at all:
      *
      *  - It must not watch the DEFAULT network. Bringing a VPN up makes the VPN the default, so
-     *    every single connection reported "the network changed" and restarted the proxy while the
-     *    core was still starting on top of it. Hence NOT_VPN: only the real networks underneath.
+     *    every single connection reported "the network changed" and tore down what had just been
+     *    built. Hence NOT_VPN: only the real networks underneath.
      *  - It must not act when a network merely APPEARS. Android keeps the old one alive while it
-     *    can, so our socket is still fine and a restart would be a break we caused ourselves.
-     *    Losing the one we were using is the only event that actually kills the socket.
+     *    can, so the tunnel is still fine and a reconnect would be a break we caused ourselves.
+     *    Losing the one we were using is the only event that actually kills it.
      */
-    private fun watchNetworkFor(wg: cc.moon.internet.core.WireGuardConfig) {
+    private fun watchNetwork() {
         stopWatchingNetwork()
         val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
         val request = android.net.NetworkRequest.Builder()
@@ -427,14 +428,15 @@ class MoonVpnService : VpnService() {
                 currentNetwork = null
                 scope.launch {
                     // Let the replacement settle: right after a loss there is often nothing to
-                    // bind to yet, and a proxy that fails to start is worse than one that waits.
-                    kotlinx.coroutines.delay(2000)
+                    // bind to yet, and reconnecting into nothing only burns an attempt.
+                    kotlinx.coroutines.delay(1500)
                     if (_state.value != State.Connected || lastAwg == null) return@launch
                     currentNetwork = cm.activeNetwork?.takeIf { net ->
                         cm.getNetworkCapabilities(net)
                             ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN) == true
                     }
-                    awgRunner.start(wg)?.let { why -> android.util.Log.w("MoonVpn", "awg roam: $why") }
+                    android.util.Log.i("MoonVpn", "awg roam: network changed, reconnecting")
+                    onCoreDropped()
                 }
             }
         }

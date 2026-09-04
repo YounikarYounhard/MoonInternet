@@ -100,8 +100,10 @@ public partial class ServerItem : ObservableObject
     [ObservableProperty] private bool isFavorite;  // starred by the user (persisted, keyed by FavKey)
     public string? ShareUrl => Profile.Raw;        // original share link (Copy URL / QR)
 
-    /// <summary>What identifies this server across a subscription refresh — see <see cref="ServerKey"/>.</summary>
-    public string? FavKey => ServerKey.Of(Profile.Raw);
+    /// <summary>What identifies this server across a subscription refresh — see <see cref="ServerKey"/>.
+    /// The profile overload, not the raw string: AmneziaWG is identified by its peer rather than by
+    /// the encoded blob it arrived in, and the string one cannot know that.</summary>
+    public string? FavKey => ServerKey.Of(Profile);
     public int Order { get; set; }                 // position in the subscription (for "Обычная" order)
 
     /// <summary>The reading is only worth showing when it is not mid-measurement.</summary>

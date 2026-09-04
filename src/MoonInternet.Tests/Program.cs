@@ -759,6 +759,24 @@ foreach (var (file, generation, label) in new[]
         && fpc!.Address == fw.EndpointHost && fpc.Port == fw.EndpointPort);
     Check($"{file}: the config view shows the config, not our loopback plumbing",
         WireGuardParser.ConfigText(link)?.Contains("[Peer]") == true);
+
+    // A refresh must not turn one server into a different one. The whole vpn:// link is a base64
+    // blob with the config inside it, name and all, so a panel rewriting the label changed every
+    // byte of it — and the selection, the star and the measured ping all went with it, which is
+    // exactly what "the server I was on vanishes when the subscription updates" was.
+    string renamed = conf.Contains('#')
+        ? System.Text.RegularExpressions.Regex.Replace(conf, @"#.*", "# renamed by the panel")
+        : conf + "\n# renamed by the panel";
+    Check($"{file}: a renamed config is still the same server",
+        WireGuardParser.TryParseProfile(conf, out var kA) && kA is not null
+        && WireGuardParser.TryParseProfile(renamed, out var kB) && kB is not null
+        && ServerKey.Of(kA!) == ServerKey.Of(kB!));
+    Check($"{file}: and a different peer is not",
+        ServerKey.Of(kA!) != ServerKey.Of(new OutboundProfile
+        {
+            Protocol = ProtocolType.Wireguard,
+            Wireguard = new WireGuardConfig { PeerPublicKey = "somebodyelse", Endpoint = kA!.Wireguard!.Endpoint },
+        }));
 }
 
 // The generation-specific bits, each checked where it actually lives.

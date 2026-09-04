@@ -108,10 +108,19 @@ data class ServerProfile(
      * into a different one on every refresh. Stars, the current selection and every measured
      * ping were all keyed off it, which is why they kept clearing themselves.
      *
-     * ponytail: a vmess:// link keeps its name inside the base64 payload, so renaming one still
-     * moves its key. Decode it here if that ever turns up in practice.
+     * AmneziaWG needed the same treatment for a different reason: its whole link is one base64
+     * blob with the config inside it, name and all, so there is no `#` to cut at and the least
+     * cosmetic edit on the panel's side produced a brand-new key. The peer's public key and its
+     * endpoint are what actually identify that server, and neither moves when a label does.
+     *
+     * ponytail: a vmess:// link keeps its name inside the base64 payload too, so renaming one
+     * still moves its key. Decode it here if that ever turns up in practice.
      */
-    val key: String get() = raw?.takeIf { it.isNotBlank() }?.substringBefore('#') ?: "$address:$port"
+    val key: String
+        get() {
+            wg?.let { if (it.peerPublicKey.isNotBlank()) return "awg:${it.peerPublicKey}@${it.endpoint}" }
+            return raw?.takeIf { it.isNotBlank() }?.substringBefore('#') ?: "$address:$port"
+        }
 
     /**
      * What the connection actually rides on, for the chip beside the protocol.

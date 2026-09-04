@@ -373,34 +373,34 @@ public sealed class ConnectionManager : IDisposable
     /// carrying nothing until someone reconnects by hand. Restarting the little proxy is the whole
     /// fix — a fresh socket, a fresh handshake, and the server moves the peer across on its own.
     ///
-    /// It comes back on the same port, because xray is still dialling that number.
+    /// The cure is the one that already works when done by hand: take the connection down and put
+    /// it back up. Rebuilding only the proxy underneath a running core was the clever version and
+    /// it was worse, so this goes through the same path a dead core takes.
     ///
-    /// What it must not do is fire on our own doing. Building the tunnel creates an adapter, which
-    /// is itself an address change — so a version that restarted on every such event tore the
-    /// proxy down moments after it had been built, and made connecting less reliable than having
-    /// no fix at all. The question is not "did addresses change" but "are we still going out
-    /// through the same card", which our own adapter cannot alter.
+    /// What it must not do is fire on our own doing. Building the tunnel creates an adapter, and an
+    /// adapter is itself an address change — so a version that acted on every such event tore down
+    /// what had just been built. The question is not "did addresses change" but "are we still going
+    /// out through the same card", which our own adapter cannot alter.
     /// </summary>
     private async void OnNetworkMoved(object? sender, EventArgs e)
     {
         if (_roamingAwg is null) return;
         // Windows reports one move as a flurry of address changes; wait for it to settle, and let
-        // one restart answer the lot.
+        // one reconnect answer the lot.
         if (System.Threading.Interlocked.Exchange(ref _roamPending, 1) == 1) return;
         try
         {
             await Task.Delay(2000);
             System.Threading.Interlocked.Exchange(ref _roamPending, 0);
-            if (_roamingAwg is not { } wg) return;
+            if (_roamingAwg is null) return;
 
             int? nowOut = Pinger.PhysicalIfIndex();
             if (nowOut is null || nowOut == _roamIfIndex) return;   // same card, nothing to rebuild
             _roamIfIndex = nowOut;
 
-            _awg.Start(wg, keepPort: true);
-            if (await WaitPortAsync(_awg.SocksPort, CancellationToken.None)) _awg.DropSecrets();
+            HandleDrop();
         }
-        catch { /* the next change will try again; a failed restart must not take the app down */ }
+        catch { /* the next change will try again; this must not take the app down */ }
     }
 
     /// <summary>Plain WireGuard via the helper's sing-box — one process doing TUN + wireguard outbound + routing.

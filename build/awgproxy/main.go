@@ -37,21 +37,28 @@ import (
 const (
 	cmdConnect   = 1
 	cmdAssociate = 3
-	// What to use when the profile does not say. The same number and the same rule as the official
-	// client, whose Android backend is one line: config MTU if there is one, else this.
+	// The tunnel MTU, and a ceiling on what a profile may ask for.
 	//
-	// A profile's own figure is honoured as written. It is tempting to cap it "for safety", and I
-	// did, on the strength of a measurement where 1380 failed and 1280 worked — but the large
-	// values had simply been tested first, and the run that failed was a bad minute on the link,
-	// not a size limit. The engine settles it: a full transport packet costs MTU + 20 (IPv4) +
-	// 8 (UDP) + S4 + 16 (header) + 16 (tag), and AmneziaWG 3's content padding is bounded by the
-	// largest packet already sent, so it never inflates a full-sized one. With this server's S4
-	// of 23 that puts the real ceiling at 1417 on a 1500-byte path — which is why 1420 genuinely
-	// did fail, and why 1380 never had any business failing.
+	// This has been argued both ways here, so the reasoning is worth keeping. A full transport
+	// packet costs MTU + 20 (IPv4) + 8 (UDP) + S4 + 16 (header) + 16 (tag) — AmneziaWG 3's content
+	// padding is bounded by the largest packet already sent, so it never inflates a full-sized one.
+	// On a path that carries 1500 that leaves room for about 1417, so 3x-ui's 1380 looks fine and
+	// is fine, right up until the path is not 1500.
 	//
-	// So: no invented ceiling. A profile asking for more than its path can carry is wrong in the
-	// official client too, and guessing a limit from one connection is how you slow down everyone
-	// else's.
+	// Which, on a mobile carrier, it usually is not. The symptom is nasty precisely because the
+	// handshake is small and gets through: the tunnel comes up, reports itself connected, and then
+	// drops every full-sized packet, so it sits there carrying nothing. That is what "only on
+	// mobile data" turned out to mean, and the official client does the same thing on the same
+	// profile — this is not a fault in the client, it is a number that does not fit.
+	//
+	// 1280 is the IPv6 minimum, so every path must carry it. It is also what amneziawg-android
+	// falls back to when a config names no MTU, what the Amnezia Windows client ends up using
+	// whatever the config says, and what the common AmneziaWG installers now write into both ends.
+	// Following that is not fitting a constant to one connection — it is the value the people who
+	// define the protocol settled on for the same reason.
+	//
+	// ponytail: a fixed ceiling rather than path-MTU discovery. Costs a few percent of throughput
+	// on a path that could take more; worth revisiting only with a per-profile override to raise.
 	defaultMtu = 1280
 	// How long a silent datagram flow is held open. Long enough to sit between QUIC keepalives,
 	// short enough that a phone which has moved on is not still holding hundreds of them.
@@ -63,7 +70,7 @@ func main() {
 	listen := flag.String("listen", "127.0.0.1:1090", "address for the SOCKS5 listener")
 	addrs := flag.String("addr", "", "tunnel addresses, comma separated (10.8.1.2/32)")
 	dns := flag.String("dns", "1.1.1.1", "resolvers inside the tunnel, comma separated")
-	mtu := flag.Int("mtu", defaultMtu, "tunnel MTU, as the profile gives it")
+	mtu := flag.Int("mtu", defaultMtu, "tunnel MTU; "+strconv.Itoa(defaultMtu)+" is both the default and the ceiling")
 	verbose := flag.Bool("v", false, "log what the device is doing")
 	flag.Parse()
 
@@ -89,7 +96,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *mtu <= 0 {
+	if *mtu <= 0 || *mtu > defaultMtu {
 		*mtu = defaultMtu
 	}
 
