@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using MoonInternet.Core.Generation;
 using MoonInternet.Core.Models;
@@ -23,6 +23,9 @@ public sealed class ConnectionManager : IDisposable
     private readonly XrayRunner _xray;
     private readonly SingBoxProxyRunner _singbox;
     private readonly AwgProxyRunner _awg;
+    /// <summary>The live AmneziaWG profile, or null when no such tunnel is up. See <see cref="OnNetworkMoved"/>.</summary>
+    private WireGuardConfig? _roamingAwg;
+    private int _roamPending;   // a burst of address changes is one move, not twenty
     private IProxyRunner _runner;                 // active core: xray, or sing-box for Hysteria2
     private bool _tunActive;
     private bool _userDisconnect;   // distinguishes intentional disconnect from a drop
@@ -79,6 +82,7 @@ public sealed class ConnectionManager : IDisposable
         _xray.ProcessExited += OnCoreDropped;
         _singbox.ProcessExited += OnCoreDropped;
         _awg.ProcessExited += OnCoreDropped;
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += OnNetworkMoved;
         _runner = _xray;
         // A tunnel left over from a previous run (crash, re-login, autostart) still routes everything into a port
         // that no longer exists → "connected but no internet". Clear it before we do anything else.
@@ -240,6 +244,7 @@ public sealed class ConnectionManager : IDisposable
                     throw new InvalidOperationException("AmneziaWG не поднялся — проверьте конфигурацию");
                 _awg.DropSecrets();   // the core has read it; the private key need not stay on disk
                 RoutingNote = profile.Wireguard!.ProtocolLabel;   // the one place these are named
+                _roamingAwg = profile.Wireguard;                  // rebuild it when the network moves
                 xrayProfile = new OutboundProfile { Protocol = ProtocolType.Socks, Address = "127.0.0.1", Port = _awg.SocksPort, Name = profile.Name };
             }
             _xray.Start(xrayProfile, routing, geoDir);
@@ -279,6 +284,7 @@ public sealed class ConnectionManager : IDisposable
             try { SystemProxy.Disable(); } catch { }
             _runner.Stop();
             _awg.Stop();
+            _roamingAwg = null;
             Current = null;
             if (State != ConnectionState.Disconnected) Set(ConnectionState.Disconnected);
         }
@@ -351,8 +357,37 @@ public sealed class ConnectionManager : IDisposable
         _xray.Stop();
         _singbox.Stop();
         _awg.Stop();
+        _roamingAwg = null;
         Current = null;
         Set(ConnectionState.Disconnected);
+    }
+
+    /// <summary>
+    /// Rebuild the AmneziaWG tunnel when the machine changes network.
+    ///
+    /// Every other protocol survives it because xray simply dials again over whatever is there
+    /// now. AmneziaWG does not: its UDP socket was opened on the network that has gone, and
+    /// nothing inside the engine watches for that, so the tunnel sits there looking connected and
+    /// carrying nothing until someone reconnects by hand. Restarting the little proxy is the whole
+    /// fix — a fresh socket, a fresh handshake, and the server moves the peer across on its own.
+    ///
+    /// It comes back on the same port, because xray is still dialling that number.
+    /// </summary>
+    private async void OnNetworkMoved(object? sender, EventArgs e)
+    {
+        if (_roamingAwg is null) return;
+        // Windows reports one move as a flurry of address changes; wait for it to settle, and let
+        // one restart answer the lot.
+        if (System.Threading.Interlocked.Exchange(ref _roamPending, 1) == 1) return;
+        try
+        {
+            await Task.Delay(2000);
+            System.Threading.Interlocked.Exchange(ref _roamPending, 0);
+            if (_roamingAwg is not { } wg) return;
+            _awg.Start(wg, keepPort: true);
+            if (await WaitPortAsync(_awg.SocksPort, CancellationToken.None)) _awg.DropSecrets();
+        }
+        catch { /* the next change will try again; a failed restart must not take the app down */ }
     }
 
     /// <summary>Plain WireGuard via the helper's sing-box — one process doing TUN + wireguard outbound + routing.

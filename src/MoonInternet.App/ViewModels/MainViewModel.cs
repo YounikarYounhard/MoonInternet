@@ -1540,6 +1540,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnConnectionStateChanged(ConnectionState value)
     {
         if (value != ConnectionState.Connecting) ConnectingStatus = "";
+        if (value != ConnectionState.Connected) _pillPingMs = -2;   // a reading belongs to one session
         OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
         if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
         else _ = CheckConnection();                                   // auto-measure ping the moment we connect
@@ -1575,6 +1576,7 @@ public partial class MainViewModel : ObservableObject
     private bool _restoringServer;
     partial void OnSelectedServerChanged(ServerItem? value)
     {
+        _pillPingMs = -2;                        // measured for the server we just left, not this one
         OnPropertyChanged(nameof(SelectedServerLabel));
         OnPropertyChanged(nameof(SelectedServerFlag));
         OnPropertyChanged(nameof(SelectedServerHasFlag));
@@ -3274,8 +3276,20 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CheckPingText), nameof(HasCheckPing), nameof(CheckPingTrayText))]
     private bool checkPinging;
 
+    /// <summary>
+    /// The last deliberate connection check, kept apart from the row's own number.
+    /// -2 = never asked.
+    ///
+    /// The pill used to read the row, which every background pass also writes — so a good figure
+    /// turned into something else, or into ✕, moments after the button had given it. They are not
+    /// the same question: the button asks whether this connection works, a pass asks whether each
+    /// server answers a probe.
+    /// </summary>
+    private int _pillPingMs = -2;
+
     public string CheckPingText => ConnectionState != ConnectionState.Connected ? ""
         : CheckPinging ? "…"
+        : _pillPingMs != -2 ? (_pillPingMs >= 0 ? $"{_pillPingMs} ms" : "✕")
         : SelectedServer is { } s2 && s2.Ping != -2 ? (s2.Ping >= 0 ? $"{s2.Ping} ms" : "✕")
         : "";
     public bool HasCheckPing => !string.IsNullOrEmpty(CheckPingText);
@@ -3298,6 +3312,7 @@ public partial class MainViewModel : ObservableObject
                 return await ProbeAsync(server, outIf).ConfigureAwait(false);
             }).ConfigureAwait(true);
             server.Ping = ms;
+            _pillPingMs = ms;               // what the pill shows until the next deliberate check
             _lastCheckPingMs = ms;          // the learner pairs this with the next speed sample
             OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
             OnPropertyChanged(nameof(CheckPingTrayText));

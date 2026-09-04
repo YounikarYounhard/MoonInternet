@@ -26,12 +26,16 @@ public sealed class AwgProxyRunner : IDisposable
 
     public AwgProxyRunner(string coresDir) => _exePath = Path.Combine(coresDir, "awg", "awgproxy.exe");
 
-    public void Start(WireGuardConfig wg)
+    /// <param name="keepPort">
+    /// Come back up on the port we were already using. For a restart we decide on rather than one
+    /// the user asked for: xray is still dialling that number and knows nothing about the change.
+    /// </param>
+    public void Start(WireGuardConfig wg, bool keepPort = false)
     {
         if (!CoreAvailable) throw new FileNotFoundException("AmneziaWG core not found", _exePath);
         Stop();
 
-        SocksPort = PortFinder.Free();
+        if (!keepPort || SocksPort == 0) SocksPort = PortFinder.Free();
 
         // The UAPI document holds the private key, so it is written where the app's own data lives
         // rather than the shared temp folder, and deleted the moment the core has read it.
