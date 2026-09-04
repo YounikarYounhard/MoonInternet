@@ -44,7 +44,17 @@ class ServerOrderTest {
 
     @Test
     fun theConnectedServerOutranksAFavourite() {
-        assertEquals("alpha", orderServers(all, emptyMap(), listOf(c.raw!!), "name", "", a.raw).first().label)
+        // Every sort, "Обычная" included. This was only ever checked through the name sort, and the
+        // default branch had simply forgotten to ask about the pin — so in the order nearly
+        // everybody is actually looking at, the server you were on never moved at all.
+        for (sort in listOf("", "default", "ping", "name")) {
+            assertEquals("sort=$sort", "alpha",
+                orderServers(all, emptyMap(), listOf(c.raw!!), sort, "", a.raw).first().label)
+        }
+        // Not «★ Избранное». That one is a filter rather than an order — you asked to see the
+        // starred ones — so a server that is merely active is not in the list to be ranked.
+        assertEquals(listOf("charlie"),
+            names(orderServers(all, emptyMap(), listOf(c.raw!!), "favorite", "", a.raw)))
     }
 
     @Test

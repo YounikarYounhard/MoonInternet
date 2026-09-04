@@ -507,6 +507,9 @@ internal fun orderServers(
         "ping" -> kept.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
         "name" -> kept.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))
         "favorite" -> kept.filter { fav(it) == 0 }.ifEmpty { kept }.sortedWith(compareBy(pinned))
-        else -> kept.sortedBy(fav)
+        // "Обычная" is the subscription's own order with the stars lifted out of it — and the
+        // pinned row above those, like every other mode here. It was the one branch that forgot
+        // to ask, so in the order everybody actually uses the active server never moved at all.
+        else -> kept.sortedWith(compareBy(pinned, fav))
     }
 }
