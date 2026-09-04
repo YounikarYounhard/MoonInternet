@@ -533,6 +533,10 @@
 
         <!-- ===== Dropdown menu opened from a "⋯" button (dark, rounded; items use TrayMenuItem) ===== -->
         <Style x:Key="DropMenu" TargetType="ContextMenu">
+            <!-- A menu is its own popup window, so it does not inherit the smooth text
+                 settings from MainWindow and has to be told separately. -->
+            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="Grayscale"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -749,6 +753,10 @@
 
 
         <Style x:Key="TrayMenu" TargetType="ContextMenu">
+            <!-- A menu is its own popup window, so it does not inherit the smooth text
+                 settings from MainWindow and has to be told separately. -->
+            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="Grayscale"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Template">

@@ -7,7 +7,19 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="{Binding AppVersion, StringFormat=Moon Internet {0}}" Height="788" Width="420"
         WindowStyle="None" ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen" AllowsTransparency="True"
-        Background="{StaticResource WinBg}" Icon="Assets/moon.png" Foreground="{StaticResource TextPrimary}">
+        Background="{StaticResource WinBg}" Icon="Assets/moon.png" Foreground="{StaticResource TextPrimary}"
+        TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="Grayscale"><!--
+        How the letters are drawn, which is why the phone looked smooth and this did not.
+
+        "Display" is Windows' crisp mode: it hints every glyph onto whole pixels, which suits a
+        screen font at 9pt and mangles a rounded one — the curves get flattened onto the grid and
+        read as slightly pixelated. "Ideal" places glyphs where the typeface says they go and lets
+        antialiasing do the rest, which is what a phone does.
+
+        Grayscale rather than ClearType for the same reason: subpixel rendering paints colour
+        fringes along every stroke to buy sharpness. On a dark background at this size that is what
+        makes the edges look gritty, and it is the one thing phones do not do.
+        -->
 
     <Window.DataContext><vm:MainViewModel/></Window.DataContext>
 
