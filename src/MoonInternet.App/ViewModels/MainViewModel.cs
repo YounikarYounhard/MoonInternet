@@ -1546,8 +1546,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
         if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
         else _ = CheckConnection();                                   // auto-measure ping the moment we connect
-        ServerComparers.ActiveRaw = PinActiveServer && value == ConnectionState.Connected
-            ? SelectedServer?.FavKey : null;
+        PinSelectedServer();
         if (value == ConnectionState.Connected) ReorderSubscriptions();
         foreach (var sub in Subscriptions) sub.Refresh();
         OnPropertyChanged(nameof(ElapsedDisplay));
@@ -1579,6 +1578,9 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedServerChanged(ServerItem? value)
     {
         _pillPingMs = -2;                        // measured for the server we just left, not this one
+        PinSelectedServer();                     // the new choice is what belongs at the top now
+        foreach (var sub in Subscriptions) sub.Refresh();
+        ReorderSubscriptions();                  // ...and its subscription with it
         OnPropertyChanged(nameof(SelectedServerLabel));
         OnPropertyChanged(nameof(SelectedServerFlag));
         OnPropertyChanged(nameof(SelectedServerHasFlag));
@@ -2161,9 +2163,20 @@ public partial class MainViewModel : ObservableObject
     partial void OnPinActiveServerChanged(bool v)
     {
         _settings.PinActiveServer = v; _settings.Save();
-        ServerComparers.ActiveRaw = v && IsConnected ? SelectedServer?.FavKey : null;
+        PinSelectedServer();
         foreach (var sub in Subscriptions) sub.Refresh();
     }
+
+    /// <summary>
+    /// Which server the sort keeps at the top of its list.
+    ///
+    /// The one you have chosen, not only the one you are connected through: choosing a server and
+    /// watching it stay buried in the middle of the list is the complaint, and the phone has always
+    /// read it this way. It sorts above the starred ones, because "the one I am using" answers
+    /// "which of these matters right now" better than "one I liked once".
+    /// </summary>
+    private void PinSelectedServer() =>
+        ServerComparers.ActiveRaw = PinActiveServer ? SelectedServer?.FavKey : null;
 
     /// <summary>
     /// Whether the subscription holding the active server floats to the top. Off is the static

@@ -28,8 +28,12 @@ data class AppState(
     val sort: String = "default",
     /** Protocol chip on Servers. Lives here, not in the screen, so Home obeys it too. */
     val protocol: String = "",
-    /** Connected server first in the list. Off = leave it wherever the sort puts it. */
-    val pinActive: Boolean = false,
+    /**
+     * The server you are on goes first in its list — above the starred ones, because "the one I am
+     * using" is a stronger answer to "which of these matters right now" than "one I liked once".
+     * On by default since v14.
+     */
+    val pinActive: Boolean = true,
     /** The subscription holding the active server floats to the top. On by default since v13. */
     val pinActiveSub: Boolean = true,
     /** Always true for now: the proxy-only mode was removed, another is planned. */
@@ -145,7 +149,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 13 }
+    private companion object { const val CURRENT_VERSION = 14 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -196,6 +200,9 @@ class Store(private val ctx: Context) {
                 // v13: the subscription you are connected through belongs at the top, and having
                 // to find the setting first was the reason nobody had it on.
                 pinActiveSub = true,
+                // v14: and the active server itself, which was the other half of the same idea and
+                // had been left switched off, so nothing rose to the top at all.
+                pinActive = true,
                 selectedServerRaw = loaded.selectedServerRaw?.substringBefore('#'),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
@@ -469,7 +476,7 @@ class Store(private val ctx: Context) {
             if (st.protocol.isEmpty() || allServers.any { it.protocolLabel == st.protocol }) st.protocol
             else ""
         return orderServers(list, pings, st.favorites, st.sort, protocol,
-                            if (st.pinActive) st.selectedServerRaw else null)
+                            if (st.pinActive) selectedServer()?.key else null)
     }
 }
 

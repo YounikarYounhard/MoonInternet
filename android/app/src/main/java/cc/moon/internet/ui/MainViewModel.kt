@@ -487,7 +487,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun orderedSubscriptions(st: cc.moon.internet.data.AppState): List<Subscription> {
         if (!st.pinActiveSub) return st.subscriptions
-        val active = st.selectedServerRaw ?: return st.subscriptions
+        // The server actually selected, not the saved string: when that string names nothing the
+        // app falls back to the first server, and sorting by the string then floats nobody.
+        val active = store.selectedServer()?.key ?: return st.subscriptions
         return st.subscriptions.sortedByDescending { sub -> sub.servers.any { it.key == active } }
     }
 
