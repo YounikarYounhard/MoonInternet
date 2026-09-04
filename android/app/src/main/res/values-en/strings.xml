@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="fmt_servers">"%1$d servers"</string>
     <string name="fmt_sub_meta">"%1$d servers · %2$s · %3$s"</string>
@@ -230,8 +230,8 @@
     <string name="settingsscreen_199">"The camera will read the link for you"</string>
     <string name="settingsscreen_200">"Cancel"</string>
     <string name="sheets_001">"Ping"</string>
-    <string name="sheets_stability">"Check for real"</string>
-    <string name="vm_stability_checking">"Really checking %1$s…"</string>
+    <string name="sheets_stability">"Real ping"</string>
+    <string name="vm_stability_checking">"Real ping: %1$s…"</string>
     <string name="vm_stability_ok">"%1$s — the connection works, %2$d ms"</string>
     <string name="vm_stability_dead">"%1$s — nothing gets through this server"</string>
     <string name="sheets_002">"Copy URL"</string>
@@ -301,7 +301,7 @@
     <string name="vm_update_available">"Version %1$s is available"</string>
     <string name="vm_up_to_date">"You are on the latest version"</string>
     <string name="vm_server_added">"Server added"</string>
-    <string name="loose_servers">"Standalone servers"</string>
+    <string name="loose_servers">"My connections"</string>
     <string name="vm_not_a_link">"That does not look like a server link"</string>
     <string name="vm_loaded">"Servers loaded: %1$d"</string>
     <string name="vm_load_error">"Load error: %1$s"</string>

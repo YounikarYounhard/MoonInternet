@@ -57,7 +57,7 @@ public sealed class AppSettings
     public string PingTestUrl { get; set; } = "https://www.gstatic.com/generate_204";
     public int PingTimeoutMs { get; set; } = 4000;             // per-probe timeout
     public bool PinActiveServer { get; set; } = false;   // connected server first in the list — off unless asked for
-    public bool PinActiveSubscription { get; set; } = false;   // float the subscription holding the active server
+    public bool PinActiveSubscription { get; set; } = true;    // the subscription holding the active server floats to the top
     public bool ShowServerCount { get; set; } = true;   // badge with the number of servers on a subscription
     public bool PingStagger { get; set; } = true;              // space the probes out instead of all at once
     public int PingStaggerMs { get; set; } = 150;              // gap between them when staggering
@@ -120,7 +120,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 10;
+    private const int CurrentVersion = 11;
 
     private void Migrate()
     {
@@ -155,6 +155,10 @@ public sealed class AppSettings
 
         // v8: two modes became three. Carry the old switch over so nobody's choice resets.
         if (SettingsVersion < 8) ConnMode = TunMode ? "tun" : "proxy";
+
+        // v11: the subscription you are connected through belongs at the top. It was already
+        // possible, and off by default, which is why nobody had it on.
+        if (SettingsVersion < 11) PinActiveSubscription = true;
 
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }

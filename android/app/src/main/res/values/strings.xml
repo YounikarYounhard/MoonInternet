@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Moon Internet</string>
     <string name="empty"></string>
@@ -232,8 +232,8 @@
     <string name="settingsscreen_199">"Камера прочитает ссылку сама"</string>
     <string name="settingsscreen_200">"Отмена"</string>
     <string name="sheets_001">"Пинговать"</string>
-    <string name="sheets_stability">"Проверить по-настоящему"</string>
-    <string name="vm_stability_checking">"Проверяю %1$s по-настоящему…"</string>
+    <string name="sheets_stability">"Реал-пинг"</string>
+    <string name="vm_stability_checking">"Реал-пинг: %1$s…"</string>
     <string name="vm_stability_ok">"%1$s — соединение живое, %2$d мс"</string>
     <string name="vm_stability_dead">"%1$s — через этот сервер ничего не проходит"</string>
     <string name="sheets_002">"Копировать URL"</string>
@@ -303,7 +303,7 @@
     <string name="vm_update_available">"Доступна версия %1$s"</string>
     <string name="vm_up_to_date">"У вас последняя версия"</string>
     <string name="vm_server_added">"Сервер добавлен"</string>
-    <string name="loose_servers">"Отдельные подключения"</string>
+    <string name="loose_servers">"Мои подключения"</string>
     <string name="vm_not_a_link">"Не похоже на ссылку сервера"</string>
     <string name="vm_loaded">"Загружено серверов: %1$d"</string>
     <string name="vm_load_error">"Ошибка загрузки: %1$s"</string>

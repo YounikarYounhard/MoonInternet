@@ -30,8 +30,8 @@ data class AppState(
     val protocol: String = "",
     /** Connected server first in the list. Off = leave it wherever the sort puts it. */
     val pinActive: Boolean = false,
-    /** Float the subscription holding the active server to the top; off = the static list. */
-    val pinActiveSub: Boolean = false,
+    /** The subscription holding the active server floats to the top. On by default since v13. */
+    val pinActiveSub: Boolean = true,
     /** Always true for now: the proxy-only mode was removed, another is planned. */
     val tunMode: Boolean = true,
     /**
@@ -145,7 +145,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 12 }
+    private companion object { const val CURRENT_VERSION = 13 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -193,6 +193,9 @@ class Store(private val ctx: Context) {
                 // v12: hand-added servers share one bucket instead of one pseudo-subscription
                 // each. Fold whatever is already there into it, keeping the order.
                 subscriptions = mergeLooseSubscriptions(loaded.subscriptions),
+                // v13: the subscription you are connected through belongs at the top, and having
+                // to find the setting first was the reason nobody had it on.
+                pinActiveSub = true,
                 selectedServerRaw = loaded.selectedServerRaw?.substringBefore('#'),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }

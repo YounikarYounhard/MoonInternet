@@ -15,6 +15,23 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
+    <!--
+        Which apps go through the tunnel is a list of apps, so we have to be able to see them.
+        Since Android 11 an app cannot: it is shown only packages it declares an interest in, and
+        without this the per-app page listed the ones that ship with the system and nothing the
+        user had installed. It looked like a phone-versus-tablet difference, and was really an
+        Android-version one.
+
+        Asking for everything that can be launched, rather than the QUERY_ALL_PACKAGES permission,
+        because that is exactly the question being asked and the permission is a restricted one.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
+    </queries>
+
     <application
         android:name=".MoonApp"
         android:allowBackup="false"

@@ -147,6 +147,8 @@ class MoonVpnService : VpnService() {
     @Volatile private var reconnecting = false
     private val byedpi by lazy { ByedpiRunner(this) }
     private val awgRunner by lazy { AwgRunner(this) }
+    private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
+    private var currentNetwork: android.net.Network? = null
     // see the companion: one clock, shared with the UI
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -264,6 +266,7 @@ class MoonVpnService : VpnService() {
                         lastError.value = why
                         _state.value = State.Disconnected; stopTunnel(); return@launch
                     }
+                    watchNetworkFor(wg)
                 }
 
                 intentionalStop = false
@@ -382,8 +385,51 @@ class MoonVpnService : VpnService() {
     // ditto: shared formatter, so bit/s follows the language like everything else
     private fun speedText(bytesPerSec: Long) = cc.moon.internet.data.SubscriptionService.speed(bytesPerSec)
 
+    /**
+     * Rebuild the AmneziaWG tunnel when the phone changes network.
+     *
+     * Every other protocol survives Wi-Fi turning into mobile because xray simply dials again over
+     * whatever is there now. AmneziaWG does not: its UDP socket was opened on the network that has
+     * just gone, and Android does not carry sockets across — it fails them. Nothing inside the
+     * engine watches for that, so the tunnel sat there looking connected while carrying nothing,
+     * and the only cure was reconnecting by hand.
+     *
+     * Restarting the little proxy is the whole fix: it opens a fresh socket on the network that is
+     * actually there and handshakes again, and the server moves the peer to the new address on its
+     * own. xray keeps dialling the same loopback port and never knows anything happened.
+     */
+    private fun watchNetworkFor(wg: cc.moon.internet.core.WireGuardConfig) {
+        stopWatchingNetwork()
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                val previous = currentNetwork
+                currentNetwork = network
+                // The first callback is the network we are already on, not a change.
+                if (previous == null || previous == network) return
+                scope.launch {
+                    if (_state.value != State.Connected) return@launch
+                    awgRunner.start(wg)?.let { why -> android.util.Log.w("MoonVpn", "awg roam: $why") }
+                }
+            }
+        }
+        runCatching { cm.registerDefaultNetworkCallback(callback) }
+            .onSuccess { networkCallback = callback }
+    }
+
+    private fun stopWatchingNetwork() {
+        networkCallback?.let { cb ->
+            runCatching {
+                getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb)
+            }
+        }
+        networkCallback = null
+        currentNetwork = null
+    }
+
     private fun stopCore() {
         intentionalStop = true
+        stopWatchingNetwork()
         runCatching { byedpi.stop() }
         runCatching { awgRunner.stop() }
         runCatching { runner?.stop() }

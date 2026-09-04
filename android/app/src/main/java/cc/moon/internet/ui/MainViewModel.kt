@@ -593,7 +593,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                                 // reading into the row, and measuring the row has to reach the
                                 // pill by the button, or the two show different numbers for the
                                 // same server after a subscription ping.
-                                if (raw == store.state.value.selectedServerRaw) {
+                                //
+                                // Only while there is no tunnel, though. With one up the two are
+                                // answering different questions — the row probes the server's own
+                                // address, the pill asks whether the tunnel carries traffic — and
+                                // letting the row win wiped a good reading seconds after the button
+                                // had given it. On AmneziaWG it did so every time: the address is a
+                                // UDP port, and a TCP probe of one never answers.
+                                if (raw == store.state.value.selectedServerRaw &&
+                                    vpnState.value != MoonVpnService.Companion.State.Connected) {
                                     _checkPing.value = if (ms >= 0) "$ms ms" else s(R.string.vm_no_reply)
                                 }
                             }
