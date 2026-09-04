@@ -314,6 +314,12 @@ private fun SubGroup(
             if (!collapsed) {
                 Column(Modifier.padding(horizontal = 7.dp).padding(bottom = 7.dp)) {
                     servers.forEach { s ->
+                        // key(), or none of this moves. Without one Compose identifies children by
+                        // position, so a reorder leaves every slot where it was and swaps the
+                        // contents over — which is instant by definition, and is why the row
+                        // appeared to teleport however the animation was tuned. With a key the row
+                        // itself is the thing that moves, and there is a movement to animate.
+                        key(s.key) {
                         // Each row slides to its new place rather than turning up there: picking a
                         // server lifts it to the top of its card, and in a plain Column that is a
                         // jump between two frames.
@@ -329,6 +335,7 @@ private fun SubGroup(
                             onMenu = { onServerMenu(s) },
                         )
                         Spacer(Modifier.height(6.dp))
+                        }
                         }
                     }
                 }

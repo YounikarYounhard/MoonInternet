@@ -556,7 +556,7 @@ fun Modifier.animatePlacement(): Modifier = composed {
                     anim.animateTo(
                         target,
                         androidx.compose.animation.core.tween(
-                            durationMillis = 420,
+                            durationMillis = 450,
                             easing = androidx.compose.animation.core.FastOutSlowInEasing,
                         ),
                     )
