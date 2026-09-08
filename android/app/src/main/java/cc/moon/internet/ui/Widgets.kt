@@ -576,8 +576,13 @@ fun Modifier.animatePlacement(): Modifier = composed {
             val anim = animatable ?: androidx.compose.animation.core.Animatable(
                 target, androidx.compose.ui.unit.IntOffset.VectorConverter,
             ).also { animatable = it }
+            // A row never moves this far by being re-ordered; a jump of that size is the list
+            // shrinking under it. Belt and braces beside the hush: with a long subscription the
+            // offset equals however much the card gave up, so an unguarded slide threw the plates
+            // a thousand pixels above the window and glided them back down.
+            val leap = kotlin.math.abs(anim.targetValue.y - target.y) > 900
             if (anim.targetValue != target) {
-                if (ListMotion.quiet) {
+                if (ListMotion.quiet || leap) {
                     scope.launch { anim.snapTo(target) }
                 } else scope.launch {
                     anim.animateTo(

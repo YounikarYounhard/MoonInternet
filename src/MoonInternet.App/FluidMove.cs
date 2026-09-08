@@ -83,9 +83,11 @@ public static class FluidMove
         if (Quiet) return;   // the list is changing shape, not re-ordering
 
         double moved = previous - top;
-        // Sub-pixel drift is not a move, and a jump of a screenful is a page change rather than a
-        // re-sort — animating either would be a list that never sits still.
-        if (Math.Abs(moved) < 0.5 || Math.Abs(moved) > 2000) return;
+        // Sub-pixel drift is not a move, and a row never travels this far by being re-ordered: a
+        // jump that size is the list shrinking under it. Belt and braces beside the hush, because
+        // the offset equals however much a folding card gave up — so an unguarded slide throws the
+        // plates a screenful above the window and glides them back down.
+        if (Math.Abs(moved) < 0.5 || Math.Abs(moved) > 900) return;
 
         // Leave a transform we did not make alone: a template may be using it for something else,
         // and fighting over it would break that instead.

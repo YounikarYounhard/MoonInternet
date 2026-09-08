@@ -473,6 +473,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun toggleCollapse(url: String) = viewModelScope.launch {
+        // Folding a card is the list changing SHAPE, and everything below it lands somewhere new
+        // through no choice of its own — see ListMotion. Said before the state changes, so the
+        // very first re-layout is already covered.
+        ListMotion.hush()
         store.update { st ->
             st.copy(collapsed = if (url in st.collapsed) st.collapsed - url else st.collapsed + url)
         }
