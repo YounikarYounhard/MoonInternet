@@ -484,7 +484,14 @@ class Store(private val ctx: Context) {
         val protocol =
             if (st.protocol.isEmpty() || allServers.any { it.protocolLabel == st.protocol }) st.protocol
             else ""
-        return orderServers(list, pings, st.favorites, st.sort, protocol,
+        // Same question, asked of the whole collection rather than of one subscription: "show only
+        // the starred ones" has to fall back to showing everything when nothing anywhere is
+        // starred, or the screen is simply empty with no way to tell why. Asked per subscription
+        // it meant something else entirely — a subscription with no favourites of its own showed
+        // ALL of its servers, sitting among the ones that had been filtered down to their stars.
+        val sort =
+            if (st.sort == "favorite" && allServers.none { it.key in st.favorites }) "" else st.sort
+        return orderServers(list, pings, st.favorites, sort, protocol,
                             if (st.pinActive) selectedServer()?.key else null)
     }
 }
@@ -515,7 +522,7 @@ internal fun orderServers(
     return when (sort) {
         "ping" -> kept.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
         "name" -> kept.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))
-        "favorite" -> kept.filter { fav(it) == 0 }.ifEmpty { kept }.sortedWith(compareBy(pinned))
+        "favorite" -> kept.filter { fav(it) == 0 }.sortedWith(compareBy(pinned))
         // "Обычная" is the subscription's own order with the stars lifted out of it — and the
         // pinned row above those, like every other mode here. It was the one branch that forgot
         // to ask, so in the order everybody actually uses the active server never moved at all.

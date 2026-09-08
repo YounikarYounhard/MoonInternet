@@ -25,46 +25,54 @@ public static class Fold
     public static readonly DependencyProperty OpenProperty = DependencyProperty.RegisterAttached(
         "Open", typeof(bool), typeof(Fold), new PropertyMetadata(true, OnOpenChanged));
 
+    /// <summary>
+    /// Fold sideways instead of down — for something that shares a row rather than a column.
+    /// </summary>
+    public static bool GetWide(DependencyObject o) => (bool)o.GetValue(WideProperty);
+    public static void SetWide(DependencyObject o, bool value) => o.SetValue(WideProperty, value);
+
+    public static readonly DependencyProperty WideProperty = DependencyProperty.RegisterAttached(
+        "Wide", typeof(bool), typeof(Fold), new PropertyMetadata(false));
+
     private static void OnOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not FrameworkElement element) return;
         bool open = Equals(e.NewValue, true);
+        bool wide = GetWide(element);
+        var side = wide ? FrameworkElement.MaxWidthProperty : FrameworkElement.MaxHeightProperty;
 
-        // Not on screen yet — a card that starts life folded should simply be folded, and there is
-        // no height to animate from anyway.
-        if (!element.IsLoaded)
+        void HandBack()
         {
-            element.BeginAnimation(FrameworkElement.MaxHeightProperty, null);
-            element.ClearValue(FrameworkElement.MaxHeightProperty);
+            // Give the size back to the layout: held at its measured value, a card would stop
+            // growing when a server was added to it.
+            element.BeginAnimation(side, null);
+            element.ClearValue(side);
             element.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-            return;
         }
+
+        // Not on screen yet — something that starts life folded should simply be folded, and there
+        // is no size to animate from anyway.
+        if (!element.IsLoaded) { HandBack(); return; }
 
         double from, to;
         if (open)
         {
             element.Visibility = Visibility.Visible;
-            element.Measure(new Size(element.ActualWidth > 0 ? element.ActualWidth : double.PositiveInfinity,
-                                     double.PositiveInfinity));
-            (from, to) = (0, element.DesiredSize.Height);
+            element.Measure(wide
+                ? new Size(double.PositiveInfinity, element.ActualHeight > 0 ? element.ActualHeight : double.PositiveInfinity)
+                : new Size(element.ActualWidth > 0 ? element.ActualWidth : double.PositiveInfinity, double.PositiveInfinity));
+            (from, to) = (0, wide ? element.DesiredSize.Width : element.DesiredSize.Height);
         }
         else
         {
-            (from, to) = (element.ActualHeight, 0);
+            (from, to) = (wide ? element.ActualWidth : element.ActualHeight, 0);
         }
 
         var run = new DoubleAnimation(from, to, Length)
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
         };
-        run.Completed += (_, _) =>
-        {
-            // Hand the height back to the layout: held at its measured value, a card would stop
-            // growing when a server was added to it.
-            element.BeginAnimation(FrameworkElement.MaxHeightProperty, null);
-            element.ClearValue(FrameworkElement.MaxHeightProperty);
-            element.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-        };
-        element.BeginAnimation(FrameworkElement.MaxHeightProperty, run);
+        run.Completed += (_, _) => HandBack();
+        element.BeginAnimation(side, run);
     }
 }

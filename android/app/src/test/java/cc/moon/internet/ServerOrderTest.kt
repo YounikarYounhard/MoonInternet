@@ -62,8 +62,16 @@ class ServerOrderTest {
         assertEquals(listOf("bravo"), names(orderServers(all, emptyMap(), listOf(b.raw!!), "favorite", "", null)))
     }
 
+    /**
+     * Nothing starred here means nothing here, not everything here.
+     *
+     * It used to fall back to the whole list, which is right when nothing anywhere is starred and
+     * quite wrong for one subscription among several: that one showed all of its servers while the
+     * others showed their stars. The fallback belongs to the whole collection and lives in
+     * Store.order(), which is the only place that can see all of it.
+     */
     @Test
-    fun theFavouriteSortShowsEverythingWhenNothingIsStarred() {
-        assertEquals(names(all), names(orderServers(all, emptyMap(), emptyList(), "favorite", "", null)))
+    fun theFavouriteSortLeavesASubscriptionWithNoStarsEmpty() {
+        assertEquals(emptyList<String>(), names(orderServers(all, emptyMap(), emptyList(), "favorite", "", null)))
     }
 }

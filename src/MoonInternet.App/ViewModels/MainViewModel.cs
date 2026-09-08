@@ -1630,6 +1630,9 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         ApplyLanguageTexts();
+        // One set of units for the whole window. The subscription meter formatted its own, in
+        // English, so a card read "168.35 GB / ∞" directly under "Трафик 16,0 КБ".
+        MoonInternet.Core.Models.SubscriptionInfo.Format = FmtSize;
         _settings = AppSettings.Load();
         if (_settings.SubscriptionUrls.Count == 0 && !string.IsNullOrWhiteSpace(_settings.SubscriptionUrl))
             _settings.SubscriptionUrls.Add(_settings.SubscriptionUrl!); // migrate legacy single URL

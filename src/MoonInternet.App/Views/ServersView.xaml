@@ -107,7 +107,7 @@
                              open and empty, as though its servers had gone missing. -->
                         <Border CornerRadius="14" Background="#120C24" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10"
                                 app:FluidMove.Animate="True"
-                                Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
+                                app:Fold.Open="{Binding IsVisible}">
                             <StackPanel>
                                 <!-- header: collapse area + actions -->
                                 <Grid>

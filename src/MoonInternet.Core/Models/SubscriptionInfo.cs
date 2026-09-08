@@ -3,7 +3,7 @@ namespace MoonInternet.Core.Models;
 /// <summary>Traffic/expiry info from the <c>subscription-userinfo</c> HTTP header (upload/download/total/expire).</summary>
 public sealed record SubscriptionInfo(long Used, long Total, DateTimeOffset? Expire)
 {
-    public string TrafficText => $"{Fmt(Used)} / {(Total > 0 ? Fmt(Total) : "∞")}";
+    public string TrafficText => $"{Format(Used)} / {(Total > 0 ? Format(Total) : "∞")}";
     public string ExpiryText => Expire is { } e ? e.LocalDateTime.ToString("dd.MM.yyyy") : "∞";
     public int? DaysLeft => Expire is { } e ? Math.Max(0, (int)Math.Ceiling((e - DateTimeOffset.Now).TotalDays)) : null;
 
@@ -23,6 +23,15 @@ public sealed record SubscriptionInfo(long Used, long Total, DateTimeOffset? Exp
         var expire = exp is > 0 ? DateTimeOffset.FromUnixTimeSeconds(exp.Value) : (DateTimeOffset?)null;
         return new SubscriptionInfo(up + down, total, expire);
     }
+
+    /// <summary>
+    /// How a size is written out. Set by the app to the same formatter the live counters use.
+    ///
+    /// This had its own units, in English, while every other number in the window was in the user's
+    /// language — so one card read "168.35 GB / ∞" directly under "Трафик 16,0 КБ". The phone has
+    /// had this seam since its units came from resources; the desktop was the half that forgot.
+    /// </summary>
+    public static Func<long, string> Format { get; set; } = Fmt;
 
     private static string Fmt(long bytes)
     {

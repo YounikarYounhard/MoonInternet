@@ -208,12 +208,19 @@
             <!-- compact stats + add / paste -->
             <Grid Grid.Row="2" Margin="0,12,0,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="104"/>   <!-- Отдача / Приём (fixed → no shift) -->
-                    <ColumnDefinition Width="90"/>    <!-- Время / Трафик (fixed) -->
-                    <ColumnDefinition Width="*"/>       <!-- buttons fill the rest -->
+                    <!-- The readouts measure themselves so they can fold away sideways; the buttons
+                         take whatever is left, which is everything while nothing is connected. -->
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <!-- Four readings that say "—" until something is connected: half the row saying
+                     nothing, with the buttons squeezed into what was left of it. They come and go
+                     with the tunnel now, and sideways, so the buttons take the width back rather
+                     than snapping into it. -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
+                            app:Fold.Open="{Binding IsConnected}" app:Fold.Wide="True">
+                <StackPanel Width="104" VerticalAlignment="Center">
                     <StackPanel Margin="0,0,0,7">
                         <TextBlock Text="{DynamicResource S_HomeView_003}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
@@ -230,7 +237,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <StackPanel Width="90" VerticalAlignment="Center">
                     <StackPanel Margin="0,0,0,7">
                         <TextBlock Text="{DynamicResource S_HomeView_005}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                         <TextBlock Text="{Binding ElapsedDisplay}" FontWeight="SemiBold" FontSize="13" Margin="0,1,0,0"/>
@@ -241,9 +248,11 @@
                     </StackPanel>
                 </StackPanel>
 
+                </StackPanel>
+
                 <!-- Adding and pasting are about subscriptions; the readouts to their left are not,
                      which is why only this column goes away in Zapret. -->
-                <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                <StackPanel Grid.Column="1" VerticalAlignment="Center"
                             Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}">
                     <Button Command="{Binding OpenAddDialogCommand}" Cursor="Hand" Margin="0,0,0,6" HorizontalAlignment="Stretch">
                         <Button.Template>
@@ -372,7 +381,7 @@
                                      as though the servers had gone missing. -->
                                 <Border CornerRadius="14" Background="{StaticResource HomeCard}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Margin="0,0,0,10"
                                         app:FluidMove.Animate="True"
-                                        Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}">
+                                        app:Fold.Open="{Binding IsVisible}">
                                     <StackPanel>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

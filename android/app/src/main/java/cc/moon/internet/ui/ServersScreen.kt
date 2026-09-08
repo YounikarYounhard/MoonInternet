@@ -194,11 +194,11 @@ fun ServersScreen(
         // whole column redrawing itself in the new order between two frames.
         if (!zapret) items(groups.size, key = { groups[it].first.url }) { i ->
             val (sub, shown) = groups[i]
-            // A group with nothing left to show is left out entirely. Picking a protocol that one
-            // subscription happens not to carry used to leave its card sitting there, open and
-            // empty, as though the servers had gone missing. A subscription that is genuinely
-            // empty keeps its card, because that card is the only way to refresh or remove it.
-            if (shown.isNotEmpty() || sub.servers.isEmpty()) {
+            // A card filtered out of the list goes gradually. Picking a protocol one subscription
+            // does not carry, or starring servers in only one of them, leaves nothing to show
+            // here — and a card that simply blinks out while the next one blinks into its place
+            // is the whole list rearranging itself between two frames. One that is genuinely
+            // empty keeps its card: that card is how you refresh or remove it.
                 // No placement animation while the list is changing shape. Folding a card
                 // shortens the list, so a list scrolled past its new end is pulled back up and
                 // every plate below lands somewhere new — animating that flies them in from above
@@ -209,6 +209,14 @@ fun ServersScreen(
                                     else tween(420, easing = FastOutSlowInEasing),
                     fadeOutSpec = tween(180),
                 )) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = shown.isNotEmpty() || sub.servers.isEmpty(),
+                    enter = androidx.compose.animation.fadeIn(tween(220)) +
+                            androidx.compose.animation.expandVertically(tween(320, easing = FastOutSlowInEasing)),
+                    exit = androidx.compose.animation.fadeOut(tween(180)) +
+                           androidx.compose.animation.shrinkVertically(tween(320, easing = FastOutSlowInEasing)),
+                ) {
+                Column {
                 SubGroup(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -225,7 +233,8 @@ fun ServersScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 }
-            }
+                }
+                }
         }
 
         item { Spacer(Modifier.height(16.dp)) }

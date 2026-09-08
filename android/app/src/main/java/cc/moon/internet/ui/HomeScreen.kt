@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.moon.internet.R
@@ -255,21 +257,42 @@ fun HomeScreen(
             // Everything shares the width by weight. Fixed columns beside a weighted one was the
             // actual tablet problem: the buttons took every extra pixel and the readouts kept
             // their 104dp whatever the screen was.
+            // Four readings that read "—" until something is connected: half the row saying
+            // nothing, and the buttons squeezed into the third that was left. They come and go
+            // with the tunnel now, sideways, so the buttons take the width back rather than
+            // snapping into it.
+            val live = state == State.Connected || state == State.Paused
+            // The readouts keep their share of the row as a weight, and the weight is what moves:
+            // at zero they are gone and the buttons have the whole width. AnimatedVisibility would
+            // have been the obvious tool and is the wrong one here — a weighted child is given its
+            // width whether or not it has anything in it, so the row would have kept the gap.
+            val share by androidx.compose.animation.core.animateFloatAsState(
+                if (live) 2f else 0f,
+                tween(320, easing = FastOutSlowInEasing),
+                label = "stats",
+            )
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f).widthIn(min = 104.dp)) {
-                    StatCell(stringResource(R.string.homescreen_009), "↑", upSpeed, Moon.Green)
-                    Spacer(Modifier.height(7.dp))
-                    StatCell(stringResource(R.string.homescreen_010), "↓", downSpeed, Moon.AccentText)
-                }
-                Column(Modifier.weight(1f).widthIn(min = 90.dp)) {
-                    StatCell(stringResource(R.string.homescreen_011), null, elapsed, Moon.TextPrimary)
-                    Spacer(Modifier.height(7.dp))
-                    StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
+                if (share > 0.01f) {
+                    Row(
+                        Modifier.weight(share)
+                            .graphicsLayer { alpha = (share / 2f).coerceIn(0f, 1f) },
+                    ) {
+                        Column(Modifier.weight(1f).widthIn(min = 104.dp)) {
+                            StatCell(stringResource(R.string.homescreen_009), "↑", upSpeed, Moon.Green)
+                            Spacer(Modifier.height(7.dp))
+                            StatCell(stringResource(R.string.homescreen_010), "↓", downSpeed, Moon.AccentText)
+                        }
+                        Column(Modifier.weight(1f).widthIn(min = 90.dp)) {
+                            StatCell(stringResource(R.string.homescreen_011), null, elapsed, Moon.TextPrimary)
+                            Spacer(Modifier.height(7.dp))
+                            StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
+                        }
+                    }
                 }
                 // Adding and pasting are about subscriptions; Zapret has none. The two buttons
                 // that matter there take the same place: does this strategy work, and if not,
                 // find one that does. The readouts stay either way — traffic still flows.
-                Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
+                Column(Modifier.weight(1.1f).widthIn(max = if (live) 260.dp else Dp.Infinity)) {
                     if (zapret) {
                         ActionButton(stringResource(R.string.zapret_check_now), Icons.Filled.NetworkCheck,
                                      Color(0xFF2C2058), Color(0xFFC4B4FF)) { if (!zapretBusy) onCheckZapret() }
@@ -342,10 +365,11 @@ fun HomeScreen(
         // without this it teleports there between two frames.
         if (!zapret) items(groups.size, key = { groups[it].first.url }) { i ->
             val (sub, shown) = groups[i]
-            // Nothing left to show, nothing shown. Picking a protocol one subscription does not
-            // carry left its card sitting there open and empty, as though its servers had gone
-            // missing. One that is genuinely empty keeps its card — that card is how you refresh it.
-            if (shown.isNotEmpty() || sub.servers.isEmpty()) {
+            // A card filtered out of the list goes gradually. Picking a protocol one subscription
+            // does not carry, or starring servers in only one of them, leaves nothing to show
+            // here — and a card that simply blinks out while the next one blinks into its place
+            // is the whole list rearranging itself between two frames. One that is genuinely
+            // empty keeps its card: that card is how you refresh or remove it.
                 // No placement animation while the list is changing shape. Folding a card
                 // shortens the list, so a list scrolled past its new end is pulled back up and
                 // every plate below lands somewhere new — animating that flies them in from above
@@ -356,6 +380,14 @@ fun HomeScreen(
                                     else tween(420, easing = FastOutSlowInEasing),
                     fadeOutSpec = tween(180),
                 )) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = shown.isNotEmpty() || sub.servers.isEmpty(),
+                    enter = androidx.compose.animation.fadeIn(tween(220)) +
+                            androidx.compose.animation.expandVertically(tween(320, easing = FastOutSlowInEasing)),
+                    exit = androidx.compose.animation.fadeOut(tween(180)) +
+                           androidx.compose.animation.shrinkVertically(tween(320, easing = FastOutSlowInEasing)),
+                ) {
+                Column {
                 SubscriptionCard(
                     showServerCount = showServerCount,
                     subMeter = subMeter,
@@ -379,7 +411,8 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 }
-            }
+                }
+                }
         }
 
         item {
