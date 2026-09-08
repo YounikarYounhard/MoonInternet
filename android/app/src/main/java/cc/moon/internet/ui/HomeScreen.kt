@@ -262,21 +262,35 @@ fun HomeScreen(
             // with the tunnel now, sideways, so the buttons take the width back rather than
             // snapping into it.
             val live = state == State.Connected || state == State.Paused
-            // The readouts keep their share of the row as a weight, and the weight is what moves:
-            // at zero they are gone and the buttons have the whole width. AnimatedVisibility would
-            // have been the obvious tool and is the wrong one here — a weighted child is given its
-            // width whether or not it has anything in it, so the row would have kept the gap.
-            val share by androidx.compose.animation.core.animateFloatAsState(
-                if (live) 2f else 0f,
-                tween(320, easing = FastOutSlowInEasing),
-                label = "stats",
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (share > 0.01f) {
-                    Row(
-                        Modifier.weight(share)
-                            .graphicsLayer { alpha = (share / 2f).coerceIn(0f, 1f) },
-                    ) {
+            // Two shapes for one row, and a crossfade between them. Connected, the four readouts
+            // take the left and the buttons stack down the right. Disconnected there is nothing to
+            // read — the readouts all say "—" — so the buttons stop queueing up and stand side by
+            // side across the whole width instead.
+            androidx.compose.animation.AnimatedContent(
+                targetState = live,
+                transitionSpec = {
+                    androidx.compose.animation.ContentTransform(
+                        androidx.compose.animation.fadeIn(tween(280)),
+                        androidx.compose.animation.fadeOut(tween(200)),
+                    )
+                },
+                label = "home-actions",
+            ) { connected ->
+                val add: @Composable (Modifier) -> Unit = { m ->
+                    if (zapret) ActionButton(stringResource(R.string.zapret_check_now), Icons.Filled.NetworkCheck,
+                                             Color(0xFF2C2058), Color(0xFFC4B4FF), m) { if (!zapretBusy) onCheckZapret() }
+                    else ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add,
+                                      Color(0xFF2C2058), Color(0xFFC4B4FF), m, onAdd)
+                }
+                val paste: @Composable (Modifier) -> Unit = { m ->
+                    if (zapret) ActionButton(stringResource(R.string.zapret_auto_run), Icons.Filled.AutoFixHigh,
+                                             Moon.ChipBg, Color(0xFFC6CAD3), m) { if (!zapretBusy) onAutoPickZapret() }
+                    else ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste,
+                                      Moon.ChipBg, Color(0xFFC6CAD3), m, onPaste)
+                }
+
+                if (connected) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).widthIn(min = 104.dp)) {
                             StatCell(stringResource(R.string.homescreen_009), "↑", upSpeed, Moon.Green)
                             Spacer(Modifier.height(7.dp))
@@ -287,22 +301,16 @@ fun HomeScreen(
                             Spacer(Modifier.height(7.dp))
                             StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
                         }
+                        Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
+                            add(Modifier)
+                            Spacer(Modifier.height(6.dp))
+                            paste(Modifier)
+                        }
                     }
-                }
-                // Adding and pasting are about subscriptions; Zapret has none. The two buttons
-                // that matter there take the same place: does this strategy work, and if not,
-                // find one that does. The readouts stay either way — traffic still flows.
-                Column(Modifier.weight(1.1f).widthIn(max = if (live) 260.dp else Dp.Infinity)) {
-                    if (zapret) {
-                        ActionButton(stringResource(R.string.zapret_check_now), Icons.Filled.NetworkCheck,
-                                     Color(0xFF2C2058), Color(0xFFC4B4FF)) { if (!zapretBusy) onCheckZapret() }
-                        Spacer(Modifier.height(6.dp))
-                        ActionButton(stringResource(R.string.zapret_auto_run), Icons.Filled.AutoFixHigh,
-                                     Moon.ChipBg, Color(0xFFC6CAD3)) { if (!zapretBusy) onAutoPickZapret() }
-                    } else {
-                        ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add, Color(0xFF2C2058), Color(0xFFC4B4FF), onAdd)
-                        Spacer(Modifier.height(6.dp))
-                        ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste, Moon.ChipBg, Color(0xFFC6CAD3), onPaste)
+                } else {
+                    Row(Modifier.fillMaxWidth()) {
+                        add(Modifier.weight(1f).padding(end = 4.dp))
+                        paste(Modifier.weight(1f).padding(start = 4.dp))
                     }
                 }
             }
@@ -508,9 +516,12 @@ private fun StatCell(label: String, arrow: String?, value: String, arrowColor: C
 private fun ActionButton(
     text: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    bg: Color, fg: Color, onClick: () -> Unit,
+    bg: Color, fg: Color,
+    /** Where it sits in its row — stacked down a column, or sharing the width side by side. */
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
 ) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(10.dp), color = bg, modifier = Modifier.fillMaxWidth()) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(10.dp), color = bg, modifier = modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(vertical = 9.dp),
             horizontalArrangement = Arrangement.Center,

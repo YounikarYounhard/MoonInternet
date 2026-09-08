@@ -1490,11 +1490,13 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string search = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsConnected), nameof(IsConnecting), nameof(ConnectButtonText),
-        nameof(CanClick), nameof(RingBrush), nameof(StateText))]
+    [NotifyPropertyChangedFor(nameof(IsConnected), nameof(IsDisconnected), nameof(IsConnecting),
+        nameof(ConnectButtonText), nameof(CanClick), nameof(RingBrush), nameof(StateText))]
     private ConnectionState connectionState = ConnectionState.Disconnected;
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
+    /// <summary>The other half of the Home row: which of its two arrangements is up. See Fade.</summary>
+    public bool IsDisconnected => ConnectionState != ConnectionState.Connected;
     public bool IsConnecting => ConnectionState == ConnectionState.Connecting;
     public bool CanClick => true; // clickable in every state — during "Connecting" a click cancels
 
