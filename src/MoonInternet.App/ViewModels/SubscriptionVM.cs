@@ -205,8 +205,10 @@ public partial class SubscriptionVM : ObservableObject
             };
     }
 
-    [RelayCommand] private void ToggleCollapse() => IsCollapsed = !IsCollapsed;
-    [RelayCommand] private void ToggleCollapseServers() => IsCollapsedServers = !IsCollapsedServers;
+    // Hushed first: folding a card moves everything below it, and that is the list changing shape
+    // rather than a row changing place — see FluidMove.
+    [RelayCommand] private void ToggleCollapse() { FluidMove.Hush(); IsCollapsed = !IsCollapsed; }
+    [RelayCommand] private void ToggleCollapseServers() { FluidMove.Hush(); IsCollapsedServers = !IsCollapsedServers; }
 }
 
 // Every mode keeps favourites pinned on top (starred first), then breaks ties by the mode's own key.

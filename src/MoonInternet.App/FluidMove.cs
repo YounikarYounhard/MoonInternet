@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,6 +19,18 @@ public static class FluidMove
 {
     /// <summary>Long enough to follow by eye, short enough not to be in the way.</summary>
     private static readonly Duration Length = new(TimeSpan.FromMilliseconds(450));
+
+    /// <summary>
+    /// Until when a move is not worth animating.
+    ///
+    /// Folding a subscription up moves every row below it, and each one honouring that with its own
+    /// slide is a screenful of things in motion at once — which reads as the list shuddering rather
+    /// than settling. The animation is for a row changing PLACE in its list; a card changing shape
+    /// is a different event, and the rows should simply be where they now are.
+    /// </summary>
+    private static DateTime _quietUntil;
+    public static void Hush() => _quietUntil = DateTime.UtcNow.AddMilliseconds(700);
+    private static bool Quiet => DateTime.UtcNow < _quietUntil;
 
     public static bool GetAnimate(DependencyObject o) => (bool)o.GetValue(AnimateProperty);
     public static void SetAnimate(DependencyObject o, bool value) => o.SetValue(AnimateProperty, value);
@@ -67,6 +79,8 @@ public static class FluidMove
         double previous = slot.Value;
         slot.Value = top;
         if (double.IsNaN(previous)) return;   // first sight of this row
+
+        if (Quiet) return;   // the list is changing shape, not re-ordering
 
         double moved = previous - top;
         // Sub-pixel drift is not a move, and a jump of a screenful is a page change rather than a

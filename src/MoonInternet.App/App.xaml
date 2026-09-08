@@ -505,29 +505,6 @@
         </Style>
 
         <!-- ===== Action-sheet row (in-window menus): icon + label, full-width tap target ===== -->
-        <!-- The "⋯" sheet, coming up from the bottom edge the way the phone's does. IsVisible
-             rather than Visibility: the sheet card is always visible in itself, it is the dimmed
-             backdrop above it that is switched, and IsVisible is the one that follows an ancestor.
-             The transform is declared on each sheet rather than here, because a Transform set from
-             a style is shared between everything using it and comes back frozen. -->
-        <Style x:Key="SheetCard" TargetType="Border">
-            <Style.Triggers>
-                <Trigger Property="IsVisible" Value="True">
-                    <Trigger.EnterActions>
-                        <BeginStoryboard>
-                            <Storyboard>
-                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18"/>
-                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                                                 From="52" To="0" Duration="0:0:0.30">
-                                    <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
-                                </DoubleAnimation>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </Trigger.EnterActions>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
         <Style x:Key="SheetRow" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -668,13 +645,21 @@
         <DataTemplate x:Key="SubMeter">
             <Grid>
                 <!-- Текст -->
-                <StackPanel Orientation="Horizontal" Margin="0,3,0,0"
-                            Visibility="{Binding DataContext.IsSubMeterText, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
-                    <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding TrafficText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,12,0"/>
-                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding ExpiryText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,0,0"/>
-                </StackPanel>
+                <!-- A row that cannot wrap simply loses whatever does not fit, and the expiry is
+                     on the end — so a plan with both a big allowance and a date read
+                     "12.09.2026 ·" and stopped. WrapPanel puts it on a second line instead, and
+                     only when it has to. -->
+                <WrapPanel Orientation="Horizontal" Margin="0,3,4,0"
+                           Visibility="{Binding DataContext.IsSubMeterText, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TrafficText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ExpiryText}" FontSize="11.5" Foreground="{StaticResource TextSecondary}" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </WrapPanel>
 
                 <!-- Полоса: срок слева, тонкая шкала, трафик справа — одной строкой -->
                 <Grid Margin="0,7,12,0"

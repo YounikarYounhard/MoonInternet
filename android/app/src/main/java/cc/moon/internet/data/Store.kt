@@ -96,7 +96,14 @@ data class AppState(
     val notifyTrafficLow: Boolean = true,   // предупредить, когда осталось меньше 10 % трафика
     val expiryNotifyDays: Int = 3,
     val sendHwid: Boolean = true,
-    val autoConnectTarget: String = "first",   // first | favorite | last
+    /**
+     * What auto-connect reaches for. "last" — the server you chose — since v15.
+     *
+     * It used to be "first", and auto-connect does not merely dial its target, it SAVES it as the
+     * selection. So every launch quietly replaced a deliberate choice with whatever happened to be
+     * at the top of the list, which reads as the app switching servers on its own.
+     */
+    val autoConnectTarget: String = "last",
     val startOnBoot: Boolean = false,          // поднять туннель после перезагрузки телефона
     val autoFailover: Boolean = false,         // БЕТА: выбранный сервер молчит -> взять самый быстрый живой
     val reconnectDelaySec: Int = 5,            // пауза перед попыткой переподключиться: 3 | 5 | 10 | 30
@@ -149,7 +156,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 14 }
+    private companion object { const val CURRENT_VERSION = 15 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -203,6 +210,8 @@ class Store(private val ctx: Context) {
                 // v14: and the active server itself, which was the other half of the same idea and
                 // had been left switched off, so nothing rose to the top at all.
                 pinActive = true,
+                // v15: auto-connect keeps the server you chose instead of jumping to the first one.
+                autoConnectTarget = if (loaded.autoConnectTarget == "first") "last" else loaded.autoConnectTarget,
                 selectedServerRaw = loaded.selectedServerRaw?.substringBefore('#'),
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }

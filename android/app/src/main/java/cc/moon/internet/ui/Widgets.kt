@@ -95,6 +95,7 @@ fun bottomNavSpace(): androidx.compose.ui.unit.Dp =
  * The panel hands us bytes and a timestamp; the text form throws that away, so Subscription keeps
  * the two fractions and this draws them. Shared by Home and Servers so both plates read the same.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun SubMeter(
     trafficText: String,
@@ -131,12 +132,22 @@ fun SubMeter(
             }
             Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp)
         }
-        else -> Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
-            Text(" $trafficText", color = Moon.TextSecondary, fontSize = 11.5.sp)
-            Spacer(Modifier.width(12.dp))
-            Icon(Icons.Filled.Event, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
-            Text(" $expiryText", color = Moon.TextSecondary, fontSize = 11.5.sp)
+        // A row that cannot wrap simply loses whatever does not fit, and the expiry is on the end
+        // — so a plan with both a big allowance and a date showed "12.09.2026 ·" and stopped. This
+        // wraps to a second line instead, and only when it has to.
+        else -> androidx.compose.foundation.layout.FlowRow(
+            Modifier.padding(top = 3.dp, end = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Download, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
+                Text(" $trafficText", color = Moon.TextSecondary, fontSize = 11.5.sp)
+                Spacer(Modifier.width(12.dp))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Event, null, tint = Moon.TextSecondary, modifier = Modifier.size(11.dp))
+                Text(" $expiryText", color = Moon.TextSecondary, fontSize = 11.5.sp)
+            }
         }
     }
 }
@@ -535,6 +546,20 @@ fun SubHeading(text: String) {
  * Slow enough to be followed by eye and with no bounce at the end: this is a list settling, not a
  * thing being thrown.
  */
+/**
+ * A short quiet spell for [animatePlacement].
+ *
+ * Collapsing a subscription moves every row below it, and each one honouring that with its own
+ * 450 ms slide is a screenful of things in motion at once — which reads as the list shuddering
+ * rather than settling. The animation is for a row changing PLACE in its list; a card folding up
+ * is the list changing shape, and rows should simply be where they now are.
+ */
+object ListMotion {
+    @Volatile private var quietUntil = 0L
+    fun hush() { quietUntil = System.currentTimeMillis() + 700 }
+    val quiet: Boolean get() = System.currentTimeMillis() < quietUntil
+}
+
 fun Modifier.animatePlacement(): Modifier = composed {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var target by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(androidx.compose.ui.unit.IntOffset.Zero) }
@@ -552,7 +577,9 @@ fun Modifier.animatePlacement(): Modifier = composed {
                 target, androidx.compose.ui.unit.IntOffset.VectorConverter,
             ).also { animatable = it }
             if (anim.targetValue != target) {
-                scope.launch {
+                if (ListMotion.quiet) {
+                    scope.launch { anim.snapTo(target) }
+                } else scope.launch {
                     anim.animateTo(
                         target,
                         androidx.compose.animation.core.tween(

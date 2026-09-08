@@ -45,7 +45,7 @@ public sealed class AppSettings
     public string? RoutingChoice { get; set; }             // "Source:Name" of the chosen routing profile (default: INCY)
     public string ServerSort { get; set; } = "default";    // default | ping | name
     public bool AutoConnectOnStart { get; set; }           // off by default
-    public string AutoConnectTarget { get; set; } = "first"; // first | last | lowest
+    public string AutoConnectTarget { get; set; } = "last";  // first | last | lowest — "last" is the server you chose
     public bool AutoFailover { get; set; } = false;        // BETA: preferred server is down -> take the fastest live one
     public int ReconnectDelaySec { get; set; } = 5;        // wait before an auto-reconnect attempt: 3 | 5 | 10 | 30
     public string AppRouteMode { get; set; } = "off";      // off | bypass (apps go direct) | only (only apps via VPN)
@@ -120,7 +120,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 12;
+    private const int CurrentVersion = 13;
 
     private void Migrate()
     {
@@ -163,6 +163,11 @@ public sealed class AppSettings
         // v12: and the server itself. It was the other half of the same idea and had been left
         // switched off, so nothing rose to the top at all — not even the one carrying your traffic.
         if (SettingsVersion < 12) PinActiveServer = true;
+
+        // v13: auto-connect saves whatever it dials as the selection, so a target of "first"
+        // quietly replaced a deliberate choice with the top of the list on every launch — which
+        // reads as the app switching servers by itself.
+        if (SettingsVersion < 13 && AutoConnectTarget == "first") AutoConnectTarget = "last";
 
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }
