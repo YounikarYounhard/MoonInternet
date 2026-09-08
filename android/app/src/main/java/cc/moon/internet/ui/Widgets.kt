@@ -583,13 +583,13 @@ fun Modifier.animatePlacement(): Modifier = composed {
             val anim = animatable ?: androidx.compose.animation.core.Animatable(
                 target, androidx.compose.ui.unit.IntOffset.VectorConverter,
             ).also { animatable = it }
-            // A row never moves this far by being re-ordered; a jump of that size is the list
-            // shrinking under it. Belt and braces beside the hush: with a long subscription the
-            // offset equals however much the card gave up, so an unguarded slide threw the plates
-            // a thousand pixels above the window and glided them back down.
-            val leap = kotlin.math.abs(anim.targetValue.y - target.y) > 900
+            // No ceiling on the distance. There used to be one — a leap over 900px was taken for
+            // the list shrinking underneath and snapped — but the fold is animated now and hushes
+            // this anyway, and the ceiling was quietly eating the movement it was there to protect:
+            // starring a server six rows down is more than 900px, so the row it lifted to the top
+            // teleported there. Which is the animation somebody asked for, refusing to happen.
             if (anim.targetValue != target) {
-                if (ListMotion.quiet || leap) {
+                if (ListMotion.quiet) {
                     scope.launch { anim.snapTo(target) }
                 } else scope.launch {
                     anim.animateTo(

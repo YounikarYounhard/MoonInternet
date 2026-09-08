@@ -83,11 +83,12 @@ public static class FluidMove
         if (Quiet) return;   // the list is changing shape, not re-ordering
 
         double moved = previous - top;
-        // Sub-pixel drift is not a move, and a row never travels this far by being re-ordered: a
-        // jump that size is the list shrinking under it. Belt and braces beside the hush, because
-        // the offset equals however much a folding card gave up — so an unguarded slide throws the
-        // plates a screenful above the window and glides them back down.
-        if (Math.Abs(moved) < 0.5 || Math.Abs(moved) > 900) return;
+        // Sub-pixel drift is not a move. There used to be a ceiling here as well — a jump over
+        // 900px was taken for the list shrinking underneath — but the fold is animated now and
+        // hushes this anyway, and the ceiling was quietly eating the movement it was there to
+        // protect: starring a server six rows down is more than 900px, so the row it lifted to the
+        // top teleported there. Which is the animation somebody asked for, refusing to happen.
+        if (Math.Abs(moved) < 0.5) return;
 
         // Leave a transform we did not make alone: a template may be using it for something else,
         // and fighting over it would break that instead.
