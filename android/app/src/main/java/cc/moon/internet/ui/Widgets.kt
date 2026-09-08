@@ -567,6 +567,31 @@ object ListMotion {
     fun release() { quiet = false }
 }
 
+/**
+ * Fold a subscription without the list lurching.
+ *
+ * A card taller than the screen takes a lot of list with it, and a list scrolled past its new end
+ * is pulled back to that end the instant the card shrinks — a jump nobody asked for, and the
+ * longer the subscription the further it goes. Gliding to the card first means the fold happens
+ * where you are already looking, and there is little or nothing left to snap back from.
+ *
+ * Only on the way in. Opening a card makes the list longer, and a longer list never has to be
+ * pulled anywhere.
+ */
+suspend fun foldGently(
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    key: Any,
+    collapsing: Boolean,
+    fold: () -> Unit,
+) {
+    if (collapsing) {
+        listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key }
+            ?.takeIf { it.offset != 0 }
+            ?.let { runCatching { listState.animateScrollToItem(it.index) } }
+    }
+    fold()
+}
+
 fun Modifier.animatePlacement(): Modifier = composed {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var target by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(androidx.compose.ui.unit.IntOffset.Zero) }

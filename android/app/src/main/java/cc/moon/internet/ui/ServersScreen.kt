@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.moon.internet.core.ServerProfile
+import kotlinx.coroutines.launch
 import cc.moon.internet.core.Subscription
 import androidx.compose.ui.res.stringResource
 import cc.moon.internet.R
@@ -80,6 +81,7 @@ fun ServersScreen(
     // Worked out here and not inside the LazyColumn below. An item is its own little composition:
     // it kept the list it was handed the first time, so a new star repainted the row but never
     // moved it. Sorting in the screen's own scope means the item gets an already-ordered list.
+    val scope = rememberCoroutineScope()
     val zapret = connMode == "zapret"
     val groups = subscriptions.map { sub ->
         sub to sortedIn(sub).filter { s -> query.isBlank() || s.label.contains(query, ignoreCase = true) }
@@ -213,7 +215,11 @@ fun ServersScreen(
                     sub = sub, servers = shown, collapsed = sub.url in collapsed, showHeader = showSubHeader,
                     selected = selected, pings = pings, pinging = pinging,
                     pingDisplay = pingDisplay, favorites = favorites,
-                    onToggleCollapse = { onToggleCollapse(sub.url) },
+                    onToggleCollapse = {
+                        scope.launch {
+                            foldGently(listState, sub.url, sub.url !in collapsed) { onToggleCollapse(sub.url) }
+                        }
+                    },
                     onMenu = { onSubMenu(sub) },
                     pingBusy = shown.any { it.pingKey in pinging },
                     refreshBusy = sub.url in refreshing,

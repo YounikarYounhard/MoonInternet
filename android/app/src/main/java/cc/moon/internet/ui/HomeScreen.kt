@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.moon.internet.R
 import cc.moon.internet.core.ServerProfile
+import kotlinx.coroutines.launch
 import cc.moon.internet.core.Subscription
 import cc.moon.internet.vpn.MoonVpnService.Companion.State
 import androidx.compose.ui.res.stringResource
@@ -88,6 +89,7 @@ fun HomeScreen(
 ) {
     // Ordered here rather than inside the list below: an item is its own little composition and
     // keeps the list it was first handed, so a new star would repaint a row without moving it.
+    val scope = rememberCoroutineScope()
     val zapret = connMode == "zapret"
     val groups = subscriptions.map { it to sortedIn(it) }
 
@@ -367,7 +369,11 @@ fun HomeScreen(
                     pingDisplay = pingDisplay,
                     favorites = favorites,
                     servers = shown,
-                    onToggleCollapse = { onToggleCollapse(sub.url) },
+                    onToggleCollapse = {
+                        scope.launch {
+                            foldGently(listState, sub.url, sub.url !in collapsed) { onToggleCollapse(sub.url) }
+                        }
+                    },
                     onMenu = { onSubMenu(sub) },
                     pingBusy = shown.any { it.pingKey in pinging },
                     refreshBusy = sub.url in refreshing,
