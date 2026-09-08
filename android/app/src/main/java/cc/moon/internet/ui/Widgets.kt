@@ -109,15 +109,22 @@ fun SubMeter(
         // One line, the way INCY lays it out: expiry on the left, a thin track in the middle,
         // traffic on the right. Two stacked bars with their own captions took three times the
         // height and said the same thing.
-        // The scale gives up its width before either label does, and drops to a line of its own
-        // when there is nothing left to give. A row that cannot wrap loses whatever does not fit,
-        // and what did not fit was the date — the same way the text style lost it before FlowRow.
-        "bar" -> MeterRow(expiryText, trafficText) { modifier ->
-            MeterBar(if (tUnlimited) 1.0 else trafficFraction,
-                     if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction), 4.dp, modifier)
+        // One line, the way INCY lays it out: expiry on the left, a thin track in the middle,
+        // traffic on the right. The track is the part that gives way — it is weighted, so it takes
+        // whatever the two labels leave.
+        "bar" -> Row(Modifier.padding(top = 7.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
+            Text(" · ", color = Moon.TextMuted, fontSize = 10.5.sp)
+            Box(Modifier.weight(1f).padding(end = 8.dp)) {
+                MeterBar(if (tUnlimited) 1.0 else trafficFraction,
+                         if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction), 4.dp)
+            }
+            Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
         }
-        "dots" -> MeterRow(expiryText, trafficText) { modifier ->
-            Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        "dots" -> Row(Modifier.padding(top = 7.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
+            Text(" · ", color = Moon.TextMuted, fontSize = 10.5.sp)
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 // dots show what is LEFT, so a full row is a fresh plan
                 val lit = if (tUnlimited) 10 else Math.round((1 - trafficFraction.coerceIn(0.0, 1.0)) * 10).toInt()
                 val color = if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction)
@@ -126,6 +133,7 @@ fun SubMeter(
                             .background(if (i < lit) color else Moon.BorderSoft))
                 }
             }
+            Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
         }
         // A row that cannot wrap simply loses whatever does not fit, and the expiry is on the end
         // — so a plan with both a big allowance and a date showed "12.09.2026 ·" and stopped. This
@@ -154,32 +162,9 @@ private fun meterColor(f: Double) = when {
     else -> Moon.Green
 }
 
-/**
- * Date, scale and traffic on one line — and on two when one line will not hold them.
- *
- * FlowRow wraps whichever piece does not fit rather than clipping it, and the scale is the piece
- * that gives way first: it is the one part of this row that can be read at any width.
- */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun MeterRow(expiryText: String, trafficText: String, scale: @Composable (Modifier) -> Unit) {
-    androidx.compose.foundation.layout.FlowRow(
-        Modifier.padding(top = 7.dp, end = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp)
-        Text(" · ", color = Moon.TextMuted, fontSize = 10.5.sp)
-        Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp)
-        // Weighted, so it takes whatever the line has left — and when the labels have taken the
-        // whole line themselves, it lands on the next one with the width to itself.
-        scale(Modifier.weight(1f).padding(start = 2.dp, end = 4.dp))
-    }
-}
-
-@Composable
-private fun MeterBar(fraction: Double, color: Color, height: androidx.compose.ui.unit.Dp,
-                     modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(height / 2)).background(Moon.BorderSoft)) {
+private fun MeterBar(fraction: Double, color: Color, height: androidx.compose.ui.unit.Dp) {
+    Box(Modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(height / 2)).background(Moon.BorderSoft)) {
         Box(Modifier.fillMaxWidth(fraction.toFloat().coerceIn(0f, 1f)).fillMaxHeight()
                 .clip(RoundedCornerShape(height / 2)).background(color))
     }
