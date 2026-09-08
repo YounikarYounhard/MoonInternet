@@ -89,8 +89,6 @@
     <s:String x:Key="S_SettingsView_026">Keep the local network out of the tunnel</s:String>
     <s:String x:Key="S_SettingsView_027">LAN through the proxy</s:String>
     <s:String x:Key="S_SettingsView_028">Send local traffic through the VPN proxy</s:String>
-    <s:String x:Key="S_SettingsView_029">&quot;Proxy only&quot; button</s:String>
-    <s:String x:Key="S_SettingsView_030">Show the button on the home screen</s:String>
     <s:String x:Key="S_SettingsView_031">Extra addresses to bypass the proxy</s:String>
     <s:String x:Key="S_SettingsView_032">Hosts that skip the system proxy (e.g. *.local)</s:String>
     <s:String x:Key="S_SettingsView_033">Local proxy</s:String>

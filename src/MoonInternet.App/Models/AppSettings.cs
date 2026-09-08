@@ -102,7 +102,6 @@ public sealed class AppSettings
     // Connection settings
     public bool AllowLan { get; set; }
     public bool LanThroughProxy { get; set; }
-    public bool ShowProxyOnlyButton { get; set; }
     public string ProxyBypassHosts { get; set; } = "";
     public bool Socks5Auth { get; set; }
     public string? ProxyUser { get; set; }

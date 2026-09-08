@@ -207,14 +207,6 @@
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding LanThroughProxy}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                         <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
-                        <Grid Margin="12">
-                            <StackPanel Margin="0,0,58,0">
-                                <TextBlock Text="{DynamicResource S_SettingsView_029}" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="{DynamicResource S_SettingsView_030}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                            </StackPanel>
-                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding ShowProxyOnlyButton}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        </Grid>
-                        <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"/>
                         <StackPanel Margin="12">
                             <TextBlock Text="{DynamicResource S_SettingsView_031}" FontSize="14" FontWeight="SemiBold"/>
                             <TextBlock Text="{DynamicResource S_SettingsView_032}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>

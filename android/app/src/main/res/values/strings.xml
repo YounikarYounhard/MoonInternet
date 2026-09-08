@@ -42,8 +42,6 @@
     <string name="settingsscreen_009">"Исключить локальную сеть из VPN туннеля"</string>
     <string name="settingsscreen_010">"LAN через прокси"</string>
     <string name="settingsscreen_011">"Направить локальный трафик через VPN прокси"</string>
-    <string name="settingsscreen_012">"Кнопка «Только прокси»"</string>
-    <string name="settingsscreen_013">"Показывать кнопку на главном экране"</string>
     <string name="settingsscreen_014">"Дополнительные адреса в обход прокси"</string>
     <string name="settingsscreen_015">"Хосты в обход прокси (напр. *.local)"</string>
     <string name="settingsscreen_016">"Локальный прокси"</string>

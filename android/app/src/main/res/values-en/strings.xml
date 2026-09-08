@@ -40,8 +40,6 @@
     <string name="settingsscreen_009">"Keep the local network out of the tunnel"</string>
     <string name="settingsscreen_010">"LAN through the proxy"</string>
     <string name="settingsscreen_011">"Send local traffic through the VPN proxy"</string>
-    <string name="settingsscreen_012">"“Proxy only” button"</string>
-    <string name="settingsscreen_013">"Show the button on the home screen"</string>
     <string name="settingsscreen_014">"Extra addresses to bypass the proxy"</string>
     <string name="settingsscreen_015">"Hosts to bypass the proxy (e.g. *.local)"</string>
     <string name="settingsscreen_016">"Local proxy"</string>

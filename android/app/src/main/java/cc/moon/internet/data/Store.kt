@@ -118,7 +118,6 @@ data class AppState(
     val killSwitch: Boolean = false,
     val allowLan: Boolean = true,
     val lanThroughProxy: Boolean = false,
-    val showProxyOnlyButton: Boolean = false,
     val proxyBypassHosts: String = "",
     val socks5Auth: Boolean = false,
     val httpProxyAuth: Boolean = false,

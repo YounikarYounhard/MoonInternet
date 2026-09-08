@@ -187,9 +187,6 @@ private fun ConnectionPage(
             SwitchRow(stringResource(R.string.settingsscreen_010), stringResource(R.string.settingsscreen_011),
                 state.lanThroughProxy) { v -> onSet { copy(lanThroughProxy = v) } }
             RowDivider()
-            SwitchRow(stringResource(R.string.settingsscreen_012), stringResource(R.string.settingsscreen_013),
-                state.showProxyOnlyButton) { v -> onSet { copy(showProxyOnlyButton = v) } }
-            RowDivider()
             Column(Modifier.padding(12.dp)) {
                 Text(stringResource(R.string.settingsscreen_014), color = Moon.TextPrimary,
                      fontSize = 14.sp, fontWeight = FontWeight.SemiBold)

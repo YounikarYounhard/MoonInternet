@@ -1446,8 +1446,6 @@ public partial class MainViewModel : ObservableObject
     partial void OnAllowLanChanged(bool value) { _settings.AllowLan = value; _settings.Save(); ApplyTuning(); ReconnectIfConnected(); }
     [ObservableProperty] private bool lanThroughProxy;
     partial void OnLanThroughProxyChanged(bool value) { _settings.LanThroughProxy = value; _settings.Save(); }
-    [ObservableProperty] private bool showProxyOnlyButton;
-    partial void OnShowProxyOnlyButtonChanged(bool value) { _settings.ShowProxyOnlyButton = value; _settings.Save(); }
     [ObservableProperty] private string proxyBypassHosts = "";
     partial void OnProxyBypassHostsChanged(string value) { _settings.ProxyBypassHosts = value ?? ""; _settings.Save(); }
 
@@ -1697,7 +1695,7 @@ public partial class MainViewModel : ObservableObject
         TrafficPriority = _settings.TrafficPriority;
         PreferredIp = _settings.PreferredIp; VpnDns = _settings.VpnDns; VpnDnsCustom = _settings.VpnDnsCustom;
         AllowLan = _settings.AllowLan; LanThroughProxy = _settings.LanThroughProxy;
-        ShowProxyOnlyButton = _settings.ShowProxyOnlyButton; ProxyBypassHosts = _settings.ProxyBypassHosts;
+        ProxyBypassHosts = _settings.ProxyBypassHosts;
         Socks5Auth = _settings.Socks5Auth; BlockUdp = _settings.BlockUdp; HttpProxyAuth = _settings.HttpProxyAuth;
         LogsEnabled = _settings.LogsEnabled; LogLevel = _settings.LogLevel; LogKeepDays = _settings.LogKeepDays;
         Task.Run(PruneLogs);            // enforce the retention window on every launch
