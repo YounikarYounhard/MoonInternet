@@ -268,10 +268,22 @@ fun HomeScreen(
             // side across the whole width instead.
             androidx.compose.animation.AnimatedContent(
                 targetState = live,
+                // Not a plain crossfade: the arrangement that arrives slides in from the side it
+                // came from and settles, the one leaving goes the other way. A fade on its own
+                // reads as a redraw — a step is missing where the eye expects a movement.
                 transitionSpec = {
+                    val toward = if (targetState) 1 else -1
                     androidx.compose.animation.ContentTransform(
-                        androidx.compose.animation.fadeIn(tween(280)),
-                        androidx.compose.animation.fadeOut(tween(200)),
+                        androidx.compose.animation.fadeIn(tween(300)) +
+                            androidx.compose.animation.slideInHorizontally(
+                                tween(340, easing = FastOutSlowInEasing),
+                            ) { w -> toward * w / 5 } +
+                            androidx.compose.animation.scaleIn(tween(340), initialScale = 0.97f),
+                        androidx.compose.animation.fadeOut(tween(200)) +
+                            androidx.compose.animation.slideOutHorizontally(
+                                tween(300, easing = FastOutSlowInEasing),
+                            ) { w -> -toward * w / 6 } +
+                            androidx.compose.animation.scaleOut(tween(300), targetScale = 0.97f),
                     )
                 },
                 label = "home-actions",

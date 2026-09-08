@@ -8,13 +8,17 @@ namespace MoonInternet.App;
 ///
 /// <see cref="Fold"/> changes a size, which is right when something joins or leaves a list. This is
 /// for the other case: one arrangement replacing another — the Home row stacks its buttons beside
-/// the readouts while connected and stands them side by side when there is nothing to read. Sliding
-/// or shrinking between those two says the wrong thing; they simply swap.
+/// the readouts while connected and stands them side by side when there is nothing to read. Nothing
+/// grows or shrinks between those two, they swap; so the one arriving comes in from the side and
+/// the one leaving goes out the other way, and the swap is something you can watch rather than a
+/// picture that was suddenly different.
 /// </summary>
 public static class Fade
 {
     private static readonly Duration In = new(TimeSpan.FromMilliseconds(280));
     private static readonly Duration Out = new(TimeSpan.FromMilliseconds(200));
+    /// <summary>How far it comes in from, and goes out to. Far enough to notice, near enough not to swing.</summary>
+    private const double Travel = 18;
 
     public static bool GetVisible(DependencyObject o) => (bool)o.GetValue(VisibleProperty);
     public static void SetVisible(DependencyObject o, bool value) => o.SetValue(VisibleProperty, value);
@@ -37,6 +41,20 @@ public static class Fade
         }
 
         if (show) element.Visibility = Visibility.Visible;
+
+        // ...and it travels a little while it does. A fade on its own reads as a redraw — the eye
+        // expects a movement where an arrangement is replaced, and a short slide is the movement.
+        var slide = element.RenderTransform as System.Windows.Media.TranslateTransform;
+        if (slide is null && (element.RenderTransform is null || element.RenderTransform.Value.IsIdentity))
+        {
+            slide = new System.Windows.Media.TranslateTransform();
+            element.RenderTransform = slide;
+        }
+        slide?.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty,
+            new DoubleAnimation(show ? Travel : 0, show ? 0 : -Travel, show ? In : Out)
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            });
 
         var run = new DoubleAnimation(show ? 1 : 0, show ? In : Out)
         {
