@@ -338,12 +338,28 @@ object XrayConfig {
         val st = JSONObject()
         // Hysteria2 always rides its own QUIC transport with TLS; the share link's "type" is
         // meaningless for it.
+        // Transports the core no longer has. xray 26 dropped the HTTP/2 and QUIC transports and
+        // refuses the whole config over the name — so a server on one of them does not merely lose
+        // its camouflage, it never dials at all. Both were folded into XHTTP's "stream-one" mode,
+        // over h2 and h3 respectively, which is what the same server speaks once its own side is
+        // updated. Better a config that loads and may connect than one the core throws out.
+        var migratedAlpn: String? = null
         val net = when {
             s.protocol == Protocol.HYSTERIA2 -> "hysteria"
-            s.network == "h2" -> "http"
+            s.network == "h2" || s.network == "http" -> { migratedAlpn = "h2"; "xhttp" }
+            s.network == "quic" -> { migratedAlpn = "h3"; "xhttp" }
+            // XHTTP under the name it shipped with — a saved profile can still carry it.
+            s.network == "splithttp" -> "xhttp"
             else -> s.network
         }
         st.put("network", net)
+
+        // REALITY rides RAW, XHTTP or gRPC and nothing else — the core says so and refuses the rest
+        // outright. A link claiming otherwise is a mislabelled one (panels do emit security=reality
+        // for plain TLS), so it goes out as TLS: it may work, where a rejected config cannot.
+        val security =
+            if (s.security == "reality" && net !in listOf("tcp", "raw", "xhttp", "grpc")) "tls"
+            else s.security
 
         if (net == "hysteria") {
             st.put("hysteriaSettings", JSONObject()
@@ -356,8 +372,8 @@ object XrayConfig {
                 })
         }
 
-        if (s.security == "tls" || s.security == "reality" || net == "hysteria") {
-            st.put("security", if (net == "hysteria") "tls" else s.security)
+        if (security == "tls" || security == "reality" || net == "hysteria") {
+            st.put("security", if (net == "hysteria") "tls" else security)
             val tls = JSONObject()
             s.sni?.takeIf { it.isNotBlank() }?.let { tls.put("serverName", it) }
             s.fingerprint?.takeIf { it.isNotBlank() }?.let { tls.put("fingerprint", it) }
@@ -366,12 +382,23 @@ object XrayConfig {
                     it.split(',').map(String::trim).filter(String::isNotEmpty).forEach(::put)
                 })
             }
-            if (s.security != "reality") {
+            // ...or the version the dropped transport was, when it was migrated above.
+            if (!tls.has("alpn")) migratedAlpn?.let { tls.put("alpn", JSONArray().put(it)) }
+            if (security != "reality") {
                 tls.put("allowInsecure", s.allowInsecure)
                 if (!tls.has("serverName")) tls.put("serverName", s.address)
                 st.put("tlsSettings", tls)
             } else {
-                s.publicKey?.takeIf { it.isNotBlank() }?.let { tls.put("publicKey", it) }
+                // Both spellings of the one key. xray renamed REALITY's publicKey to password —
+                // `xray x25519` prints it as "Password (PublicKey)" — and the cores are split over
+                // it: the desktop's 26.3 still reads publicKey, the phone's 26.1 reads only
+                // password and throws the whole config out with `empty "password"`. That is why
+                // every REALITY server here refused to connect while the same link worked on the
+                // computer. An unknown key is ignored, so sending both suits either core.
+                s.publicKey?.takeIf { it.isNotBlank() }?.let {
+                    tls.put("publicKey", it)
+                    tls.put("password", it)
+                }
                 s.shortId?.let { tls.put("shortId", it) }
                 s.spiderX?.takeIf { it.isNotBlank() }?.let { tls.put("spiderX", it) }
                 st.put("realitySettings", tls)
@@ -395,25 +422,16 @@ object XrayConfig {
                 .put("health_check_timeout", 20)
                 .put("permit_without_stream", false))
 
-            // Same leak gRPC had — HTTP/2 holds one long-lived connection and needs the same
-            // health check for a dead one to be noticed.
-            "http" -> st.put("httpSettings", JSONObject()
-                .put("path", s.path ?: "/")
-                .put("read_idle_timeout", 60)
-                .put("health_check_timeout", 20)
-                .apply {
-                    s.host?.takeIf { it.isNotBlank() }?.let {
-                        put("host", JSONArray().apply {
-                            it.split(',').map(String::trim).filter(String::isNotEmpty).forEach(::put)
-                        })
-                    }
-                })
-
             "xhttp" -> st.put("xhttpSettings", JSONObject()
                 .put("path", s.path ?: "/")
                 .apply {
-                    s.host?.takeIf { it.isNotBlank() }?.let { put("host", it) }
-                    s.extra["mode"]?.takeIf { it.isNotBlank() }?.let { put("mode", it) }
+                    // One host, not a list: the HTTP/2 transport took several and XHTTP takes one,
+                    // so a link migrated from it keeps the first.
+                    s.host?.takeIf { it.isNotBlank() }?.let { put("host", it.split(',')[0].trim()) }
+                    // A transport that used to be h2 or QUIC is a single stream, not a split one.
+                    val mode = s.extra["mode"]?.takeIf { it.isNotBlank() }
+                        ?: migratedAlpn?.let { "stream-one" }
+                    mode?.let { put("mode", it) }
                     s.extra["extra"]?.takeIf { it.isNotBlank() }?.let {
                         runCatching { put("extra", JSONObject(it)) }   // malformed extra is dropped, not fatal
                     }

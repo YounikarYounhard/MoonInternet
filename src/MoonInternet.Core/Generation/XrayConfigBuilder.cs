@@ -246,25 +246,51 @@ public static class XrayConfigBuilder
     private static Dictionary<string, object?> BuildStream(OutboundProfile p)
     {
         var s = new Dictionary<string, object?>();
-        string net = p.Network == "h2" ? "http" : p.Network;
+
+        // Transports the core no longer has. xray 26 dropped the HTTP/2 and QUIC transports and
+        // refuses the whole config over the name — so a server on one of them does not merely lose
+        // its camouflage, it never dials at all. Both were folded into XHTTP's "stream-one" mode,
+        // over h2 and h3 respectively, which is the shape the same server speaks once its own side
+        // is updated. Better a config that loads and may connect than one the core throws out.
+        string net = p.Network;
+        string? migratedAlpn = null;
+        if (net is "h2" or "http") { net = "xhttp"; migratedAlpn = "h2"; }
+        else if (net == "quic") { net = "xhttp"; migratedAlpn = "h3"; }
+        // XHTTP under the name it shipped with — a saved profile can still carry it.
+        else if (net == "splithttp") net = "xhttp";
         s["network"] = net;
 
-        if (p.Security is "tls" or "reality")
+        // REALITY rides RAW, XHTTP or gRPC and nothing else — the core says so and refuses the
+        // rest outright. A link claiming otherwise is a mislabelled one (panels do emit
+        // security=reality for plain TLS), so it goes out as TLS: it may work, where a rejected
+        // config cannot.
+        string security = p.Security == "reality" && net is not ("tcp" or "raw" or "xhttp" or "grpc")
+            ? "tls" : p.Security;
+
+        if (security is "tls" or "reality")
         {
-            s["security"] = p.Security;
+            s["security"] = security;
             var tls = new Dictionary<string, object?>();
             if (!string.IsNullOrEmpty(p.Sni)) tls["serverName"] = p.Sni;
             if (!string.IsNullOrEmpty(p.Fingerprint)) tls["fingerprint"] = p.Fingerprint;
             if (!string.IsNullOrEmpty(p.Alpn))
                 tls["alpn"] = p.Alpn.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (p.Security == "tls")
+            else if (migratedAlpn is not null)
+                tls["alpn"] = new[] { migratedAlpn };   // the version the dropped transport was
+            if (security == "tls")
             {
                 tls["allowInsecure"] = p.AllowInsecure;
                 s["tlsSettings"] = tls;
             }
             else
             {
-                if (!string.IsNullOrEmpty(p.PublicKey)) tls["publicKey"] = p.PublicKey;
+                // Both spellings of the one key. xray renamed REALITY's publicKey to password —
+                // `xray x25519` prints it as "Password (PublicKey)" — and the cores in the wild are
+                // split over it: the desktop's 26.3 still reads publicKey, the phone's 26.1 reads
+                // only password and fails the whole config with `empty "password"`. Which is why
+                // every REALITY server on the phone refused to connect while the same link worked
+                // on the computer. An unknown key is ignored, so sending both suits either core.
+                if (!string.IsNullOrEmpty(p.PublicKey)) { tls["publicKey"] = p.PublicKey; tls["password"] = p.PublicKey; }
                 if (p.ShortId != null) tls["shortId"] = p.ShortId;
                 if (!string.IsNullOrEmpty(p.SpiderX)) tls["spiderX"] = p.SpiderX;
                 s["realitySettings"] = tls;
@@ -296,24 +322,14 @@ public static class XrayConfigBuilder
                     ["permit_without_stream"] = false,
                 };
                 break;
-            case "http":
-                // Same leak gRPC had, same cure: HTTP/2 is one long-lived connection, and without a
-                // health check a dead one is never noticed — the client opens another and the
-                // server keeps the corpse. Checked because gRPC turned out to have it; these are
-                // the only two transports here that hold a multiplexed connection open.
-                var h2 = new Dictionary<string, object?>
-                {
-                    ["path"] = p.Path ?? "/",
-                    ["read_idle_timeout"] = 60,
-                    ["health_check_timeout"] = 20,
-                };
-                if (!string.IsNullOrEmpty(p.Host)) h2["host"] = p.Host.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                s["httpSettings"] = h2;
-                break;
             case "xhttp":
                 var xh = new Dictionary<string, object?> { ["path"] = p.Path ?? "/" };
-                if (!string.IsNullOrEmpty(p.Host)) xh["host"] = p.Host;
+                // One host, not a list: the HTTP/2 transport took several and XHTTP takes one, so a
+                // link migrated from it keeps the first.
+                if (!string.IsNullOrEmpty(p.Host)) xh["host"] = p.Host.Split(',')[0].Trim();
                 var mode = p.Extra.GetValueOrDefault("mode");
+                // A transport that used to be h2 or QUIC is a single stream, not XHTTP's split one.
+                if (string.IsNullOrEmpty(mode) && migratedAlpn is not null) mode = "stream-one";
                 if (!string.IsNullOrEmpty(mode)) xh["mode"] = mode;
                 var extra = p.Extra.GetValueOrDefault("extra");
                 if (!string.IsNullOrEmpty(extra))

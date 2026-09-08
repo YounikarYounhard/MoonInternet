@@ -42,21 +42,7 @@ object ShareLinkParser {
             id = u.userInfo?.let { decode(it) },
             encryption = q("encryption") ?: "none",
             flow = q("flow"),
-            network = normNetwork(q("type") ?: "tcp"),
-            path = q("path"),
-            host = q("host"),
-            serviceName = q("serviceName"),
-            security = q("security") ?: "none",
-            sni = q("sni") ?: q("peer"),
-            alpn = q("alpn"),
-            fingerprint = q("fp"),
-            allowInsecure = q("allowInsecure") == "1" || q("insecure") == "1",
-            publicKey = q("pbk"),
-            shortId = q("sid"),
-            spiderX = q("spx"),
-            headerType = q("headerType"),
-            extra = extrasOf(q),
-        )
+        ).withStream(q, defaultSecurity = "none")
     }
 
     // ---- vmess://base64(json) --------------------------------------------
@@ -97,18 +83,7 @@ object ShareLinkParser {
             address = u.host.orEmpty(),
             port = u.port.takeIf { it > 0 } ?: 443,
             password = u.userInfo?.let { decode(it) },
-            network = normNetwork(q("type") ?: "tcp"),
-            path = q("path"),
-            host = q("host"),
-            serviceName = q("serviceName"),
-            security = q("security") ?: "tls",
-            sni = q("sni") ?: q("peer"),
-            alpn = q("alpn"),
-            fingerprint = q("fp"),
-            allowInsecure = q("allowInsecure") == "1" || q("insecure") == "1",
-            headerType = q("headerType"),
-            extra = extrasOf(q),
-        )
+        ).withStream(q, defaultSecurity = "tls")
     }
 
     // ---- ss://base64(method:pass)@host:port#name  (also fully-base64 form) --
@@ -169,6 +144,32 @@ object ShareLinkParser {
             password = info?.substringAfter(':', ""),
         )
     }
+
+    /**
+     * Transport and security, filled the same way for every protocol that carries a query string.
+     *
+     * These were written out per protocol, and the trojan copy was three fields short: pbk, sid
+     * and spx never made it off a Trojan REALITY link, so the config went out with no public key
+     * and the core threw the whole thing away — `Failed to build REALITY config > empty
+     * "password"`. The same link over VLESS connected, which is what made it look like a broken
+     * protocol rather than a missing line. The desktop has always filled both from one place.
+     */
+    internal fun ServerProfile.withStream(q: (String) -> String?, defaultSecurity: String) = copy(
+        network = normNetwork(q("type") ?: "tcp"),
+        path = q("path"),
+        host = q("host"),
+        serviceName = q("serviceName"),
+        security = q("security") ?: defaultSecurity,
+        sni = q("sni") ?: q("peer"),
+        alpn = q("alpn"),
+        fingerprint = q("fp"),
+        allowInsecure = q("allowInsecure") == "1" || q("insecure") == "1",
+        publicKey = q("pbk"),
+        shortId = q("sid"),
+        spiderX = q("spx"),
+        headerType = q("headerType"),
+        extra = extrasOf(q),
+    )
 
     // ---- helpers ---------------------------------------------------------
     private fun nameOf(link: String, u: Uri): String {

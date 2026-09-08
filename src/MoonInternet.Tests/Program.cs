@@ -450,17 +450,18 @@ XrayTuning.AllowLan = false;   // leave the static as we found it
 // for it and xray silently used defaults". Every protocol that can choose a transport, against
 // every transport, against every security: the link must parse and the config must come out with
 // the settings block that transport is named after.
-var settingsBlock = new Dictionary<string, string>
+// The transport each link name ends up as. Three of them are no longer transports at all: xray 26
+// dropped HTTP/2 and QUIC and refuses the whole config over the name, so a link naming one has to
+// come out as the XHTTP mode they were folded into — otherwise that server never dials.
+var wantsNet = new Dictionary<string, string>
 {
-    ["tcp"] = "", ["ws"] = "wsSettings", ["grpc"] = "grpcSettings", ["h2"] = "httpSettings",
-    ["xhttp"] = "xhttpSettings", ["httpupgrade"] = "httpupgradeSettings", ["kcp"] = "kcpSettings",
+    ["tcp"] = "tcp", ["ws"] = "ws", ["grpc"] = "grpc", ["kcp"] = "kcp", ["httpupgrade"] = "httpupgrade",
+    ["xhttp"] = "xhttp", ["h2"] = "xhttp", ["quic"] = "xhttp", ["splithttp"] = "xhttp",
 };
 foreach (var proto in new[] { "vless", "trojan" })
-    foreach (var (net, block) in settingsBlock)
+    foreach (var (net, wantNet) in wantsNet)
         foreach (var sec in new[] { "none", "tls", "reality" })
         {
-            // Reality rides TCP-like transports; xray has no reality over kcp, so skip that pair.
-            if (sec == "reality" && net == "kcp") continue;
             string creds = proto == "vless" ? "15f55b17-6353-48ad-9c16-3941dcc4dcaa" : "hunter2";
             string link = $"{proto}://{creds}@host.example:443?type={net}&security={sec}" +
                           "&path=%2Fp&host=cdn.example&serviceName=svc&seed=sd&headerType=none" +
@@ -469,10 +470,24 @@ foreach (var proto in new[] { "vless", "trojan" })
             if (!ShareLinkParser.TryParse(link, out var mp, out var mErr) || mp is null)
             { Check($"matrix {what} parses", false); continue; }
             var ms = Proxy(Root(XrayConfigBuilder.Build(mp))).GetProperty("streamSettings");
-            string wantNet = net == "h2" ? "http" : net;
             Check($"matrix {what} network", ms.GetProperty("network").GetString() == wantNet);
-            if (block.Length > 0) Check($"matrix {what} settings", ms.TryGetProperty(block, out _));
-            if (sec != "none") Check($"matrix {what} security", ms.GetProperty("security").GetString() == sec);
+            if (wantNet != "tcp") Check($"matrix {what} settings", ms.TryGetProperty(wantNet + "Settings", out _));
+            if (sec != "none")
+            {
+                // REALITY rides RAW, XHTTP and gRPC and nothing else — the core refuses the rest
+                // outright, so a link claiming otherwise goes out as the TLS it probably is.
+                string wantSec = sec == "reality" && wantNet is not ("tcp" or "xhttp" or "grpc") ? "tls" : sec;
+                Check($"matrix {what} security", ms.GetProperty("security").GetString() == wantSec);
+                // Both spellings of the REALITY key: 26.1 reads only "password", 26.3 only ever
+                // read "publicKey". Sending one of them left every REALITY server on the phone
+                // failing with `empty "password"` while the same link worked on the desktop.
+                if (wantSec == "reality")
+                {
+                    var realKeys = ms.GetProperty("realitySettings");
+                    Check($"matrix {what} reality key both ways",
+                          realKeys.GetProperty("publicKey").GetString() == "k" && realKeys.GetProperty("password").GetString() == "k");
+                }
+            }
         }
 
 // Trojan over WS
