@@ -489,4 +489,5 @@
     <string name="zapret_needs_on">Включите режим Zapret и подключитесь — проверять пока нечего</string>
     <string name="zapret_card_title">Стратегии Zapret</string>
     <string name="zapret_card_sub">Выберите одну — какая подойдёт, зависит от провайдера</string>
+    <string name="geo_not_loaded">"не загружен"</string>
 </resources>

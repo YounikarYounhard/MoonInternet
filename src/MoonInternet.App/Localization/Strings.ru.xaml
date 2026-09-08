@@ -349,7 +349,7 @@
     <s:String x:Key="S_VM_056">{0:0.0} МБ</s:String>
     <s:String x:Key="S_VM_057">{0:0.00} ГБ</s:String>
     <s:String x:Key="S_VM_058">{0:0.00} ТБ</s:String>
-    <s:String x:Key="S_VM_060">{0:0.0} МБ · {1:dd.MM.yyyy HH:mm}</s:String>
+    <s:String x:Key="S_VM_060">{0} · {1:dd.MM.yyyy HH:mm}</s:String>
     <s:String x:Key="S_VM_061">не загружен</s:String>
     <s:String x:Key="S_VM_062">Нет активного профиля</s:String>
     <s:String x:Key="S_VM_063">не задан</s:String>

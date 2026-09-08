@@ -1815,7 +1815,9 @@ public partial class MainViewModel : ObservableObject
 
     private static string FileInfoText(string path)
     {
-        try { var fi = new FileInfo(path); return fi.Exists ? string.Format(Localization.Loc.T("S_VM_060"), fi.Length / 1048576.0, fi.LastWriteTime) : Localization.Loc.T("S_VM_061"); }
+        // Divided by a megabyte whatever the file was, so one that had barely downloaded read
+        // "0,0 МБ" — a number with the wrong unit under it. FmtSize picks the unit it is in.
+        try { var fi = new FileInfo(path); return fi.Exists ? string.Format(Localization.Loc.T("S_VM_060"), FmtSize(fi.Length), fi.LastWriteTime) : Localization.Loc.T("S_VM_061"); }
         catch { return "—"; }
     }
     [ObservableProperty] private bool geoRefreshing;

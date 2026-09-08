@@ -661,16 +661,20 @@
                     </StackPanel>
                 </WrapPanel>
 
-                <!-- Полоса: срок слева, тонкая шкала, трафик справа — одной строкой -->
+                <!-- Срок и трафик на своей строке, шкала под ними.
+                     Одной строкой это теряло то, что не влезло — а не влезала как раз дата. -->
                 <Grid Margin="0,7,12,0"
                       Visibility="{Binding DataContext.IsSubMeterBar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                    <Grid Grid.Column="1" Height="4" VerticalAlignment="Center" Margin="0,0,8,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <Grid Grid.Row="1" Grid.ColumnSpan="2" Height="4" VerticalAlignment="Center" Margin="0,4,8,0">
                         <Border Background="{StaticResource BorderSoft}" CornerRadius="2"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -680,19 +684,22 @@
                             <Border Grid.Column="0" Background="{Binding MeterBrush}" CornerRadius="2"/>
                         </Grid>
                     </Grid>
-                    <TextBlock Grid.Column="2" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
                 </Grid>
 
-                <!-- Точки: тот же ряд, шкала из десяти точек -->
+                <!-- Точки: та же раскладка, шкала из десяти точек -->
                 <Grid Margin="0,7,12,0"
                       Visibility="{Binding DataContext.IsSubMeterDots, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                    <ItemsControl Grid.Column="1" ItemsSource="{Binding TrafficDots}" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding TrafficDots}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,4,0,0">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -705,7 +712,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Grid.Column="2" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
                 </Grid>
             </Grid>
         </DataTemplate>

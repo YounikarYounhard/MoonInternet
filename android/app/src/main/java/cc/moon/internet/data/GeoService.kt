@@ -1,6 +1,7 @@
 package cc.moon.internet.data
 
 import android.content.Context
+import cc.moon.internet.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -29,9 +30,15 @@ object GeoService {
 
     fun ready(ctx: Context) = geoip(ctx).length() > 0 && geosite(ctx).length() > 0
 
-    fun info(f: File): String =
-        if (f.length() <= 0) "не загружен"
-        else "%.1f МБ".format(f.length() / 1048576.0)
+    /**
+     * Size and nothing else. It used to divide by a megabyte whatever the file was, so a geo file
+     * that had barely downloaded read "0,0 МБ" — a number with the wrong unit under it. The
+     * formatter picks the unit the file is actually in, and takes it from resources, so it follows
+     * the language like every other number.
+     */
+    fun info(ctx: Context, f: File): String =
+        if (f.length() <= 0) ctx.getString(R.string.geo_not_loaded)
+        else cc.moon.internet.data.SubscriptionService.size(f.length())
 
     /**
      * Downloads whatever is missing. [force] re-downloads even if the file is already there.

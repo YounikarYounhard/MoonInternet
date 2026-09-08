@@ -1098,8 +1098,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         GeoService.tags(GeoService.geosite(ctx), "geosite") + GeoService.tags(GeoService.geoip(ctx), "geoip")
     }
 
-    fun geoipInfo() = GeoService.info(GeoService.geoip(getApplication()))
-    fun geositeInfo() = GeoService.info(GeoService.geosite(getApplication()))
+    fun geoipInfo() = GeoService.info(getApplication(), GeoService.geoip(getApplication()))
+    fun geositeInfo() = GeoService.info(getApplication(), GeoService.geosite(getApplication()))
 
     /** One block of the geo-files card: who it belongs to and where its two lists come from. */
     data class GeoSource(val owner: String, val geoip: String, val geosite: String, val showOwner: Boolean)

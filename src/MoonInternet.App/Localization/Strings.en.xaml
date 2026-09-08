@@ -379,7 +379,7 @@
     <s:String x:Key="S_VM_056">{0:0.0} MB</s:String>
     <s:String x:Key="S_VM_057">{0:0.00} GB</s:String>
     <s:String x:Key="S_VM_058">{0:0.00} TB</s:String>
-    <s:String x:Key="S_VM_060">{0:0.0} MB · {1:dd.MM.yyyy HH:mm}</s:String>
+    <s:String x:Key="S_VM_060">{0} · {1:dd.MM.yyyy HH:mm}</s:String>
     <s:String x:Key="S_VM_061">not downloaded</s:String>
     <s:String x:Key="S_VM_062">No active profile</s:String>
     <s:String x:Key="S_VM_063">not set</s:String>
