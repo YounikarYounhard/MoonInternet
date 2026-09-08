@@ -173,7 +173,7 @@
                                 </Border>
 
                                 <!-- servers -->
-                                <ItemsControl Visibility="{Binding IsExpandedServers, Converter={StaticResource BoolVis}}" Margin="7,0,7,7"
+                                <ItemsControl app:Fold.Open="{Binding IsExpandedServers}" Margin="7,0,7,7"
                                               ItemsSource="{Binding ServersView}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

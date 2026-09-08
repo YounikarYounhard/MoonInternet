@@ -1,6 +1,7 @@
 package cc.moon.internet.ui
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.moon.internet.R
 import cc.moon.internet.core.ServerProfile
-import kotlinx.coroutines.launch
 import cc.moon.internet.core.Subscription
 import cc.moon.internet.vpn.MoonVpnService.Companion.State
 import androidx.compose.ui.res.stringResource
@@ -89,7 +89,6 @@ fun HomeScreen(
 ) {
     // Ordered here rather than inside the list below: an item is its own little composition and
     // keeps the list it was first handed, so a new star would repaint a row without moving it.
-    val scope = rememberCoroutineScope()
     val zapret = connMode == "zapret"
     val groups = subscriptions.map { it to sortedIn(it) }
 
@@ -369,11 +368,7 @@ fun HomeScreen(
                     pingDisplay = pingDisplay,
                     favorites = favorites,
                     servers = shown,
-                    onToggleCollapse = {
-                        scope.launch {
-                            foldGently(listState, sub.url, sub.url !in collapsed) { onToggleCollapse(sub.url) }
-                        }
-                    },
+                    onToggleCollapse = { onToggleCollapse(sub.url) },
                     onMenu = { onSubMenu(sub) },
                     pingBusy = shown.any { it.pingKey in pinging },
                     refreshBusy = sub.url in refreshing,
@@ -569,31 +564,38 @@ private fun SubscriptionCard(
             }
 
             // servers
-            if (!collapsed) {
-                Column(Modifier.padding(horizontal = 7.dp).padding(bottom = 7.dp)) {
-                    servers.forEach { s ->
-                        // key(), or none of this moves. Without one Compose identifies children by
-                        // position, so a reorder leaves every slot where it was and swaps the
-                        // contents over — which is instant by definition, and is why the row
-                        // appeared to teleport however the animation was tuned. With a key the row
-                        // itself is the thing that moves, and there is a movement to animate.
-                        key(s.key) {
-                        // Each row slides to its new place rather than turning up there: picking a
-                        // server lifts it to the top of its card, and in a plain Column that is a
-                        // jump between two frames.
-                        Column(Modifier.animatePlacement()) {
-                        ServerRowCompact(
-                            server = s,
-                            selected = s.key == selected?.key,
-                            ping = pings[s.pingKey],
-                            pinging = s.pingKey in pinging,
-                            pingDisplay = pingDisplay,
-                            favorite = s.key in favorites,
-                            onClick = { onSelect(s) },
-                            onMenu = { onServerMenu(s) },
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        }
+            // The fold itself is the animation: the card gives up its height over a quarter of a
+            // second rather than between two frames. A card taller than the window drags the page
+            // back up with it when it shrinks, and that pull is what felt like a kick — it is not
+            // wrong, there is simply nothing below to hold the page where it was. Shrinking over
+            // time makes the same pull happen a few pixels at a time, which is all it needed.
+            Column(Modifier.animateContentSize(tween(260, easing = FastOutSlowInEasing))) {
+                if (!collapsed) {
+                    Column(Modifier.padding(horizontal = 7.dp).padding(bottom = 7.dp)) {
+                        servers.forEach { s ->
+                            // key(), or none of this moves. Without one Compose identifies children by
+                            // position, so a reorder leaves every slot where it was and swaps the
+                            // contents over — which is instant by definition, and is why the row
+                            // appeared to teleport however the animation was tuned. With a key the row
+                            // itself is the thing that moves, and there is a movement to animate.
+                            key(s.key) {
+                            // Each row slides to its new place rather than turning up there: picking a
+                            // server lifts it to the top of its card, and in a plain Column that is a
+                            // jump between two frames.
+                            Column(Modifier.animatePlacement()) {
+                            ServerRowCompact(
+                                server = s,
+                                selected = s.key == selected?.key,
+                                ping = pings[s.pingKey],
+                                pinging = s.pingKey in pinging,
+                                pingDisplay = pingDisplay,
+                                favorite = s.key in favorites,
+                                onClick = { onSelect(s) },
+                                onMenu = { onServerMenu(s) },
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            }
+                            }
                         }
                     }
                 }

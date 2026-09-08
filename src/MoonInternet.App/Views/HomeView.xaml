@@ -435,7 +435,7 @@
                                             </Border.Visibility>
                                             <TextBlock Text="{Binding Announcement}" Foreground="#CFC7EC" FontSize="11.5" TextWrapping="Wrap" LineHeight="17"/>
                                         </Border>
-                                        <ItemsControl Visibility="{Binding IsExpanded, Converter={StaticResource BoolVis}}" Margin="7,0,7,7"
+                                        <ItemsControl app:Fold.Open="{Binding IsExpanded}" Margin="7,0,7,7"
                                                       ItemsSource="{Binding ServersView}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
