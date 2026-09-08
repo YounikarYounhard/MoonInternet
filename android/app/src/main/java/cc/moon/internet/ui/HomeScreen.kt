@@ -621,12 +621,8 @@ private fun SubscriptionCard(
                         null, tint = Moon.TextSecondary, modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(11.dp))
-                    Column {
-                        Text(sub.name, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                             maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (!sub.isLoose) SubMeter(sub.trafficText, sub.expiryText,
-                                                   sub.trafficFraction, sub.expiryFraction, subMeter)
-                    }
+                    Text(sub.name, Modifier.weight(1f), color = Moon.TextPrimary, fontSize = 14.sp,
+                         fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (showServerCount) Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent) {
@@ -639,6 +635,12 @@ private fun SubscriptionCard(
                         Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }
                 }
+            }
+
+            // The meter gets a row of its own. Under the title it shared the band with the action
+            // icons, so it only ever had half the card to draw in.
+            if (!sub.isLoose) Box(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 11.dp)) {
+                SubMeter(sub.trafficText, sub.expiryText, sub.trafficFraction, sub.expiryFraction, subMeter)
             }
 
             // announcement banner

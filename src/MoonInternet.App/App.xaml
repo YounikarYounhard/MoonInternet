@@ -649,7 +649,7 @@
                      on the end — so a plan with both a big allowance and a date read
                      "12.09.2026 ·" and stopped. WrapPanel puts it on a second line instead, and
                      only when it has to. -->
-                <WrapPanel Orientation="Horizontal" Margin="0,3,4,0"
+                <WrapPanel Orientation="Horizontal"
                            Visibility="{Binding DataContext.IsSubMeterText, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
                     <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
                         <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
@@ -661,52 +661,50 @@
                     </StackPanel>
                 </WrapPanel>
 
-                <!-- Полоса: срок слева, тонкая шкала, трафик справа — одной строкой -->
-                <Grid Margin="0,7,12,0"
-                      Visibility="{Binding DataContext.IsSubMeterBar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                    <Grid Grid.Column="1" Height="4" VerticalAlignment="Center" Margin="0,0,8,0">
-                        <Border Background="{StaticResource BorderSoft}" CornerRadius="2"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="{Binding TrafficFill}"/>
-                                <ColumnDefinition Width="{Binding TrafficRest}"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Background="{Binding MeterBrush}" CornerRadius="2"/>
+                <!-- Полоса: дата сверху, шкала с трафиком снизу — как у INCY. Одной строкой рядом
+                     с иконками действий шкале доставалась половина карточки, и трафик свисал с её
+                     конца. -->
+                <StackPanel Visibility="{Binding DataContext.IsSubMeterBar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                    <TextBlock Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}"/>
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Height="4" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <Border Background="{StaticResource BorderSoft}" CornerRadius="2"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{Binding TrafficFill}"/>
+                                    <ColumnDefinition Width="{Binding TrafficRest}"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="{Binding MeterBrush}" CornerRadius="2"/>
+                            </Grid>
                         </Grid>
+                        <TextBlock Grid.Column="1" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
                     </Grid>
-                    <TextBlock Grid.Column="2" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-                </Grid>
+                </StackPanel>
 
-                <!-- Точки: тот же ряд, шкала из десяти точек -->
-                <Grid Margin="0,7,12,0"
-                      Visibility="{Binding DataContext.IsSubMeterDots, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                    <ItemsControl Grid.Column="1" ItemsSource="{Binding TrafficDots}" VerticalAlignment="Center" HorizontalAlignment="Left">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Ellipse x:Name="dot" Width="5" Height="5" Margin="0,0,3,0" Fill="{StaticResource BorderSoft}"/>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding}" Value="True">
-                                        <Setter TargetName="dot" Property="Fill" Value="{StaticResource Accent}"/>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Grid.Column="2" Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-                </Grid>
+                <!-- Точки: те же две строки, шкала из десяти точек -->
+                <StackPanel Visibility="{Binding DataContext.IsSubMeterDots, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                    <TextBlock Text="{Binding ExpiryText}" FontSize="10.5" Foreground="{StaticResource TextMuted}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <ItemsControl ItemsSource="{Binding TrafficDots}" VerticalAlignment="Center">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Ellipse x:Name="dot" Width="6" Height="6" Margin="0,0,4,0" Fill="{StaticResource BorderSoft}"/>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding}" Value="True">
+                                            <Setter TargetName="dot" Property="Fill" Value="{StaticResource Accent}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding TrafficText}" FontSize="10.5" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
             </Grid>
         </DataTemplate>
 

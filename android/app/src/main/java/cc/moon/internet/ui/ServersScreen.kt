@@ -296,12 +296,8 @@ private fun SubGroup(
                     Icon(if (collapsed) Icons.Filled.ChevronRight else Icons.Filled.ExpandMore, null,
                          tint = Moon.TextSecondary, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(11.dp))
-                    Column {
-                        Text(sub.name, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                             maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (!sub.isLoose) SubMeter(sub.trafficText, sub.expiryText,
-                                                   sub.trafficFraction, sub.expiryFraction, subMeter)
-                    }
+                    Text(sub.name, Modifier.weight(1f), color = Moon.TextPrimary, fontSize = 14.sp,
+                         fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (showServerCount) Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent) {
@@ -314,6 +310,11 @@ private fun SubGroup(
                         Icon(Icons.Filled.MoreHoriz, null, tint = Moon.TextSecondary, modifier = Modifier.size(17.dp))
                     }
                 }
+            }
+
+            // Its own row, same as on Home — beside the icons it only had half the card.
+            if (!sub.isLoose) Box(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 11.dp)) {
+                SubMeter(sub.trafficText, sub.expiryText, sub.trafficFraction, sub.expiryFraction, subMeter)
             }
 
             if (sub.announcement.isNotBlank() && showHeader) {

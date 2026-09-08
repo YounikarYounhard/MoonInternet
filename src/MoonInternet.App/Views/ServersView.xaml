@@ -119,11 +119,7 @@
                                                     <Grid>
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" x:Name="chev" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Margin="0,0,11,0"/>
-                                                        <StackPanel Grid.Column="1">
-                                                            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SubMeter}"
-                                                                              Visibility="{Binding IsSubscription, Converter={StaticResource BoolVis}}"/>
-                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                     </Grid>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
@@ -160,6 +156,10 @@
                                                 Command="{Binding DataContext.OpenSubSheetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                     </StackPanel>
                                 </Grid>
+
+                                <!-- Its own row, same as on Home — beside the icons it only had half the card. -->
+                                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SubMeter}" Margin="14,0,14,11"
+                                                  Visibility="{Binding IsSubscription, Converter={StaticResource BoolVis}}"/>
 
                                 <!-- announcement banner (gated by the "Показывать шапку подписки" setting) -->
                                 <Border Margin="12,0,12,10" CornerRadius="10" Background="#1E1440" BorderBrush="#33B9A7FF" BorderThickness="1" Padding="12,10">

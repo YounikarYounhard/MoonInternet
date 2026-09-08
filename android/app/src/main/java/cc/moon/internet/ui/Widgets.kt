@@ -106,40 +106,38 @@ fun SubMeter(
 ) {
     val tUnlimited = trafficFraction < 0
     when (style) {
-        // One line, the way INCY lays it out: expiry on the left, a thin track in the middle,
-        // traffic on the right. Two stacked bars with their own captions took three times the
-        // height and said the same thing.
-        // One line, the way INCY lays it out: expiry on the left, a thin track in the middle,
-        // traffic on the right. The track is the part that gives way — it is weighted, so it takes
-        // whatever the two labels leave.
-        "bar" -> Row(Modifier.padding(top = 7.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        // Two lines, the way INCY lays it out: the date on top, the track and the traffic under it.
+        // Squeezed onto one line beside the action icons the track was a stub with the traffic
+        // hanging off its end — this row now has the whole card to itself.
+        "bar" -> Column(Modifier.fillMaxWidth()) {
             Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
-            Text(" · ", color = Moon.TextMuted, fontSize = 10.5.sp)
-            Box(Modifier.weight(1f).padding(end = 8.dp)) {
-                MeterBar(if (tUnlimited) 1.0 else trafficFraction,
-                         if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction), 4.dp)
+            Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f).padding(end = 10.dp)) {
+                    MeterBar(if (tUnlimited) 1.0 else trafficFraction,
+                             if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction), 4.dp)
+                }
+                Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
             }
-            Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
         }
-        "dots" -> Row(Modifier.padding(top = 7.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        "dots" -> Column(Modifier.fillMaxWidth()) {
             Text(expiryText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
-            Text(" · ", color = Moon.TextMuted, fontSize = 10.5.sp)
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 // dots show what is LEFT, so a full row is a fresh plan
                 val lit = if (tUnlimited) 10 else Math.round((1 - trafficFraction.coerceIn(0.0, 1.0)) * 10).toInt()
                 val color = if (tUnlimited) Moon.MeterIdle else meterColor(trafficFraction)
                 repeat(10) { i ->
-                    Box(Modifier.padding(end = 3.dp).size(5.dp).clip(CircleShape)
+                    Box(Modifier.padding(end = 4.dp).size(6.dp).clip(CircleShape)
                             .background(if (i < lit) color else Moon.BorderSoft))
                 }
+                Text(trafficText, Modifier.padding(start = 6.dp),
+                     color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
             }
-            Text(trafficText, color = Moon.TextMuted, fontSize = 10.5.sp, maxLines = 1)
         }
         // A row that cannot wrap simply loses whatever does not fit, and the expiry is on the end
         // — so a plan with both a big allowance and a date showed "12.09.2026 ·" and stopped. This
         // wraps to a second line instead, and only when it has to.
         else -> androidx.compose.foundation.layout.FlowRow(
-            Modifier.padding(top = 3.dp, end = 4.dp),
+            Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
