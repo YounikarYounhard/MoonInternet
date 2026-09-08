@@ -345,9 +345,14 @@ fun HomeScreen(
             // carry left its card sitting there open and empty, as though its servers had gone
             // missing. One that is genuinely empty keeps its card — that card is how you refresh it.
             if (shown.isNotEmpty() || sub.servers.isEmpty()) {
+                // No placement animation while the list is changing shape. Folding a card
+                // shortens the list, so a list scrolled past its new end is pulled back up and
+                // every plate below lands somewhere new — animating that flies them in from above
+                // the window, the further the longer the subscription was.
                 Column(Modifier.animateItem(
                     fadeInSpec = tween(220),
-                    placementSpec = tween(420, easing = FastOutSlowInEasing),
+                    placementSpec = if (ListMotion.quiet) null
+                                    else tween(420, easing = FastOutSlowInEasing),
                     fadeOutSpec = tween(180),
                 )) {
                 SubscriptionCard(

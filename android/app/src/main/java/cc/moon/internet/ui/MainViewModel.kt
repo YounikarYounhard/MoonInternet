@@ -480,6 +480,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         store.update { st ->
             st.copy(collapsed = if (url in st.collapsed) st.collapsed - url else st.collapsed + url)
         }
+        // Long enough for the list to be re-laid-out and the scroll to settle against its new end.
+        kotlinx.coroutines.delay(700)
+        ListMotion.release()
     }
 
     fun pingSubscription(url: String) = viewModelScope.launch {

@@ -555,9 +555,16 @@ fun SubHeading(text: String) {
  * is the list changing shape, and rows should simply be where they now are.
  */
 object ListMotion {
-    @Volatile private var quietUntil = 0L
-    fun hush() { quietUntil = System.currentTimeMillis() + 700 }
-    val quiet: Boolean get() = System.currentTimeMillis() < quietUntil
+    /**
+     * Compose-visible, because the plates read it while they compose — a plain field would be read
+     * once and never looked at again, and a plate's placement animation is chosen at composition
+     * time, not while it runs.
+     */
+    var quiet by androidx.compose.runtime.mutableStateOf(false)
+        private set
+
+    fun hush() { quiet = true }
+    fun release() { quiet = false }
 }
 
 fun Modifier.animatePlacement(): Modifier = composed {

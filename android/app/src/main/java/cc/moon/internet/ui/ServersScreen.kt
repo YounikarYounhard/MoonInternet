@@ -197,9 +197,14 @@ fun ServersScreen(
             // empty, as though the servers had gone missing. A subscription that is genuinely
             // empty keeps its card, because that card is the only way to refresh or remove it.
             if (shown.isNotEmpty() || sub.servers.isEmpty()) {
+                // No placement animation while the list is changing shape. Folding a card
+                // shortens the list, so a list scrolled past its new end is pulled back up and
+                // every plate below lands somewhere new — animating that flies them in from above
+                // the window, the further the longer the subscription was.
                 Column(Modifier.animateItem(
                     fadeInSpec = tween(220),
-                    placementSpec = tween(420, easing = FastOutSlowInEasing),
+                    placementSpec = if (ListMotion.quiet) null
+                                    else tween(420, easing = FastOutSlowInEasing),
                     fadeOutSpec = tween(180),
                 )) {
                 SubGroup(
