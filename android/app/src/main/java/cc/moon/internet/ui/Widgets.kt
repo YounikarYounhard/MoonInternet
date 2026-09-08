@@ -371,7 +371,13 @@ fun SwitchRow(
     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                // The title yields, not the badge. Measured the other way round the title took the
+                // whole line and the badge was squeezed to a sliver — a thin yellow stripe beside
+                // "Переключаться на живой сервер" with no word in it. A weighted child is measured
+                // with what is left after the others, so the badge gets its width first and the
+                // title wraps to a second line if it has to.
+                Text(title, Modifier.weight(1f, fill = false), color = Moon.TextPrimary,
+                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 if (beta) {
                     Spacer(Modifier.width(8.dp))
                     Surface(shape = RoundedCornerShape(6.dp), color = Color(0x33F5C042)) {
