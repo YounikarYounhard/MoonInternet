@@ -206,13 +206,12 @@
             </StackPanel>
 
             <!-- ===== compact stats + add / paste =====================================
-                 Two shapes for one row, crossfading. Connected, the four readouts take the left
-                 and the buttons stack down the right. Disconnected there is nothing to read -
-                 every readout says "-" - so the buttons stop queueing up and stand side by side
-                 across the whole width instead. The button faces are x:Shared="False" resources,
-                 so each arrangement gets its own copy of the same thing. -->
-            <Grid Grid.Row="2" Margin="0,12,0,0">
-                <Grid.Resources>
+                 One panel with a dial on it, not two arrangements taking turns. Connected, the
+                 four readouts take the left and the buttons stack down the right; disconnected
+                 every readout says "-", so they go and the buttons share the whole width. The same
+                 two buttons travel between the two places - see MorphActions. -->
+            <app:MorphActions Grid.Row="2" Margin="0,12,0,0" Open="{Binding IsConnected}">
+                <app:MorphActions.Resources>
                     <Style x:Key="ActionAccent" TargetType="Button">
                         <Setter Property="Cursor" Value="Hand"/>
                         <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -245,34 +244,15 @@
                             </Setter.Value>
                         </Setter>
                     </Style>
+                </app:MorphActions.Resources>
 
-                    <StackPanel x:Key="FaceAdd" x:Shared="False" Orientation="Horizontal">
-                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="#C4B4FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="{DynamicResource S_HomeView_007}" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel x:Key="FacePaste" x:Shared="False" Orientation="Horizontal">
-                        <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="{DynamicResource S_Paste_Long}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel x:Key="FaceZapretCheck" x:Shared="False" Orientation="Horizontal">
-                        <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="#C4B4FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="{DynamicResource S_Zapret_CheckNow}" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel x:Key="FaceZapretAuto" x:Shared="False" Orientation="Horizontal">
-                        <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="{DynamicResource S_Zapret_AutoRun}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid.Resources>
-
-                <!-- connected: readouts on the left, buttons stacked on the right -->
-                <Grid app:Fade.Visible="{Binding IsConnected}">
+                <!-- 1: the readouts -->
+                <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="104"/>
-                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="0">
                         <StackPanel Margin="0,0,0,7">
                             <TextBlock Text="{DynamicResource S_HomeView_003}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                             <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
@@ -288,8 +268,7 @@
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
-
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1">
                         <StackPanel Margin="0,0,0,7">
                             <TextBlock Text="{DynamicResource S_HomeView_005}" Foreground="{StaticResource TextSecondary}" FontSize="10.5"/>
                             <TextBlock Text="{Binding ElapsedDisplay}" FontWeight="SemiBold" FontSize="13" Margin="0,1,0,0"/>
@@ -299,54 +278,47 @@
                             <TextBlock Text="{Binding SessionTraffic}" FontWeight="SemiBold" FontSize="13" Margin="0,1,0,0"/>
                         </StackPanel>
                     </StackPanel>
-
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center"
-                                Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}">
-                        <Button Style="{StaticResource ActionAccent}" Command="{Binding OpenAddDialogCommand}" Margin="0,0,0,6"
-                                Content="{StaticResource FaceAdd}"/>
-                        <Button Style="{StaticResource ActionPlain}" Command="{Binding PasteImportCommand}"
-                                Content="{StaticResource FacePaste}"/>
-                    </StackPanel>
-
-                    <!-- Zapret's own pair, in the place the other one leaves: nothing is added in
-                         this mode, and these two are the only things worth pressing. -->
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center"
-                                Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}">
-                        <Button Style="{StaticResource ActionAccent}" Command="{Binding CheckZapretCommand}" Margin="0,0,0,6"
-                                IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
-                                Content="{StaticResource FaceZapretCheck}"/>
-                        <Button Style="{StaticResource ActionPlain}" Command="{Binding AutoPickZapretCommand}"
-                                IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
-                                Content="{StaticResource FaceZapretAuto}"/>
-                    </StackPanel>
                 </Grid>
 
-                <!-- disconnected: nothing to read, so the two buttons share the width -->
-                <Grid app:Fade.Visible="{Binding IsDisconnected}" VerticalAlignment="Center">
-                    <Grid Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Style="{StaticResource ActionAccent}" Command="{Binding OpenAddDialogCommand}" Margin="0,0,4,0"
-                                Content="{StaticResource FaceAdd}"/>
-                        <Button Grid.Column="1" Style="{StaticResource ActionPlain}" Command="{Binding PasteImportCommand}" Margin="4,0,0,0"
-                                Content="{StaticResource FacePaste}"/>
-                    </Grid>
-                    <Grid Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Style="{StaticResource ActionAccent}" Command="{Binding CheckZapretCommand}" Margin="0,0,4,0"
-                                IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
-                                Content="{StaticResource FaceZapretCheck}"/>
-                        <Button Grid.Column="1" Style="{StaticResource ActionPlain}" Command="{Binding AutoPickZapretCommand}" Margin="4,0,0,0"
-                                IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
-                                Content="{StaticResource FaceZapretAuto}"/>
-                    </Grid>
+                <!-- 2: the first button. Nothing is added in Zapret, and its own pair takes the
+                     same two places: is this strategy any good, and if not, find one that is. -->
+                <Grid>
+                    <Button Style="{StaticResource ActionAccent}" Command="{Binding OpenAddDialogCommand}"
+                            Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="#C4B4FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{DynamicResource S_HomeView_007}" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ActionAccent}" Command="{Binding CheckZapretCommand}"
+                            IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
+                            Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="#C4B4FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{DynamicResource S_Zapret_CheckNow}" Foreground="#C4B4FF" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
-            </Grid>
+
+                <!-- 3: the second -->
+                <Grid>
+                    <Button Style="{StaticResource ActionPlain}" Command="{Binding PasteImportCommand}"
+                            Visibility="{Binding ShowSubscriptions, Converter={StaticResource BoolVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{DynamicResource S_Paste_Long}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ActionPlain}" Command="{Binding AutoPickZapretCommand}"
+                            IsEnabled="{Binding ZapretBusy, Converter={StaticResource InvBool}}"
+                            Visibility="{Binding IsZapretMode, Converter={StaticResource BoolVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="11.5" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{DynamicResource S_Zapret_AutoRun}" Foreground="#C6CAD3" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </app:MorphActions>
 
             <!-- subscriptions: collapsible list, scrolls with NO visible scrollbar (wheel handled in code-behind) -->
             <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Hidden" Margin="0,12,0,0"

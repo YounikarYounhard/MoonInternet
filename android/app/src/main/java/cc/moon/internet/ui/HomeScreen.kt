@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -210,10 +211,12 @@ fun HomeScreen(
             // popping into existence mid-list read as the layout jumping.
             androidx.compose.animation.AnimatedVisibility(
                 visible = state == State.Connected,
-                enter = androidx.compose.animation.fadeIn(tween(260)) +
-                        androidx.compose.animation.expandVertically(tween(260, easing = CubicBezierEasing(0.215f, 0.61f, 0.355f, 1f))),
-                exit = androidx.compose.animation.fadeOut(tween(140)) +
-                       androidx.compose.animation.shrinkVertically(tween(180)),
+                // The same 420ms the row below it takes. They both change the height of the page,
+                // and on two different clocks that is two separate shoves rather than one movement.
+                enter = androidx.compose.animation.fadeIn(tween(420)) +
+                        androidx.compose.animation.expandVertically(tween(420, easing = FastOutSlowInEasing)),
+                exit = androidx.compose.animation.fadeOut(tween(420)) +
+                       androidx.compose.animation.shrinkVertically(tween(420, easing = FastOutSlowInEasing)),
             ) {
                 Column {
                 Spacer(Modifier.height(10.dp))
@@ -254,78 +257,46 @@ fun HomeScreen(
         // ---- stats + add/paste ----------------------------------------------
         item {
             Spacer(Modifier.height(12.dp))
-            // Everything shares the width by weight. Fixed columns beside a weighted one was the
-            // actual tablet problem: the buttons took every extra pixel and the readouts kept
-            // their 104dp whatever the screen was.
-            // Four readings that read "—" until something is connected: half the row saying
-            // nothing, and the buttons squeezed into the third that was left. They come and go
-            // with the tunnel now, sideways, so the buttons take the width back rather than
-            // snapping into it.
+            // Connected, the four readouts take the left and the buttons stack down the right side.
+            // Disconnected they all read "—", so they go and the buttons stand side by side across
+            // the whole width. Same two buttons either way — they travel between the two places
+            // rather than fading out of one and into the other, which is what a crossfade did and
+            // why it looked like nothing had happened.
             val live = state == State.Connected || state == State.Paused
-            // Two shapes for one row, and a crossfade between them. Connected, the four readouts
-            // take the left and the buttons stack down the right. Disconnected there is nothing to
-            // read — the readouts all say "—" — so the buttons stop queueing up and stand side by
-            // side across the whole width instead.
-            androidx.compose.animation.AnimatedContent(
-                targetState = live,
-                // Not a plain crossfade: the arrangement that arrives slides in from the side it
-                // came from and settles, the one leaving goes the other way. A fade on its own
-                // reads as a redraw — a step is missing where the eye expects a movement.
-                transitionSpec = {
-                    val toward = if (targetState) 1 else -1
-                    androidx.compose.animation.ContentTransform(
-                        androidx.compose.animation.fadeIn(tween(300)) +
-                            androidx.compose.animation.slideInHorizontally(
-                                tween(340, easing = FastOutSlowInEasing),
-                            ) { w -> toward * w / 5 } +
-                            androidx.compose.animation.scaleIn(tween(340), initialScale = 0.97f),
-                        androidx.compose.animation.fadeOut(tween(200)) +
-                            androidx.compose.animation.slideOutHorizontally(
-                                tween(300, easing = FastOutSlowInEasing),
-                            ) { w -> -toward * w / 6 } +
-                            androidx.compose.animation.scaleOut(tween(300), targetScale = 0.97f),
-                    )
-                },
+            val progress by androidx.compose.animation.core.animateFloatAsState(
+                if (live) 1f else 0f,
+                tween(420, easing = FastOutSlowInEasing),
                 label = "home-actions",
-            ) { connected ->
-                val add: @Composable (Modifier) -> Unit = { m ->
-                    if (zapret) ActionButton(stringResource(R.string.zapret_check_now), Icons.Filled.NetworkCheck,
-                                             Color(0xFF2C2058), Color(0xFFC4B4FF), m) { if (!zapretBusy) onCheckZapret() }
-                    else ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add,
-                                      Color(0xFF2C2058), Color(0xFFC4B4FF), m, onAdd)
-                }
-                val paste: @Composable (Modifier) -> Unit = { m ->
-                    if (zapret) ActionButton(stringResource(R.string.zapret_auto_run), Icons.Filled.AutoFixHigh,
-                                             Moon.ChipBg, Color(0xFFC6CAD3), m) { if (!zapretBusy) onAutoPickZapret() }
-                    else ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste,
-                                      Moon.ChipBg, Color(0xFFC6CAD3), m, onPaste)
-                }
-
-                if (connected) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f).widthIn(min = 104.dp)) {
+            )
+            HomeActions(
+                progress = progress,
+                stats = {
+                    Row {
+                        Column(Modifier.weight(1f)) {
                             StatCell(stringResource(R.string.homescreen_009), "↑", upSpeed, Moon.Green)
                             Spacer(Modifier.height(7.dp))
                             StatCell(stringResource(R.string.homescreen_010), "↓", downSpeed, Moon.AccentText)
                         }
-                        Column(Modifier.weight(1f).widthIn(min = 90.dp)) {
+                        Column(Modifier.weight(1f)) {
                             StatCell(stringResource(R.string.homescreen_011), null, elapsed, Moon.TextPrimary)
                             Spacer(Modifier.height(7.dp))
                             StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)
                         }
-                        Column(Modifier.weight(1.1f).widthIn(max = 260.dp)) {
-                            add(Modifier)
-                            Spacer(Modifier.height(6.dp))
-                            paste(Modifier)
-                        }
                     }
-                } else {
-                    Row(Modifier.fillMaxWidth()) {
-                        add(Modifier.weight(1f).padding(end = 4.dp))
-                        paste(Modifier.weight(1f).padding(start = 4.dp))
-                    }
-                }
-            }
+                },
+                add = {
+                    if (zapret) ActionButton(stringResource(R.string.zapret_check_now), Icons.Filled.NetworkCheck,
+                                             Color(0xFF2C2058), Color(0xFFC4B4FF)) { if (!zapretBusy) onCheckZapret() }
+                    else ActionButton(stringResource(R.string.settingsscreen_195), Icons.Filled.Add,
+                                      Color(0xFF2C2058), Color(0xFFC4B4FF), onClick = onAdd)
+                },
+                paste = {
+                    if (zapret) ActionButton(stringResource(R.string.zapret_auto_run), Icons.Filled.AutoFixHigh,
+                                             Moon.ChipBg, Color(0xFFC6CAD3)) { if (!zapretBusy) onAutoPickZapret() }
+                    else ActionButton(stringResource(R.string.serversscreen_005), Icons.Filled.ContentPaste,
+                                      Moon.ChipBg, Color(0xFFC6CAD3), onClick = onPaste)
+                },
+            )
         }
 
         // ---- subscriptions ----------------------------------------------------
@@ -520,6 +491,70 @@ private fun StatCell(label: String, arrow: String?, value: String, arrowColor: C
             }
             Text(value, color = Moon.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                  maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/**
+ * The Home action row, as one layout with a dial on it.
+ *
+ * At 0 the readouts have no width and the two buttons share the row. At 1 the readouts have the
+ * left half and the buttons are stacked in the right. Every position in between is measured, so
+ * turning the dial does not swap one arrangement for another — the same two buttons walk from
+ * where they were to where they are going, growing and narrowing as they go.
+ *
+ * A crossfade was the obvious way and the wrong one: two copies of a button, one fading out at the
+ * old place while another faded in at the new, which the eye reads as a redraw rather than a move.
+ */
+@Composable
+private fun HomeActions(
+    progress: Float,
+    stats: @Composable () -> Unit,
+    add: @Composable () -> Unit,
+    paste: @Composable () -> Unit,
+) {
+    androidx.compose.ui.layout.Layout(
+        contents = listOf(
+            { Box(Modifier.graphicsLayer { alpha = progress }) { stats() } },
+            add,
+            paste,
+        ),
+        modifier = Modifier.fillMaxWidth().clipToBounds(),
+    ) { (statsM, addM, pasteM), constraints ->
+        val width = constraints.maxWidth
+        val gap = 8.dp.roundToPx()
+        val stack = 6.dp.roundToPx()
+        val p = progress.coerceIn(0f, 1f)
+
+        // The readouts are always measured at the width they have when they are up, however much
+        // of it is showing. Measured at the width of the moment they re-wrapped as they narrowed,
+        // grew a line, and pushed the whole page down before snapping back — the subscriptions
+        // below went up, down and up again in one movement, which is the thing you cannot unsee.
+        val statsWidth = (width * 0.55f).toInt()
+        val right = statsWidth + gap
+        val buttonWidth = androidx.compose.ui.util.lerp((width - gap) / 2, (width - right).coerceAtLeast(1), p)
+
+        val statsPlaced = statsM.firstOrNull()?.measure(constraints.copy(minWidth = 0, maxWidth = statsWidth))
+        val addPlaced = addM.first().measure(androidx.compose.ui.unit.Constraints.fixedWidth(buttonWidth))
+        val pastePlaced = pasteM.first().measure(androidx.compose.ui.unit.Constraints.fixedWidth(buttonWidth))
+
+        // Side by side at 0, one under the other at 1.
+        val addX = androidx.compose.ui.util.lerp(0, right, p)
+        val pasteX = androidx.compose.ui.util.lerp(buttonWidth + gap, right, p)
+        val pasteY = androidx.compose.ui.util.lerp(0, addPlaced.height + stack, p)
+
+        // ...and the height goes straight from one shape's to the other's, rather than being
+        // whatever happens to be tallest at this instant.
+        val height = androidx.compose.ui.util.lerp(
+            maxOf(addPlaced.height, pastePlaced.height),
+            maxOf(statsPlaced?.height ?: 0, addPlaced.height + stack + pastePlaced.height),
+            p,
+        )
+
+        layout(width, height) {
+            if (p > 0f) statsPlaced?.placeRelative(0, (height - statsPlaced.height) / 2)
+            addPlaced.placeRelative(addX, 0)
+            pastePlaced.placeRelative(pasteX, pasteY)
         }
     }
 }
