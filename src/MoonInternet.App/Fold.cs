@@ -17,7 +17,7 @@ namespace MoonInternet.App;
 /// </summary>
 public static class Fold
 {
-    private static readonly Duration Length = new(TimeSpan.FromMilliseconds(260));
+    private static readonly Duration Length = new(TimeSpan.FromMilliseconds(420));
 
     public static bool GetOpen(DependencyObject o) => (bool)o.GetValue(OpenProperty);
     public static void SetOpen(DependencyObject o, bool value) => o.SetValue(OpenProperty, value);
@@ -55,7 +55,7 @@ public static class Fold
 
         var run = new DoubleAnimation(from, to, Length)
         {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
         };
         run.Completed += (_, _) =>
         {

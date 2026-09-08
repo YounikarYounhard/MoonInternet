@@ -565,11 +565,12 @@ private fun SubscriptionCard(
 
             // servers
             // The fold itself is the animation: the card gives up its height over a quarter of a
-            // second rather than between two frames. A card taller than the window drags the page
+            // second rather than between two frames, and slowest at the end — the page has stopped
+            // being pulled before it stops moving. A card taller than the window drags the page
             // back up with it when it shrinks, and that pull is what felt like a kick — it is not
             // wrong, there is simply nothing below to hold the page where it was. Shrinking over
             // time makes the same pull happen a few pixels at a time, which is all it needed.
-            Column(Modifier.animateContentSize(tween(260, easing = FastOutSlowInEasing))) {
+            Column(Modifier.animateContentSize(tween(420, easing = LinearOutSlowInEasing))) {
                 if (!collapsed) {
                     Column(Modifier.padding(horizontal = 7.dp).padding(bottom = 7.dp)) {
                         servers.forEach { s ->
