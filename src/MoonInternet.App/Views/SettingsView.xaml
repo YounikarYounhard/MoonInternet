@@ -953,11 +953,14 @@
                     </StackPanel>
                 </Border>
 
-                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding OpenLogViewerCommand}" Content="{DynamicResource S_SettingsView_164}" Padding="14,8"/>
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogsFolderCommand}" Content="{DynamicResource S_SettingsView_165}" Padding="14,8" Margin="8,0,0,0"/>
-                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" Content="{DynamicResource S_SettingsView_166}" Padding="14,8" Margin="8,0,0,0"/>
-                </StackPanel>
+                <!-- Wrapping, not a row: a fourth button does not fit across 420 px and the last one
+                     simply left the window. -->
+                <WrapPanel Margin="0,14,0,0">
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding OpenDevLogCommand}" Content="{DynamicResource S_SettingsView_DevLog}" Padding="14,8" Margin="0,0,8,8"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogViewerCommand}" Content="{DynamicResource S_SettingsView_164}" Padding="14,8" Margin="0,0,8,8"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenLogsFolderCommand}" Content="{DynamicResource S_SettingsView_165}" Padding="14,8" Margin="0,0,8,8"/>
+                    <Button Style="{StaticResource SecondaryButton}" Command="{Binding ClearLogsCommand}" Content="{DynamicResource S_SettingsView_166}" Padding="14,8" Margin="0,0,8,8"/>
+                </WrapPanel>
             </StackPanel>
         </ScrollViewer>
 

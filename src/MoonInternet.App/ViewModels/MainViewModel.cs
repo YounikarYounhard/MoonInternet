@@ -2043,9 +2043,26 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenLogViewer()
     {
+        _logViewerFile = null;
         LoadLogTail();
         ShowLogViewer = true;
     }
+
+    /// <summary>
+    /// The app's own journal: what it decided and why. The engine logs say plenty about packets and
+    /// nothing about our choices, so a tunnel that quietly became a system proxy used to leave no
+    /// trace anywhere. Same idea as the phone's «Журнал событий».
+    /// </summary>
+    [RelayCommand]
+    private void OpenDevLog()
+    {
+        _logViewerFile = MoonInternet.Core.AppPaths.In("dev.log");
+        LoadLogTail();
+        ShowLogViewer = true;
+    }
+
+    /// <summary>Which file the viewer is showing; null = whichever log was written to last.</summary>
+    private string? _logViewerFile;
 
     [RelayCommand] private void CloseLogViewer() => ShowLogViewer = false;
     [RelayCommand] private void ReloadLogViewer() => LoadLogTail();
@@ -2060,7 +2077,10 @@ public partial class MainViewModel : ObservableObject
         if (files.Count == 0) { LogViewerTitle = Localization.Loc.T("S_VM_080"); LogViewerText = Localization.Loc.T("S_VM_081"); return; }
 
         // Newest file: with several cores writing their own, that is the one being appended to.
-        var newest = files.OrderByDescending(f => { try { return new System.IO.FileInfo(f).LastWriteTimeUtc; } catch { return DateTime.MinValue; } }).First();
+        // Unless a file was asked for by name — xray writes constantly and would always win.
+        var newest = _logViewerFile is not null && System.IO.File.Exists(_logViewerFile)
+            ? _logViewerFile
+            : files.OrderByDescending(f => { try { return new System.IO.FileInfo(f).LastWriteTimeUtc; } catch { return DateTime.MinValue; } }).First();
         LogViewerTitle = System.IO.Path.GetFileName(newest);
         try
         {

@@ -232,6 +232,7 @@
     <s:String x:Key="S_SettingsView_179">Режим TUN требует прав администратора (системная служба туннеля). Она нужна только для маршрутизации трафика и не собирает данные.</s:String>
     <s:String x:Key="S_SettingsView_180">Изменения</s:String>
     <s:String x:Key="S_SettingsView_181">Политика может обновляться вместе с приложением.</s:String>
+    <s:String x:Key="S_SettingsView_DevLog">Журнал событий</s:String>
     <s:String x:Key="S_SettingsView_182">ИНФОРМАЦИЯ</s:String>
     <s:String x:Key="S_SettingsView_183">Версия Xray</s:String>
     <s:String x:Key="S_SettingsView_184">Версия sing-box</s:String>

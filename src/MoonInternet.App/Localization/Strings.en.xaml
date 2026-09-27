@@ -257,6 +257,8 @@
     <s:String x:Key="S_SettingsView_180">Changes</s:String>
     <s:String x:Key="S_SettingsView_181">This policy may be updated along with the app.</s:String>
 
+    <s:String x:Key="S_SettingsView_DevLog">Event journal</s:String>
+
     <!-- Settings: about -->
     <s:String x:Key="S_SettingsView_182">INFORMATION</s:String>
     <s:String x:Key="S_SettingsView_183">Xray version</s:String>

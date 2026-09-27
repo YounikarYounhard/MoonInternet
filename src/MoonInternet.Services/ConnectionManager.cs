@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text.Json;
+using MoonInternet.Core;
 using MoonInternet.Core.Generation;
 using MoonInternet.Core.Models;
 
@@ -110,7 +111,7 @@ public sealed class ConnectionManager : IDisposable
                 string? exe = null;
                 try { exe = p.MainModule?.FileName; } catch { /* access denied → not ours */ }
                 if (exe is null || !exe.StartsWith(coresDir, StringComparison.OrdinalIgnoreCase)) continue;
-                try { p.Kill(true); p.WaitForExit(3000); } catch { }
+                try { p.Kill(true); p.WaitForExit(3000); DevLog.Log("ядро", $"убрал xray от прошлого запуска (pid {p.Id})"); } catch { }
             }
         }
         catch { /* enumerating processes can fail on a locked-down box; never block start-up for it */ }
@@ -158,6 +159,9 @@ public sealed class ConnectionManager : IDisposable
 
     private async Task ReconnectAsync(OutboundProfile server, TunnelMode mode, RoutingProfile? routing)
     {
+        // This path reconnects without the window being told, so without a line here a mode change
+        // it caused (TUN quietly becoming a system proxy) leaves no trace at all.
+        DevLog.Log("переподключение", $"связь пропала, восстанавливаю {server.Name}");
         _reconnecting = true;
         StopHealthWatchdog();
         Set(ConnectionState.Connecting);
@@ -201,6 +205,7 @@ public sealed class ConnectionManager : IDisposable
     public async Task ConnectAsync(OutboundProfile profile, TunnelMode mode, RoutingProfile? routing = null)
     {
         Disconnect();
+        DevLog.Log("подключение", $"{profile.Name} · режим {(mode == TunnelMode.Tun ? "TUN" : "системный прокси")}");
         _userDisconnect = false;      // an intentional connect — drops should auto-reconnect
         _lastMode = mode;
         _lastRouting = routing;
@@ -290,8 +295,14 @@ public sealed class ConnectionManager : IDisposable
                 // The helper blocks until the TUN adapter is actually up, so "OK" already means traffic can flow.
                 Report("Поднятие туннеля…");
                 var r = await Task.Run(() => TunClient.StartTun(_runner.SocksPort, serverIps, AppRouteMode, AppRouteApps), ct);
-                if (r == "OK") { _tunActive = true; ActiveMode = TunnelMode.Tun; }
-                else { SystemProxy.Enable("127.0.0.1", _runner.HttpPort); ActiveMode = TunnelMode.SystemProxy; TunFallbackReason = r; }
+                if (r == "OK") { _tunActive = true; ActiveMode = TunnelMode.Tun; DevLog.Log("туннель", "поднят"); }
+                else
+                {
+                    SystemProxy.Enable("127.0.0.1", _runner.HttpPort);
+                    ActiveMode = TunnelMode.SystemProxy;
+                    TunFallbackReason = r;
+                    DevLog.Log("туннель", $"не поднялся ({r}) — перешёл на системный прокси");
+                }
             }
             else
             {
@@ -376,6 +387,8 @@ public sealed class ConnectionManager : IDisposable
 
     public void Disconnect()
     {
+        // Every connect begins by disconnecting, so only say so when there was something to stop.
+        if (State != ConnectionState.Disconnected) DevLog.Log("подключение", "отключено");
         _userDisconnect = true;   // suppress auto-reconnect for an intentional stop
         StopHealthWatchdog();
         // Unconditional: the helper may still hold a tunnel we didn't start (previous app run / crashed session).
