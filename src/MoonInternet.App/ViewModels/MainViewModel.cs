@@ -2509,7 +2509,7 @@ public partial class MainViewModel : ObservableObject
     });
 
     // ===== Theme / appearance (live-applied, saved to theme.json) =====
-    public string[] Fonts { get; } = { "Segoe UI", "Arial", "Verdana", "Tahoma", "Georgia", "Consolas", "Comic Sans MS", "Trebuchet MS" };
+    public string[] Fonts { get; } = { Theme.BundledFont, "Segoe UI", "Arial", "Verdana", "Tahoma", "Georgia", "Consolas", "Comic Sans MS", "Trebuchet MS" };
     public IReadOnlyList<Theme> Presets => Theme.Presets;
     public string[] AccentSwatches { get; } = { "#4C82FF", "#A66CFF", "#9D7BFF", "#34D399", "#FF7A59", "#F5C042", "#FF6B8A", "#22D3EE" };
     public string[] BgSwatches { get; } = { "#0D0A18", "#0C0820", "#07120E", "#160A0E", "#0E0F12", "#0B0D11", "#101018", "#141414" };
@@ -3238,17 +3238,37 @@ public partial class MainViewModel : ObservableObject
             await _conn.ConnectAsync(SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, deferRouting ? null : routing);
             if (ConnectionState != ConnectionState.Connected) { if (Status == $"Подключение к {SelectedServer.Label}…" || Status.StartsWith("Подключение")) Status = Localization.Loc.T("S_VM_232"); return; } // cancelled/aborted
             _connectedAt = DateTime.Now; ResetTraffic();
-            string modeLabel = _conn.ActiveMode == TunnelMode.Tun ? "TUN" : "системный прокси";
-            string routingLabel = _conn.RoutingNote is not null ? " · " + _conn.RoutingNote : "";
-            Status = $"Подключено ({modeLabel}){routingLabel} · {SelectedServer.Label}";
-            if (TunMode && _conn.ActiveMode != TunnelMode.Tun)
-                ErrorText = Status = $"TUN-служба не установлена — включён системный прокси · {SelectedServer.Label}";
+            ReportConnected();
             _settings.LastServerName = SelectedServer.Label;
             _settings.TunMode = TunMode;
             _settings.Save();
             if (deferRouting) _ = ApplyRoutingWhenReady(routing!);   // finish geo in the background, then re-apply
         }
         catch (Exception ex) { ErrorText = Status = "Не удалось подключиться: " + ex.Message; }
+    }
+
+    /// <summary>
+    /// The "Подключено" line, shared by connect and reconnect — they drifted apart, and only one of
+    /// them noticed that TUN had quietly become a system proxy.
+    ///
+    /// That fallback used to be reported as "служба не установлена", which is one of several causes
+    /// and usually not the one: a helper that is installed and answering can still fail to raise the
+    /// adapter. The helper's own reason was recorded in TunFallbackReason and read by nobody, so the
+    /// user was sent to reinstall a service that was working. Say what actually happened.
+    /// </summary>
+    private void ReportConnected()
+    {
+        string modeLabel = _conn.ActiveMode == TunnelMode.Tun ? "TUN" : "системный прокси";
+        string routingLabel = _conn.RoutingNote is not null ? " · " + _conn.RoutingNote : "";
+        Status = $"Подключено ({modeLabel}){routingLabel} · {SelectedServer!.Label}";
+        if (!TunMode || _conn.ActiveMode == TunnelMode.Tun) return;
+        string why = (_conn.TunFallbackReason ?? "").Replace("ERR ", "") switch
+        {
+            "" or "unavailable" => "служба не отвечает",
+            "timeout"           => "служба не ответила вовремя",
+            var other           => other,
+        };
+        ErrorText = Status = $"Туннель не поднялся ({why}) — включён системный прокси · {SelectedServer.Label}";
     }
 
     // Background: finish the geo download, then quietly reconnect WITH routing — but only if still connected to the
@@ -3302,9 +3322,7 @@ public partial class MainViewModel : ObservableObject
             await _conn.ConnectAsync(SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, routing);
             if (ConnectionState != ConnectionState.Connected) { Status = Localization.Loc.T("S_VM_229"); return; }
             _connectedAt = DateTime.Now; ResetTraffic();
-            string modeLabel = _conn.ActiveMode == TunnelMode.Tun ? "TUN" : "системный прокси";
-            string routingLabel = _conn.RoutingNote is not null ? " · " + _conn.RoutingNote : "";
-            Status = $"Подключено ({modeLabel}){routingLabel} · {SelectedServer.Label}";
+            ReportConnected();
             _settings.LastServerName = SelectedServer.Label; _settings.Save();
         }
         catch (Exception ex) { Status = "Не удалось переподключиться: " + ex.Message; }
