@@ -3,6 +3,7 @@ package cc.moon.internet.data
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -27,11 +28,33 @@ import java.util.Locale
 object DevLog {
     const val TAG = "MoonDev"
     private const val CAP = 300
+    private const val FILE_CAP = 512L * 1024
 
     private val _lines = MutableStateFlow<List<String>>(emptyList())
     val lines = _lines.asStateFlow()
 
     private val clock = SimpleDateFormat("HH:mm:ss", Locale.US)
+    private var file: File? = null
+
+    /**
+     * Point the journal at a file. Memory and logcat both forget: the app is restarted, the ring
+     * buffer rolls, and the one event worth catching — a server changing on its own — can be days
+     * away. A file outlives all of that.
+     *
+     * [Store] hands us the EXTERNAL files dir on purpose. The build on the phone is signed for
+     * release, so `run-as` is refused and nothing under the private data dir can be read off a
+     * cable; /sdcard/Android/data/<pkg>/files is reachable with a plain `adb pull`.
+     */
+    @Synchronized
+    fun attach(dir: File) {
+        if (file != null) return
+        val f = File(dir, "dev.log")
+        file = f
+        runCatching { if (f.exists()) _lines.value = f.readLines().takeLast(CAP) }
+        // Mark the restart. Half of "it changed servers by itself" is really "it was started
+        // again", and without this line the two read identically.
+        log("запуск", "приложение открыто")
+    }
 
     /** [topic] is the part of the app speaking ("сервер", "туннель"), [message] what it did. */
     @Synchronized
@@ -39,11 +62,20 @@ object DevLog {
         val line = "${clock.format(Date())}  $topic: $message"
         Log.i(TAG, line)
         _lines.value = (_lines.value + line).takeLast(CAP)
+        // Appending one short line, on whatever thread called us. A journal that has to be posted
+        // somewhere would reorder itself, and these lines are only worth reading in order.
+        file?.let { f ->
+            runCatching {
+                if (f.length() > FILE_CAP) f.writeText("")   // start over; this is a tail, not an archive
+                f.appendText(line + "\n")
+            }
+        }
     }
 
     @Synchronized
     fun clear() {
         _lines.value = emptyList()
+        runCatching { file?.writeText("") }
     }
 
     fun dump(): String = _lines.value.joinToString("\n")

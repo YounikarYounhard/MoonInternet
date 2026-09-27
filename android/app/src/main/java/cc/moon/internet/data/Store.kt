@@ -178,6 +178,12 @@ class Store(private val ctx: Context) {
     private val file = File(ctx.filesDir, "state.json")
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; prettyPrint = false }
 
+    init {
+        // External dir, not filesDir: a release-signed build refuses `run-as`, so this is the only
+        // place a journal can live and still be pulled off a cable. See DevLog.attach.
+        DevLog.attach(ctx.getExternalFilesDir(null) ?: ctx.filesDir)
+    }
+
     private val _state = MutableStateFlow(AppState())
 
     /** False until the state file has been read, so nothing renders off the defaults. */
@@ -295,7 +301,14 @@ class Store(private val ctx: Context) {
         val raw = _state.value.selectedServerRaw
         if (raw != null && allServers.any { it.key == raw }) return
         val resolved = selectedServer() ?: return
-        DevLog.log("сервер", "ссылка не нашлась после обновления -> ${resolved.name}")
+        // Two very different things used to wear the same sentence. A panel rewriting its own link
+        // while the machine stays put is routine and happens constantly; losing the server and
+        // taking the top of the list is the one worth spotting in a log read days later.
+        val sameMachine = raw != null && hostPortOf(raw) == "${resolved.address}:${resolved.port}"
+        DevLog.log("сервер", if (sameMachine)
+            "ссылка в подписке изменилась, сервер тот же -> ${resolved.name}"
+        else
+            "сохранённый сервер пропал из подписки, беру первый -> ${resolved.name}")
         update { it.copy(selectedServerRaw = resolved.key) }
     }
 
