@@ -12,6 +12,33 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 
+/**
+ * The server a saved selection names.
+ *
+ * The saved value is the share link without its `#remark`, and a panel rewrites its own links — a
+ * new sni, a new fingerprint, the parameters in another order. The link moves, the machine does
+ * not, so an exact miss is asked again by address and port before we give up. Without that step
+ * every subscription refresh "lost" the selection and `healSelection` wrote the top of the list
+ * down in its place — which is the app changing servers on its own, at whatever moment the panel
+ * happened to touch its config.
+ */
+internal fun matchSelected(all: List<ServerProfile>, raw: String?): ServerProfile? {
+    if (raw == null) return all.firstOrNull()
+    all.firstOrNull { it.key == raw }?.let { return it }
+    hostPortOf(raw)?.let { hp ->
+        all.firstOrNull { "${it.address}:${it.port}" == hp }?.let { return it }
+    }
+    return all.firstOrNull()
+}
+
+/** `host:port` out of a share link, or null when the link keeps it out of reach (vmess). */
+internal fun hostPortOf(key: String): String? {
+    val at = key.lastIndexOf('@')
+    if (at < 0) return null
+    val tail = key.substring(at + 1).substringBefore('?').substringBefore('/').trim()
+    return tail.takeIf { it.contains(':') }
+}
+
 /** Everything we persist. Same idea as the desktop settings.json + subscription cache. */
 @Serializable
 data class AppState(
@@ -105,6 +132,8 @@ data class AppState(
      */
     val autoConnectTarget: String = "last",
     val startOnBoot: Boolean = false,          // поднять туннель после перезагрузки телефона
+    /** Unlocked by tapping the version seven times; only decides whether Отладка is reachable. */
+    val devMode: Boolean = false,
     val autoFailover: Boolean = false,         // БЕТА: выбранный сервер молчит -> взять самый быстрый живой
     val reconnectDelaySec: Int = 5,            // пауза перед попыткой переподключиться: 3 | 5 | 10 | 30
     val logsEnabled: Boolean = true,
@@ -250,10 +279,7 @@ class Store(private val ctx: Context) {
     val allServers: List<ServerProfile>
         get() = _state.value.subscriptions.flatMap { it.servers }
 
-    fun selectedServer(): ServerProfile? {
-        val raw = _state.value.selectedServerRaw ?: return allServers.firstOrNull()
-        return allServers.firstOrNull { it.key == raw } ?: allServers.firstOrNull()
-    }
+    fun selectedServer(): ServerProfile? = matchSelected(allServers, _state.value.selectedServerRaw)
 
     /**
      * Write the fallback down when the saved selection no longer names anything.
@@ -267,9 +293,11 @@ class Store(private val ctx: Context) {
     suspend fun healSelection() {
         val raw = _state.value.selectedServerRaw
         if (raw != null && allServers.any { it.key == raw }) return
-        val resolved = selectedServer()?.key ?: return
-        update { it.copy(selectedServerRaw = resolved) }
+        val resolved = selectedServer() ?: return
+        DevLog.log("сервер", "ссылка не нашлась после обновления -> ${resolved.name}")
+        update { it.copy(selectedServerRaw = resolved.key) }
     }
+
 
     fun isFavorite(s: ServerProfile) = s.key in _state.value.favorites
 
@@ -280,7 +308,16 @@ class Store(private val ctx: Context) {
         }
     }
 
-    suspend fun selectServer(s: ServerProfile) = update { it.copy(selectedServerRaw = s.key) }
+    /**
+     * [why] is written to [DevLog] next to the change. Every caller names itself, so a selection
+     * that moved on its own can be traced back to whatever moved it instead of being guessed at.
+     */
+    suspend fun selectServer(s: ServerProfile, why: String = "вручную") {
+        val was = _state.value.selectedServerRaw
+        if (was == s.key) return
+        DevLog.log("сервер", "$why -> ${s.name}")
+        update { it.copy(selectedServerRaw = s.key) }
+    }
 
     suspend fun removeSubscription(url: String) =
         update { it.copy(subscriptions = it.subscriptions.filterNot { s -> s.url == url }) }
@@ -447,7 +484,12 @@ class Store(private val ctx: Context) {
         val st = _state.value
         val all = allServers
         if (all.isEmpty()) return null
-        if (!st.autoConnect) return all.first()
+        // Whatever we cannot work out, we leave alone. The tile and the boot receiver call this
+        // with no measurements at all and write the answer back as the chosen server, so every
+        // fallback to "the first in the list" quietly replaced the user's choice with the top row.
+        // Falling back to the choice itself makes those calls a no-op instead.
+        val saved = selectedServer()
+        if (!st.autoConnect) return saved ?: all.first()
 
         val favs = all.filter { isFavorite(it) }
         fun reachable(s: ServerProfile) = (pings[s.pingKey] ?: -2) >= 0
@@ -455,12 +497,12 @@ class Store(private val ctx: Context) {
             list.filter(::reachable).minByOrNull { pings[it.pingKey] ?: Int.MAX_VALUE }
 
         val preferred = when (st.autoConnectTarget) {
-            "last" -> selectedServer() ?: all.last()
-            "lowest" -> lowest(all) ?: all.first()
-            "favorite-first" -> favs.firstOrNull() ?: all.first()
-            "favorite-last" -> favs.lastOrNull() ?: all.first()
-            "favorite-lowest" -> lowest(favs) ?: all.first()
-            else -> all.first()
+            "last" -> saved ?: all.last()
+            "lowest" -> lowest(all) ?: saved ?: all.first()
+            "favorite-first" -> favs.firstOrNull() ?: saved ?: all.first()
+            "favorite-last" -> favs.lastOrNull() ?: saved ?: all.first()
+            "favorite-lowest" -> lowest(favs) ?: saved ?: all.first()
+            else -> saved ?: all.first()
         }
 
         // Nothing measured yet — we have no grounds to overrule the preference.

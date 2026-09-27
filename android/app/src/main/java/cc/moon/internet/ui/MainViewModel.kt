@@ -27,6 +27,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         const val PING_PARALLEL = 6
         /** The one bucket every hand-added server goes into — see addSubscription. */
         const val LOOSE_URL = "clipboard:local"
+
+        // One id per kind of notice. 1 belongs to the service's ongoing notification.
+        const val NOTICE_CONNECTION = 42
+        const val NOTICE_UPDATE = 43
+        const val NOTICE_INSTALLED = 44
+        const val NOTICE_EXPIRY = 45
+        const val NOTICE_TRAFFIC = 46
     }
 
     /** Status text is user-facing, so it goes through resources like everything else. */
@@ -97,21 +104,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun notifyConnection(text: String) {
         if (!store.state.value.notifyConnection) return
-        postNotice(text)
+        postNotice(text, NOTICE_CONNECTION)
     }
 
-    /** Posts a one-shot notice. The master switch is the only gate here; callers add their own. */
-    private fun postNotice(text: String) {
+    /**
+     * Posts a one-shot notice. The master switch is the only gate here; callers add their own.
+     *
+     * Each kind gets its own id. They all shared one, so whichever came second silently replaced
+     * the first — an update notice wiped the "connected" one, a subscription warning wiped that —
+     * and the ones that lost read as notifications that only turn up every other time.
+     */
+    private fun postNotice(text: String, id: Int) {
         if (!store.state.value.notificationsEnabled) return
         val ctx = getApplication<Application>()
-        val id = if (cc.moon.internet.data.Lang.headsUp(ctx)) "moon_vpn_headsup" else "moon_vpn"
-        val n = androidx.core.app.NotificationCompat.Builder(ctx, id)
+        val channel = if (cc.moon.internet.data.Lang.headsUp(ctx)) "moon_vpn_headsup" else "moon_vpn"
+        val open = android.app.PendingIntent.getActivity(
+            ctx, id,
+            android.content.Intent(ctx, cc.moon.internet.MainActivity::class.java),
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val n = androidx.core.app.NotificationCompat.Builder(ctx, channel)
             .setSmallIcon(R.drawable.ic_tile_moon)
             .setContentTitle("Moon Internet")
             .setContentText(text)
+            .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
             .setAutoCancel(true)
             .build()
-        runCatching { androidx.core.app.NotificationManagerCompat.from(ctx).notify(42, n) }
+        runCatching { androidx.core.app.NotificationManagerCompat.from(ctx).notify(id, n) }
     }
 
     /** 0..100 while an update is downloading, -1 when the size is unknown, null when idle. */
@@ -154,7 +174,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // upd_whats_new is the one-line changelog; it lives beside the version check so it
         // gets rewritten whenever the version does.
         _updateStatus.value = s(R.string.upd_installed, appVersion, s(R.string.upd_whats_new))
-        postNotice(_updateStatus.value)
+        postNotice(_updateStatus.value, NOTICE_INSTALLED)
     }
 
     /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
@@ -171,7 +191,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (_updateAvailable.value) s(R.string.vm_update_available, r.version) else s(R.string.vm_up_to_date)
         val st = store.state.value
         if (_updateAvailable.value && st.notificationsEnabled && st.notifyAppUpdate)
-            postNotice(s(R.string.vm_update_available, r.version))
+            postNotice(s(R.string.vm_update_available, r.version), NOTICE_UPDATE)
         return true
     }
 
@@ -416,12 +436,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (st.notifyExpiry && f.expiryFraction >= 0) {
             val daysLeft = Math.round((1 - f.expiryFraction) * 30).toInt()
             if (daysLeft <= st.expiryNotifyDays && warned.add("$url|exp"))
-                postNotice(s(R.string.sub_warn_expiry, name, daysLeft))
+                postNotice(s(R.string.sub_warn_expiry, name, daysLeft), NOTICE_EXPIRY)
         }
         if (st.notifyTrafficLow && f.trafficFraction >= 0) {
             val leftPct = Math.round((1 - f.trafficFraction) * 100).toInt()
             if (leftPct <= 10 && warned.add("$url|traffic"))
-                postNotice(s(R.string.sub_warn_traffic, name, leftPct))
+                postNotice(s(R.string.sub_warn_traffic, name, leftPct), NOTICE_TRAFFIC)
         }
     }
 
@@ -450,6 +470,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 })
             }
             importRoutings(u, f.routingLinks)
+            cc.moon.internet.data.DevLog.log(
+                "подписка", "обновлена ${hostOf(u)}: серверов ${f.servers.size}")
             // A refresh can retire the server the selection named. Write down whatever we fall
             // back to, so the saved value and the highlighted row stay the same server.
             store.healSelection()
@@ -567,14 +589,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun requestAutoConnect() {
         if (!store.state.value.autoConnect) return
         if (vpnState.value != MoonVpnService.Companion.State.Disconnected) return
-        // Give the first ping pass a moment: without any measurement the picker has no grounds to
-        // overrule the stored preference, which is how it used to dial a server that was down.
-        repeat(20) {
-            if (_pings.value.isNotEmpty()) return@repeat
-            kotlinx.coroutines.delay(250)
-        }
+        // No waiting for measurements here: our caller already joins the start-up ping pass, so by
+        // the time we run it has either finished or was never asked for. The old wait was five
+        // seconds of nothing either way — `return@repeat` leaves one iteration of `repeat`, not
+        // the loop, so the early exit never fired.
         val target = autoTarget() ?: return
-        store.selectServer(target)
+        store.selectServer(target, "автоподключение при запуске")
         _autoConnectRequest.value = target
     }
 
@@ -864,7 +884,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .filter { it.key != s.key && XrayConfig.supports(it.protocol) && (_pings.value[it.pingKey] ?: -2) >= 0 }
                 .minByOrNull { _pings.value[it.pingKey] ?: Int.MAX_VALUE }
             if (alt != null) {
-                store.selectServer(alt)
+                store.selectServer(alt, "выбранный молчит, БЕТА-переключение")
                 _status.value = s(R.string.vm_failover, alt.label)
                 s = alt
             }

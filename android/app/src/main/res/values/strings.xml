@@ -488,4 +488,15 @@
     <string name="zapret_card_title">Стратегии Zapret</string>
     <string name="zapret_card_sub">Выберите одну — какая подойдёт, зависит от провайдера</string>
     <string name="geo_not_loaded">"не загружен"</string>
+    <string name="page_dev">"Отладка"</string>
+    <string name="page_dev_sub">"Что приложение делало и почему"</string>
+    <string name="dev_unlocked">"Режим разработчика включён"</string>
+    <string name="dev_section">"Разработчик"</string>
+    <string name="dev_open">"Журнал событий"</string>
+    <string name="dev_copy">"Скопировать"</string>
+    <string name="dev_clear">"Очистить"</string>
+    <string name="dev_copied">"Журнал скопирован"</string>
+    <string name="dev_empty">"Пока пусто. Подключитесь, обновите подписку — события появятся здесь."</string>
+    <string name="dev_hint">"Те же строки уходят в logcat под тегом MoonDev."</string>
+    <string name="dev_off">"Выключить режим разработчика"</string>
 </resources>

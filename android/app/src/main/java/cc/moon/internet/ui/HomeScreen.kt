@@ -271,13 +271,16 @@ fun HomeScreen(
             HomeActions(
                 progress = progress,
                 stats = {
+                    // Not an even split: the left column carries an arrow and a speed with its
+                    // unit ("↓ 9,9 Кбит/с"), the right one a clock and a size. Halves clipped the
+                    // speed while the clock sat in white space, so the divide moves right.
                     Row {
-                        Column(Modifier.weight(1f)) {
+                        Column(Modifier.weight(1.35f)) {
                             StatCell(stringResource(R.string.homescreen_009), "↑", upSpeed, Moon.Green)
                             Spacer(Modifier.height(7.dp))
                             StatCell(stringResource(R.string.homescreen_010), "↓", downSpeed, Moon.AccentText)
                         }
-                        Column(Modifier.weight(1f)) {
+                        Column(Modifier.weight(1f).padding(start = 6.dp)) {
                             StatCell(stringResource(R.string.homescreen_011), null, elapsed, Moon.TextPrimary)
                             Spacer(Modifier.height(7.dp))
                             StatCell(stringResource(R.string.homescreen_012), null, traffic, Moon.TextPrimary)

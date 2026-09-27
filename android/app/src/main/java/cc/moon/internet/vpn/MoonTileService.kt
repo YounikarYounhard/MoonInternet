@@ -77,7 +77,7 @@ class MoonTileService : TileService() {
             // answering, and leaving the choice here meant the tunnel ran one server while the
             // app went on showing another — the notification and the home screen disagreed, and
             // the failover looked broken when it had in fact done its job.
-            store.selectServer(server)
+            store.selectServer(server, "плитка в шторке")
 
             val socks = cc.moon.internet.core.freeLocalPort(st.socksPort)
             val config = runCatching {

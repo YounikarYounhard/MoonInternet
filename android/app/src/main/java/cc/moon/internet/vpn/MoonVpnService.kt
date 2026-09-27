@@ -207,6 +207,7 @@ class MoonVpnService : VpnService() {
         config: String, profileName: String, mtu: Int, appMode: String, apps: List<String>,
         tun: Boolean = true, zapret: String? = null, awg: String? = null,
     ) {
+        cc.moon.internet.data.DevLog.log("туннель", "поднимаю: $profileName")
         _state.value = State.Connecting
         _activeProfile.value = profileName
         lastError.value = null
@@ -518,6 +519,7 @@ class MoonVpnService : VpnService() {
     private fun stopTunnel() {
         scope.launch {
             stopCore()
+            cc.moon.internet.data.DevLog.log("туннель", "опущен")
             _state.value = State.Disconnected
             _activeProfile.value = null
             traffic.value = 0L to 0L
@@ -582,9 +584,15 @@ class MoonVpnService : VpnService() {
         // Laid out the way INCY does it: the server is the headline, and the numbers sit under it
         // as labelled lines instead of one run-on row. Our state word moves to the sub-text so it
         // is still there without taking the title from the thing you actually look for.
+        // The server is the one thing you look for in the shade, so never let the headline fall
+        // back to our own name while we still know which server it is. _activeProfile is null
+        // between a stop and the traffic poller noticing, and that tick repainted the notification
+        // as plain "Moon Internet" — the flag and the country simply vanished mid-session.
+        val title = profile.ifBlank { lastProfile }.ifBlank { "Moon Internet" }
+
         val b = NotificationCompat.Builder(this, channelId())
             .setSmallIcon(R.drawable.ic_tile_moon)
-            .setContentTitle(profile.ifBlank { "Moon Internet" })
+            .setContentTitle(title)
             .setSubText(state)
             .setContentIntent(open)
             .setOngoing(true)

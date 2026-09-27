@@ -54,6 +54,7 @@ enum class SettingsPage(
     AppRouting(R.string.page_approuting, R.string.empty, Icons.Filled.Apps),
     Terms(R.string.page_terms, R.string.empty, Icons.Filled.Gavel),
     Libs(R.string.page_libs, R.string.empty, Icons.Filled.Code),
+    Dev(R.string.page_dev, R.string.page_dev_sub, Icons.Filled.BugReport),
     ;
 
     companion object {
@@ -140,9 +141,10 @@ fun SettingsDetail(
                 SettingsPage.Notifications -> NotificationsPage(state, onSet)
                 SettingsPage.Logs -> LogsPage(state, logsSize, onSet, onClearLogs, onViewLog)
                 SettingsPage.Privacy -> PrivacyPage()
-                SettingsPage.About -> AboutPage(state, xrayVersion, onOpen, onCopy)
+                SettingsPage.About -> AboutPage(state, xrayVersion, onOpen, onCopy, onSet)
                 SettingsPage.Terms -> TermsPage()
                 SettingsPage.Libs -> LibsPage()
+                SettingsPage.Dev -> DevPage(onCopy)
             }
                 Spacer(Modifier.height(40.dp))
             }
@@ -976,13 +978,35 @@ private fun AboutPage(
     xrayVersion: String,
     onOpen: (SettingsPage) -> Unit,
     onCopy: (String, String) -> Unit,
+    onSet: ((AppState.() -> AppState)) -> Unit,
 ) {
     Column {
         SectionLabel(stringResource(R.string.settingsscreen_181), top = 0)
         MoonCard(padding = 0) {
             ValueRow(stringResource(R.string.settingsscreen_182), xrayVersion)
             RowDivider(inset = 14)
-            ValueRow(stringResource(R.string.settingsscreen_183), APP_VERSION)
+            // Seven taps on the version, the way every Android build does it. Hidden rather than
+            // absent: the log is the only way to answer "why did it do that" on somebody else's
+            // phone, and it should not be a row that ordinary users find and wonder about.
+            var taps by remember { mutableStateOf(0) }
+            val unlocked = stringResource(R.string.dev_unlocked)
+            Box(Modifier.clickable {
+                taps++
+                if (taps >= 7 && !state.devMode) { onSet { copy(devMode = true) }; onCopy(APP_VERSION, unlocked) }
+            }) {
+                ValueRow(stringResource(R.string.settingsscreen_183), APP_VERSION)
+            }
+        }
+
+        if (state.devMode) {
+            SectionLabel(stringResource(R.string.dev_section))
+            MoonCard(padding = 0) {
+                NavRow(stringResource(R.string.dev_open), stringResource(R.string.page_dev_sub)) {
+                    onOpen(SettingsPage.Dev)
+                }
+                RowDivider(inset = 14)
+                NavRow(stringResource(R.string.dev_off)) { onSet { copy(devMode = false) } }
+            }
         }
 
         SectionLabel(stringResource(R.string.settingsscreen_184))
@@ -1017,6 +1041,40 @@ private fun AboutPage(
                 }
             }
         }
+    }
+}
+
+// ------------------------------------------------------------ ОТЛАДКА
+/**
+ * The event log, newest last, exactly as [DevLog] holds it.
+ *
+ * Its reason for existing is "the app changes servers by itself": the code cannot say which of
+ * six callers moved the selection, but a line saying "плитка в шторке -> Финляндия" can. The same
+ * lines are in logcat under MoonDev, so a phone on a cable needs nobody to press anything.
+ */
+@Composable
+private fun DevPage(onCopy: (String, String) -> Unit) {
+    val lines by cc.moon.internet.data.DevLog.lines.collectAsState()
+    val copied = stringResource(R.string.dev_copied)
+    Column {
+        Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip(stringResource(R.string.dev_copy), false) { onCopy(cc.moon.internet.data.DevLog.dump(), copied) }
+            Chip(stringResource(R.string.dev_clear), false) { cc.moon.internet.data.DevLog.clear() }
+        }
+        MoonCard(padding = 12) {
+            if (lines.isEmpty()) {
+                Text(stringResource(R.string.dev_empty), color = Moon.TextSecondary, fontSize = 12.sp)
+            } else {
+                // Reversed: the thing you came here for is the last thing that happened.
+                lines.asReversed().forEach { line ->
+                    Text(line, color = Moon.TextSecondary, fontSize = 11.sp,
+                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                         lineHeight = 15.sp, modifier = Modifier.padding(bottom = 3.dp))
+                }
+            }
+        }
+        Text(stringResource(R.string.dev_hint), color = Moon.TextMuted, fontSize = 11.sp,
+             modifier = Modifier.padding(4.dp, 10.dp))
     }
 }
 
