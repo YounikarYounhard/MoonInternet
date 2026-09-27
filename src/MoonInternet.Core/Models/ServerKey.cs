@@ -1,34 +1,54 @@
 namespace MoonInternet.Core.Models;
 
 /// <summary>
-/// What identifies a server across a subscription refresh.
+/// What identifies a server across a subscription refresh: who you are, and where you connect.
 ///
-/// The share link without its <c>#remark</c>. The remark is only the display name and panels
-/// rewrite it — x-ui writes the traffic left and the expiry date into it — so a key made of the
-/// whole link turned one server into a different one every time the subscription updated. Stars,
-/// the current selection, the pinned row and every measured ping were all keyed off it, which is
-/// why they kept clearing themselves for no reason anybody could point at.
+/// It used to be the share link with its <c>#remark</c> cut off, which held only as long as the
+/// panel wrote the same link twice. It does not. Fetching one real subscription twice, two seconds
+/// apart, returned 36 links of which 14 had changed — x-ui picks a different <c>sni</c> every time
+/// it renders them. So on every refresh a third of the servers became servers the app had never
+/// seen: the star fell off, the measured ping was thrown away, and the selection moved. The remark
+/// does the same more slowly — x-ui writes the traffic left and the expiry date into it.
 ///
-/// AmneziaWG needs the same thing for a different reason: its whole link is one base64 blob with
-/// the config inside it, name and all, so there is no <c>#</c> to cut at and the least cosmetic
-/// edit on the panel's side produces a brand-new key.
+/// Credentials plus endpoint survive all of that. Transport dressing — sni, fingerprint, alpn,
+/// short id, path — is how you reach the machine, not which machine it is.
 ///
-/// ponytail: a vmess:// link keeps its name inside the base64 payload too, so renaming one still
-/// moves its key. Decode it here if that ever turns up in practice.
+/// AmneziaWG is keyed by its peer for the same reason: its whole link is one base64 blob with the
+/// config inside it, name and all, so the least cosmetic edit produces a brand-new link.
 /// </summary>
 public static class ServerKey
 {
+    /// <summary>
+    /// The old link-shaped key. Kept because saved stars are still written in it — see the
+    /// migration in MainViewModel — and because it is what strips a remark off a raw link.
+    /// </summary>
     public static string? Of(string? raw) =>
         raw is null ? null : raw.IndexOf('#') is var i and >= 0 ? raw[..i] : raw;
 
-    /// <summary>Key for a parsed profile, falling back to its endpoint when it carries no link
-    /// (some formats do not ship one, and those servers must still be identifiable).</summary>
+    /// <summary>Key for a parsed profile, falling back to its endpoint when it carries no
+    /// credentials (some formats do not, and those servers must still be identifiable).</summary>
     public static string Of(OutboundProfile p)
     {
-        // The peer's public key and its endpoint are what identify an AmneziaWG server. Neither
-        // moves when a label does, which the encoded config underneath it very much does.
         if (p.Wireguard is { PeerPublicKey.Length: > 0 } wg)
             return $"awg:{wg.PeerPublicKey}@{wg.Endpoint}";
-        return Of(p.Raw) is { Length: > 0 } k ? k : $"{p.Address}:{p.Port}";
+        // Not lower-cased: a UUID is hex either way, but a trojan password is a password.
+        string cred = p.Id is { Length: > 0 } id ? id : p.Password ?? "";
+        string host = p.Address.ToLowerInvariant();
+        return cred.Length > 0 ? $"{p.Protocol}:{cred}@{host}:{p.Port}" : $"{p.Protocol}:{host}:{p.Port}";
+    }
+
+    /// <summary>
+    /// The <c>host:port</c> a key of either shape points at, or null when it names none. Both key
+    /// shapes put the endpoint after the last <c>@</c>, which is what lets an old saved star find
+    /// its server again.
+    /// </summary>
+    public static string? EndpointOf(string? key)
+    {
+        if (key is null) return null;
+        int at = key.LastIndexOf('@');
+        if (at < 0) return null;
+        string tail = key[(at + 1)..];
+        foreach (char c in "?/#") { int i = tail.IndexOf(c); if (i >= 0) tail = tail[..i]; }
+        return tail.Contains(':') ? tail.ToLowerInvariant() : null;
     }
 }

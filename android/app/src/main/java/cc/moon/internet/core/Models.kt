@@ -102,24 +102,29 @@ data class ServerProfile(
     val pingKey: String get() = key
 
     /**
-     * What identifies this server across a subscription refresh: the share link without its
-     * `#remark`. The remark is only the display name and panels rewrite it — x-ui writes the
-     * traffic left and the expiry into it — so a key made of the whole link turned one server
-     * into a different one on every refresh. Stars, the current selection and every measured
-     * ping were all keyed off it, which is why they kept clearing themselves.
+     * What identifies this server across a subscription refresh: who you are, and where you
+     * connect.
      *
-     * AmneziaWG needed the same treatment for a different reason: its whole link is one base64
-     * blob with the config inside it, name and all, so there is no `#` to cut at and the least
-     * cosmetic edit on the panel's side produced a brand-new key. The peer's public key and its
-     * endpoint are what actually identify that server, and neither moves when a label does.
+     * It used to be the share link with its `#remark` cut off, which holds only as long as the
+     * panel writes the same link twice. It does not. One real subscription fetched twice, two
+     * seconds apart, returned 36 links of which 14 had changed — x-ui picks a different `sni`
+     * every time it renders them. So on every refresh a third of the servers became servers the
+     * app had never seen: the star fell off, the measured ping was thrown away and the selection
+     * moved. The remark does the same more slowly, since x-ui writes the traffic left into it.
      *
-     * ponytail: a vmess:// link keeps its name inside the base64 payload too, so renaming one
-     * still moves its key. Decode it here if that ever turns up in practice.
+     * Credentials plus endpoint survive all of that. Transport dressing — sni, fingerprint, alpn,
+     * short id, path — is how you reach the machine, not which machine it is.
+     *
+     * AmneziaWG is keyed by its peer for the same reason: its whole link is one base64 blob with
+     * the config inside it, name and all, so the least cosmetic edit produces a brand-new link.
      */
     val key: String
         get() {
             wg?.let { if (it.peerPublicKey.isNotBlank()) return "awg:${it.peerPublicKey}@${it.endpoint}" }
-            return raw?.takeIf { it.isNotBlank() }?.substringBefore('#') ?: "$address:$port"
+            // Not lower-cased: a uuid is hex either way, but a trojan password is a password.
+            val cred = id?.takeIf { it.isNotBlank() } ?: password.orEmpty()
+            val host = address.lowercase()
+            return if (cred.isNotBlank()) "$protocol:$cred@$host:$port" else "$protocol:$host:$port"
         }
 
     /**

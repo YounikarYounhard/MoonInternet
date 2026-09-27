@@ -31,12 +31,16 @@ internal fun matchSelected(all: List<ServerProfile>, raw: String?): ServerProfil
     return all.firstOrNull()
 }
 
-/** `host:port` out of a share link, or null when the link keeps it out of reach (vmess). */
+/**
+ * `host:port` out of a key of either shape, or null when it keeps one out of reach (vmess).
+ * Both the old link-shaped key and the identity key put the endpoint after the last `@`, which
+ * is what lets a star or a selection saved in the old shape find its server again.
+ */
 internal fun hostPortOf(key: String): String? {
     val at = key.lastIndexOf('@')
     if (at < 0) return null
-    val tail = key.substring(at + 1).substringBefore('?').substringBefore('/').trim()
-    return tail.takeIf { it.contains(':') }
+    val tail = key.substring(at + 1).substringBefore('?').substringBefore('/').substringBefore('#').trim()
+    return tail.takeIf { it.contains(':') }?.lowercase()
 }
 
 /** Everything we persist. Same idea as the desktop settings.json + subscription cache. */
@@ -304,12 +308,40 @@ class Store(private val ctx: Context) {
         // Two very different things used to wear the same sentence. A panel rewriting its own link
         // while the machine stays put is routine and happens constantly; losing the server and
         // taking the top of the list is the one worth spotting in a log read days later.
-        val sameMachine = raw != null && hostPortOf(raw) == "${resolved.address}:${resolved.port}"
+        val sameMachine = raw != null && hostPortOf(raw) == "${resolved.address.lowercase()}:${resolved.port}"
         DevLog.log("сервер", if (sameMachine)
             "ссылка в подписке изменилась, сервер тот же -> ${resolved.name}"
         else
             "сохранённый сервер пропал из подписки, беру первый -> ${resolved.name}")
         update { it.copy(selectedServerRaw = resolved.key) }
+    }
+
+    /**
+     * Carry stars written in the old link-shaped key over to the identity key.
+     *
+     * A star was saved as the link, and the link is not what the panel serves next time, so the
+     * star matched nothing and quietly went out — once per subscription refresh, for whichever
+     * third of the servers the panel had rewritten. Same endpoint, same server: move it. A star
+     * naming a server that is in no subscription right now is left alone; the subscription holding
+     * it may simply not have loaded yet.
+     */
+    suspend fun migrateFavorites() {
+        val favorites = _state.value.favorites
+        if (favorites.isEmpty() || allServers.isEmpty()) return
+        val live = allServers.mapTo(HashSet()) { it.key }
+        if (favorites.all { it in live }) return          // the ordinary case, nothing to do
+
+        val byEndpoint = HashMap<String, String>()
+        for (s in allServers) hostPortOf(s.key)?.let { byEndpoint.putIfAbsent(it, s.key) }
+
+        var moved = 0
+        val carried = favorites.map { f ->
+            if (f in live) f
+            else hostPortOf(f)?.let { byEndpoint[it] }?.also { moved++ } ?: f
+        }
+        if (moved == 0) return
+        DevLog.log("избранное", "перенёс на новые ключи: $moved")
+        update { it.copy(favorites = carried.distinct()) }
     }
 
 

@@ -5,6 +5,7 @@ import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.data.hostPortOf
 import cc.moon.internet.data.matchSelected
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -55,6 +56,28 @@ class SelectionTest {
     @Test
     fun anEmptyListResolvesToNothing() {
         assertNull(matchSelected(emptyList(), chosen.key))
+    }
+
+    @Test
+    fun theSameMachineKeepsItsKeyWhateverTheLinkSays() {
+        // The one that made a link-shaped key untenable: x-ui hands out a different sni every time
+        // it renders the subscription, so a third of the servers looked brand new on every refresh
+        // and their stars, pings and the selection all went with them.
+        val dressed = chosen.copy(raw = "vless://uuid@nl.example:8443?security=reality&sni=yahoo.com&fp=safari")
+        assertEquals(chosen.key, dressed.key)
+    }
+
+    @Test
+    fun anotherAccountOrPortIsAnotherServer() {
+        assertNotEquals(chosen.key, chosen.copy(id = "11111111-0000-0000-0000-000000000000").key)
+        assertNotEquals(chosen.key, chosen.copy(port = 9443).key)
+    }
+
+    @Test
+    fun theEndpointComesOutOfEitherShapeOfKey() {
+        // A star saved in the old shape has to find its server again — see Store.migrateFavorites.
+        assertEquals("nl.example:8443", hostPortOf("vless://uuid@nl.example:8443?type=grpc#Осталось 3 ГБ"))
+        assertEquals("nl.example:8443", hostPortOf(chosen.key))
     }
 
     @Test

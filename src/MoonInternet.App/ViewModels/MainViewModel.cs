@@ -2890,8 +2890,42 @@ public partial class MainViewModel : ObservableObject
         {
             RefreshHomeSummary();
             NotifyServerListChanged();
+            MigrateFavoriteKeys();
             SelectedServer ??= AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? AllServers.FirstOrDefault();
         }
+    }
+
+    /// <summary>
+    /// Carry stars written in the old link-shaped key over to the identity key.
+    ///
+    /// The link a star was saved as is not the link the panel serves the next time — see
+    /// <see cref="ServerKey"/> — so the star matched nothing and quietly went out. Same endpoint,
+    /// same server: move it. A star naming a server that is in no subscription right now is left
+    /// where it is; the subscription holding it may simply not have loaded yet.
+    /// </summary>
+    private void MigrateFavoriteKeys()
+    {
+        if (_settings.FavoriteServers.Count == 0 || !AllServers.Any()) return;
+        var live = AllServers.Select(s => s.FavKey).OfType<string>().ToHashSet();
+        if (_settings.FavoriteServers.All(live.Contains)) return;   // the ordinary case, nothing to do
+
+        var byEndpoint = new Dictionary<string, string>();
+        foreach (var s in AllServers)
+            if (s.FavKey is { } k && ServerKey.EndpointOf(k) is { } ep) byEndpoint.TryAdd(ep, k);
+
+        int moved = 0;
+        var carried = new List<string>();
+        foreach (var f in _settings.FavoriteServers)
+        {
+            if (live.Contains(f)) { carried.Add(f); continue; }
+            if (ServerKey.EndpointOf(f) is { } ep && byEndpoint.TryGetValue(ep, out var k)) { carried.Add(k); moved++; }
+            else carried.Add(f);
+        }
+        if (moved == 0) return;
+        _settings.FavoriteServers = carried.Distinct().ToList();
+        _settings.Save();
+        MoonInternet.Core.DevLog.Log("избранное", $"перенёс на новые ключи: {moved}");
+        foreach (var sub in Subscriptions) sub.Refresh();
     }
 
     [RelayCommand]
@@ -2999,6 +3033,7 @@ public partial class MainViewModel : ObservableObject
             RefreshHomeSummary();
             NotifyServerListChanged();
             RestartAutoUpdateTimer();               // (re)arm periodic auto-refresh now that a subscription exists
+            MigrateFavoriteKeys();
             SelectedServer ??= sub.Servers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? sub.Servers.FirstOrDefault();
             // Name the subscription. With several of them "Загружено серверов: 37" left you
             // guessing whether the button you pressed is the one that answered.

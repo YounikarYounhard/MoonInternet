@@ -1,4 +1,4 @@
-package cc.moon.internet
+﻿package cc.moon.internet
 
 import cc.moon.internet.core.Protocol
 import cc.moon.internet.core.ServerProfile
@@ -24,7 +24,7 @@ class ServerOrderTest {
 
     @Test
     fun aFavouriteFloatsUpInEverySort() {
-        val fav = listOf(c.raw!!)
+        val fav = listOf(c.key)
         val pings = mapOf(a.pingKey to 10, b.pingKey to 20, c.pingKey to 300)
         for (sort in listOf("", "default", "ping", "name")) {
             assertEquals("sort=$sort", "charlie", orderServers(all, pings, fav, sort, "", null).first().label)
@@ -39,7 +39,7 @@ class ServerOrderTest {
     @Test
     fun theRestKeepTheirOrderBehindTheFavourite() {
         assertEquals(listOf("bravo", "alpha", "charlie"),
-                     names(orderServers(all, emptyMap(), listOf(b.raw!!), "", "", null)))
+                     names(orderServers(all, emptyMap(), listOf(b.key), "", "", null)))
     }
 
     @Test
@@ -49,17 +49,17 @@ class ServerOrderTest {
         // everybody is actually looking at, the server you were on never moved at all.
         for (sort in listOf("", "default", "ping", "name")) {
             assertEquals("sort=$sort", "alpha",
-                orderServers(all, emptyMap(), listOf(c.raw!!), sort, "", a.raw).first().label)
+                orderServers(all, emptyMap(), listOf(c.key), sort, "", a.key).first().label)
         }
         // Not «★ Избранное». That one is a filter rather than an order — you asked to see the
         // starred ones — so a server that is merely active is not in the list to be ranked.
         assertEquals(listOf("charlie"),
-            names(orderServers(all, emptyMap(), listOf(c.raw!!), "favorite", "", a.raw)))
+            names(orderServers(all, emptyMap(), listOf(c.key), "favorite", "", a.key)))
     }
 
     @Test
     fun theFavouriteSortShowsOnlyStarredOnes() {
-        assertEquals(listOf("bravo"), names(orderServers(all, emptyMap(), listOf(b.raw!!), "favorite", "", null)))
+        assertEquals(listOf("bravo"), names(orderServers(all, emptyMap(), listOf(b.key), "favorite", "", null)))
     }
 
     /**

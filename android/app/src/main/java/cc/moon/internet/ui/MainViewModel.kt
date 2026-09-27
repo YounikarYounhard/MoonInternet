@@ -265,6 +265,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 store.update { it.copy(protocol = "") }
             }
             store.healSelection()
+            store.migrateFavorites()
         }
     }
 
@@ -475,6 +476,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // A refresh can retire the server the selection named. Write down whatever we fall
             // back to, so the saved value and the highlighted row stay the same server.
             store.healSelection()
+            store.migrateFavorites()
         }.isSuccess
 
     /**

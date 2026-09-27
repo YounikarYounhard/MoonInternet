@@ -423,10 +423,26 @@ Check("key drops the remark", ServerKey.Of("vless://u@h:443?type=ws#🇫🇮 Ф�
 Check("key survives a rename", ServerKey.Of("trojan://p@h:443#Осталось 12 ГБ") == ServerKey.Of("trojan://p@h:443#Осталось 3 ГБ"));
 Check("key without a remark is itself", ServerKey.Of("ss://x@h:443") == "ss://x@h:443");
 Check("key of null is null", ServerKey.Of((string?)null) is null);
-Check("key falls back to the endpoint", ServerKey.Of(new OutboundProfile { Address = "h.example", Port = 443 }) == "h.example:443");
+Check("key falls back to the endpoint", ServerKey.Of(new OutboundProfile { Address = "h.example", Port = 443 }).EndsWith("h.example:443"));
 Check("two remarks, one key",
     ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#A"))
     == ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#B")));
+
+// The one that made the link-shaped key untenable: x-ui hands out a different sni every time it
+// renders the subscription, so a third of the servers looked brand new on every refresh.
+Check("a rewritten sni is the same server",
+    ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?security=reality&sni=www.microsoft.com&fp=chrome#A"))
+    == ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?security=reality&sni=yahoo.com&fp=safari#A")));
+Check("a different account on one machine is a different server",
+    ServerKey.Of(ShareLinkParser.Parse("vless://15f55b17-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#A"))
+    != ServerKey.Of(ShareLinkParser.Parse("vless://aaaaaaaa-6353-48ad-9c16-3941dcc4dcaa@h.example:443?encryption=none#A")));
+Check("another port is another server",
+    ServerKey.Of(ShareLinkParser.Parse("trojan://p@h.example:443#A"))
+    != ServerKey.Of(ShareLinkParser.Parse("trojan://p@h.example:8443#A")));
+Check("the endpoint comes back out of a key of either shape",
+    ServerKey.EndpointOf("vless://u@h.example:443?type=ws") == "h.example:443"
+    && ServerKey.EndpointOf(ServerKey.Of(ShareLinkParser.Parse("trojan://p@H.Example:443#A"))) == "h.example:443"
+    && ServerKey.EndpointOf("nonsense") is null);
 
 // Раздача в локальной сети. The switch was saved and drawn for a whole release and read by
 // nothing, so the inbounds stayed on loopback however it was set. The stats API must NOT follow
