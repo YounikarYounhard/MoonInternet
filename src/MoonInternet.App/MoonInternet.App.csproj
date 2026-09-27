@@ -38,6 +38,7 @@
     <Resource Include="Assets\btn_on.png" />
     <Resource Include="Assets\nav.png" />
     <Resource Include="Assets\flags\*.png" />
+    <Resource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
 </Project>

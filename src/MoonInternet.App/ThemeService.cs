@@ -71,7 +71,15 @@ public static class ThemeService
         };
         if (!string.IsNullOrWhiteSpace(t.FontFamily))
         {
-            try { w.FontFamily = new FontFamily(t.FontFamily); } catch { }
+            // The bundled face is a Resource inside the exe, so it answers to a pack URI and not to
+            // its own name — asking for "Shantell Sans" by name silently yields the fallback face.
+            try
+            {
+                w.FontFamily = t.FontFamily == Theme.BundledFont
+                    ? new FontFamily(new Uri("pack://application:,,,/"), "./Assets/Fonts/#" + Theme.BundledFont)
+                    : new FontFamily(t.FontFamily);
+            }
+            catch { }
         }
     }
 

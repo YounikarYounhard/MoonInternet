@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 
 namespace MoonInternet.App.Models;
@@ -15,7 +15,14 @@ public sealed class Theme
     public string Card { get; set; } = "#181229";
     public string Text { get; set; } = "#ECE9F5";
     public string TextSecondary { get; set; } = "#9A93B5";
-    public string FontFamily { get; set; } = "Comic Sans MS";
+    /// <summary>
+    /// The face the app ships with, and the one Android uses. Stored under its plain name so the
+    /// font picker has something readable to show; <see cref="ThemeService"/> turns it into the
+    /// pack URI, since a font living inside the exe cannot be found by name alone.
+    /// </summary>
+    public const string BundledFont = "Shantell Sans";
+
+    public string FontFamily { get; set; } = BundledFont;
     public double UiScale { get; set; } = 1.0;
     public double WindowOpacity { get; set; } = 1.0;   // whole-window transparency (0.75–1.0)
     public string? BackgroundImage { get; set; }
@@ -40,11 +47,11 @@ public sealed class Theme
 
     public static readonly Theme[] Presets =
     {
-        new() { Version = 3, Name = "Луна",     Accent = "#9D7BFF", WinBg1 = "#0D0A18", WinBg2 = "#170A38", Sidebar = "#0A0814", Card = "#181229" },
-        new() { Version = 3, Name = "Аметист",  Accent = "#A66CFF", WinBg1 = "#0C0820", WinBg2 = "#170D33", Sidebar = "#0E0A1C", Card = "#181229" },
-        new() { Version = 3, Name = "Изумруд",  Accent = "#34D399", WinBg1 = "#07120E", WinBg2 = "#0A1E17", Sidebar = "#081310", Card = "#0F1B17" },
-        new() { Version = 3, Name = "Закат",    Accent = "#FF7A59", WinBg1 = "#160A0E", WinBg2 = "#26121A", Sidebar = "#170B10", Card = "#201319" },
-        new() { Version = 3, Name = "Графит",   Accent = "#9AA0C7", WinBg1 = "#0E0F12", WinBg2 = "#15171C", Sidebar = "#101114", Card = "#181A20" },
+        new() { Version = 4, Name = "Луна",     Accent = "#9D7BFF", WinBg1 = "#0D0A18", WinBg2 = "#170A38", Sidebar = "#0A0814", Card = "#181229" },
+        new() { Version = 4, Name = "Аметист",  Accent = "#A66CFF", WinBg1 = "#0C0820", WinBg2 = "#170D33", Sidebar = "#0E0A1C", Card = "#181229" },
+        new() { Version = 4, Name = "Изумруд",  Accent = "#34D399", WinBg1 = "#07120E", WinBg2 = "#0A1E17", Sidebar = "#081310", Card = "#0F1B17" },
+        new() { Version = 4, Name = "Закат",    Accent = "#FF7A59", WinBg1 = "#160A0E", WinBg2 = "#26121A", Sidebar = "#170B10", Card = "#201319" },
+        new() { Version = 4, Name = "Графит",   Accent = "#9AA0C7", WinBg1 = "#0E0F12", WinBg2 = "#15171C", Sidebar = "#101114", Card = "#181A20" },
     };
 }
 
@@ -60,13 +67,13 @@ public static class ThemeStore
             if (File.Exists(Path_))
             {
                 var t = JsonSerializer.Deserialize<Theme>(File.ReadAllText(Path_));
-                if (t is null) return new Theme { Version = 2 };
+                if (t is null) return new Theme { Version = 4 };
                 if (t.Version is null or < 2)   // legacy blue palette → adopt violet defaults + new main font, keep the user's extras
                 {
                     var def = new Theme
                     {
                         Version = 3,
-                        UiScale = t.UiScale,        // FontFamily left to default (Comic Sans MS)
+                        UiScale = t.UiScale,        // FontFamily left to default (the bundled face)
                         BackgroundImage = t.BackgroundImage, BackgroundOpacity = t.BackgroundOpacity,
                         MoonOnImage = t.MoonOnImage, MoonOffImage = t.MoonOffImage, NavMoonImage = t.NavMoonImage,
                     };
@@ -78,11 +85,20 @@ public static class ThemeStore
                     t.FontFamily = "Comic Sans MS"; t.Version = 3;
                     Save(t);
                 }
+                // v3 shipped Comic Sans MS, which Windows hints into hard edges at our sizes. The
+                // bundled face is the one Android already draws; move v3 users over, but leave alone
+                // anyone who had picked a different font for themselves.
+                if (t.Version < 4)
+                {
+                    if (t.FontFamily is "Comic Sans MS") t.FontFamily = Theme.BundledFont;
+                    t.Version = 4;
+                    Save(t);
+                }
                 return t;
             }
         }
         catch { }
-        return new Theme { Version = 2 };
+        return new Theme { Version = 4 };
     }
 
     public static void Save(Theme t)
