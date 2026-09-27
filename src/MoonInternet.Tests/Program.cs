@@ -591,6 +591,17 @@ var tunBypass = Root(MoonInternet.Core.Generation.SingBoxTunConfig.Build(10808, 
 Check("app bypass → direct rule", tunBypass.GetProperty("route").GetProperty("rules").EnumerateArray()
     .Any(r => r.TryGetProperty("process_name", out var pn) && pn.EnumerateArray().Any(x => x.GetString() == "chrome.exe") && r.GetProperty("outbound").GetString() == "direct"));
 Check("app bypass keeps final=proxy", tunBypass.GetProperty("route").GetProperty("final").GetString() == "proxy");
+// The WinINet bypass list: both switches that feed it were saved, drawn and never asked.
+var bypDefault = MoonInternet.Services.SystemProxy.BypassList(false, null);
+Check("bypass keeps the LAN out by default", bypDefault.Contains("192.168.*") && bypDefault.Contains("<local>"));
+Check("bypass always keeps localhost", bypDefault.StartsWith("localhost;127.*"));
+var bypLan = MoonInternet.Services.SystemProxy.BypassList(true, null);
+Check("LAN through proxy drops the private ranges", !bypLan.Contains("192.168.*") && bypLan.Contains("localhost"));
+var bypExtra = MoonInternet.Services.SystemProxy.BypassList(false, " *.local, intra.example ;;\n10.* ");
+Check("extra hosts are split, trimmed and de-duplicated",
+    bypExtra.Contains("*.local") && bypExtra.Contains("intra.example")
+    && bypExtra.Split(';').Count(x => x == "10.*") == 1);
+
 var tunOnly = Root(MoonInternet.Core.Generation.SingBoxTunConfig.Build(10808, "MoonTun1", null, "only", new[] { "chrome.exe" }));
 Check("app only → final=direct", tunOnly.GetProperty("route").GetProperty("final").GetString() == "direct");
 Check("app only → proxy rule", tunOnly.GetProperty("route").GetProperty("rules").EnumerateArray()

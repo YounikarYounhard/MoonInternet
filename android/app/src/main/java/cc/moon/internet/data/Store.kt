@@ -110,7 +110,8 @@ data class AppState(
     val pingTestUrl: String = "https://www.gstatic.com/generate_204",
     val pingTimeoutMs: Int = 4000,
     val autoUpdateSubs: Boolean = true,
-    val autoUpdateSubsMinutes: Int = 0,
+    // The interval lives in subIntervalMinutes; autoUpdateSubsMinutes was a second copy that was
+    // written and never read. Files still carrying the key load fine — ignoreUnknownKeys.
     val notifyOnUpdate: Boolean = false,
     // Уведомления: главный выключатель, всплывать (heads-up) или тихо, и что именно показывать
     val notificationsEnabled: Boolean = true,

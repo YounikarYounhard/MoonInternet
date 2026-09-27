@@ -43,6 +43,10 @@ public sealed class ConnectionManager : IDisposable
     public TunnelMode ActiveMode { get; private set; }
     public string? TunFallbackReason { get; private set; }
     public string? RoutingNote { get; private set; }
+    /// <summary>Send local-network traffic through the proxy as well. See <see cref="SystemProxy.Enable"/>.</summary>
+    public bool LanThroughProxy { get; set; }
+    /// <summary>Hosts the user wants reached directly, bypassing the proxy.</summary>
+    public string ProxyBypassHosts { get; set; } = "";
     public bool AutoReconnect { get; set; } = true;
     /// <summary>Seconds between auto-reconnect attempts. The setting existed, was saved and drawn
     /// as four chips — and never left the view model: the retry loop had 2 s written into it.</summary>
@@ -298,7 +302,7 @@ public sealed class ConnectionManager : IDisposable
                 if (r == "OK") { _tunActive = true; ActiveMode = TunnelMode.Tun; DevLog.Log("туннель", "поднят"); }
                 else
                 {
-                    SystemProxy.Enable("127.0.0.1", _runner.HttpPort);
+                    SystemProxy.Enable("127.0.0.1", _runner.HttpPort, LanThroughProxy, ProxyBypassHosts);
                     ActiveMode = TunnelMode.SystemProxy;
                     TunFallbackReason = r;
                     DevLog.Log("туннель", $"не поднялся ({r}) — перешёл на системный прокси");
@@ -306,7 +310,7 @@ public sealed class ConnectionManager : IDisposable
             }
             else
             {
-                SystemProxy.Enable("127.0.0.1", _runner.HttpPort);
+                SystemProxy.Enable("127.0.0.1", _runner.HttpPort, LanThroughProxy, ProxyBypassHosts);
                 ActiveMode = TunnelMode.SystemProxy;
             }
 

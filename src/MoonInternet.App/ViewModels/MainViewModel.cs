@@ -1421,6 +1421,10 @@ public partial class MainViewModel : ObservableObject
         // «Раздача в локальной сети» was saved, drawn and read by nothing: the inbounds stayed
         // pinned to 127.0.0.1, so no other device on the network could ever reach them.
         MoonInternet.Core.Generation.XrayTuning.AllowLan = AllowLan;
+        // Its two neighbours on that page were dead the same way: the WinINet bypass list was
+        // hard-coded, so neither «локальная сеть через прокси» nor the host list ever reached it.
+        _conn.LanThroughProxy = LanThroughProxy;
+        _conn.ProxyBypassHosts = ProxyBypassHosts ?? "";
         // The learned link speed finally goes somewhere: mKCP sizes its send window from it.
         MoonInternet.Core.Generation.XrayTuning.LinkCapacityBytesPerSecond = _netQuality.TargetBytesPerSecond;
         MoonInternet.Core.Generation.XrayTuning.HttpAuth = HttpProxyAuth && Socks5Auth;
@@ -1445,9 +1449,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool allowLan;
     partial void OnAllowLanChanged(bool value) { _settings.AllowLan = value; _settings.Save(); ApplyTuning(); ReconnectIfConnected(); }
     [ObservableProperty] private bool lanThroughProxy;
-    partial void OnLanThroughProxyChanged(bool value) { _settings.LanThroughProxy = value; _settings.Save(); }
+    partial void OnLanThroughProxyChanged(bool value) { _settings.LanThroughProxy = value; _settings.Save(); ApplyTuning(); }
     [ObservableProperty] private string proxyBypassHosts = "";
-    partial void OnProxyBypassHostsChanged(string value) { _settings.ProxyBypassHosts = value ?? ""; _settings.Save(); }
+    partial void OnProxyBypassHostsChanged(string value) { _settings.ProxyBypassHosts = value ?? ""; _settings.Save(); ApplyTuning(); }
 
     [ObservableProperty] private bool socks5Auth;
     partial void OnSocks5AuthChanged(bool value) { _settings.Socks5Auth = value; _settings.Save(); ApplyTuning(); OnPropertyChanged(nameof(ProxyUser)); OnPropertyChanged(nameof(ProxyPassMasked)); ReconnectIfConnected(); }
@@ -1716,7 +1720,13 @@ public partial class MainViewModel : ObservableObject
 
         if (!_conn.CoreAvailable) Status = Localization.Loc.T("S_VM_205");
         LoadCachedSubs();                                                     // offline-first: show last known servers immediately
-        foreach (var u in _settings.SubscriptionUrls.ToList()) _ = ImportUrl(u);   // then refresh from the network
+        // «Обновлять при запуске» was saved and drawn and never asked: the network refresh below ran
+        // on every launch whatever the switch said. Auto-connect used to ride along on that refresh,
+        // so when the switch is off the cached list has to set it going instead.
+        if (UpdateSubsOnStart)
+            foreach (var u in _settings.SubscriptionUrls.ToList()) _ = ImportUrl(u);
+        else if (Subscriptions.FirstOrDefault() is { } cached)
+            _ = MaybeAutoConnect(cached);
         _themeReady = true; // now theme edits (via UI) may apply+save
         _ = WatchForUpdatesAsync();  // quiet: only lights the badge, never interrupts the launch
     }

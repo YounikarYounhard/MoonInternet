@@ -86,7 +86,7 @@
     <s:String x:Key="S_SettingsView_023">Reset kill switch</s:String>
     <s:String x:Key="S_SettingsView_024">Remove the firewall rules if the internet is still blocked after a crash</s:String>
     <s:String x:Key="S_SettingsView_025">Allow LAN connections</s:String>
-    <s:String x:Key="S_SettingsView_026">Keep the local network out of the tunnel</s:String>
+    <s:String x:Key="S_SettingsView_026">Other devices on the network may go out through this computer's proxy</s:String>
     <s:String x:Key="S_SettingsView_027">LAN through the proxy</s:String>
     <s:String x:Key="S_SettingsView_028">Send local traffic through the VPN proxy</s:String>
     <s:String x:Key="S_SettingsView_031">Extra addresses to bypass the proxy</s:String>

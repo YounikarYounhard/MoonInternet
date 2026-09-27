@@ -13,14 +13,38 @@ public static class SystemProxy
     [DllImport("wininet.dll", SetLastError = true)]
     private static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);
 
-    public static void Enable(string host, int httpPort)
+    /// <summary>The private ranges, kept out of the proxy unless the user asks otherwise.</summary>
+    private static readonly string[] LanRanges =
+    {
+        "10.*", "172.16.*", "172.17.*", "172.18.*", "172.19.*", "172.20.*", "192.168.*", "<local>",
+    };
+
+    /// <param name="lanThroughProxy">
+    /// Send local-network traffic through the proxy too. Both this and <paramref name="extraBypass"/>
+    /// were settings the user could change while this list stayed hard-coded, so neither did anything.
+    /// </param>
+    /// <param name="extraBypass">Hosts the user wants to reach directly; ';', ',' or newline separated.</param>
+    public static void Enable(string host, int httpPort, bool lanThroughProxy = false, string? extraBypass = null)
     {
         using var k = Registry.CurrentUser.OpenSubKey(Key, writable: true)
                       ?? throw new InvalidOperationException("Internet Settings key missing");
         k.SetValue("ProxyServer", $"{host}:{httpPort}");
         k.SetValue("ProxyEnable", 1, RegistryValueKind.DWord);
-        k.SetValue("ProxyOverride", "localhost;127.*;10.*;172.16.*;172.17.*;172.18.*;172.19.*;172.20.*;192.168.*;<local>");
+
+        k.SetValue("ProxyOverride", BypassList(lanThroughProxy, extraBypass));
         Refresh();
+    }
+
+    /// <summary>The ProxyOverride value, split out so it can be checked without touching the registry.</summary>
+    public static string BypassList(bool lanThroughProxy, string? extraBypass)
+    {
+        // localhost stays out of the proxy whatever happens — the proxy is what lives there.
+        var bypass = new List<string> { "localhost", "127.*" };
+        if (!lanThroughProxy) bypass.AddRange(LanRanges);
+        if (!string.IsNullOrWhiteSpace(extraBypass))
+            bypass.AddRange(extraBypass.Split(new[] { ';', ',', '\n', '\r', ' ', '\t' },
+                                              StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return string.Join(";", bypass.Distinct(StringComparer.OrdinalIgnoreCase));
     }
 
     public static void Disable()
