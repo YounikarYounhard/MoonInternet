@@ -88,6 +88,32 @@ public sealed class ConnectionManager : IDisposable
         // A tunnel left over from a previous run (crash, re-login, autostart) still routes everything into a port
         // that no longer exists → "connected but no internet". Clear it before we do anything else.
         Task.Run(() => { try { TunClient.StopTun(); } catch { } });
+        KillStaleXray(coresDir);
+    }
+
+    /// <summary>
+    /// Kill an xray left behind by a previous run — a crash, Task Manager, or a restart that never
+    /// reached our shutdown. The helper already does this for its own engines (sing-box, tun2socks,
+    /// winws) but xray is ours, so nobody was sweeping it: a test laptop turned up one that had been
+    /// running for three days, still holding the port the system proxy pointed at.
+    ///
+    /// Only binaries out of OUR cores folder, exactly as the helper does it — other VPN clients ship
+    /// xray under the same name and killing theirs would break them. Runs before the first connect,
+    /// so the process we are about to start cannot be caught by it.
+    /// </summary>
+    private static void KillStaleXray(string coresDir)
+    {
+        try
+        {
+            foreach (var p in System.Diagnostics.Process.GetProcessesByName("xray"))
+            {
+                string? exe = null;
+                try { exe = p.MainModule?.FileName; } catch { /* access denied → not ours */ }
+                if (exe is null || !exe.StartsWith(coresDir, StringComparison.OrdinalIgnoreCase)) continue;
+                try { p.Kill(true); p.WaitForExit(3000); } catch { }
+            }
+        }
+        catch { /* enumerating processes can fail on a locked-down box; never block start-up for it */ }
     }
 
     private void OnCoreDropped() => HandleDrop();
