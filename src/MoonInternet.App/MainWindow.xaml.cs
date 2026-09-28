@@ -18,6 +18,7 @@ public partial class MainWindow : Window
         _tray = BuildTray();
         Loaded += (_, _) => ThemeService.ApplyToWindow(this, App.ActiveTheme);
         WatchStatus();
+        ((MainViewModel)DataContext).ScrollToTopRequested += ScrollActivePageToTop;
         if (((MainViewModel)DataContext).StartMinimized)
         {
             // Render the window once (invisibly) BEFORE hiding, else WPF composites nothing and it comes back
@@ -25,6 +26,30 @@ public partial class MainWindow : Window
             Opacity = 0;
             ShowInTaskbar = false;
             ContentRendered += HideAfterFirstRender;
+        }
+    }
+
+    /// <summary>
+    /// Take whichever page is on screen back to the top.
+    ///
+    /// Only one page is visible at a time, so there is no need to know which — every visible
+    /// ScrollViewer belongs to it. Settings keeps one per sub-page and all but the open one are
+    /// collapsed, which is exactly the filter we want.
+    /// </summary>
+    private void ScrollActivePageToTop()
+    {
+        foreach (var sv in Descendants<System.Windows.Controls.ScrollViewer>(this))
+            if (sv.IsVisible) sv.ScrollToVerticalOffset(0);
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        int n = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < n; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T hit) yield return hit;
+            foreach (var deeper in Descendants<T>(child)) yield return deeper;
         }
     }
 

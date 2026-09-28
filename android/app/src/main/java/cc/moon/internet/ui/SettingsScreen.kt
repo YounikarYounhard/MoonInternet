@@ -64,7 +64,11 @@ enum class SettingsPage(
 }
 
 @Composable
-fun SettingsScreen(state: AppState, onOpen: (SettingsPage) -> Unit) {
+fun SettingsScreen(
+    state: AppState,
+    onOpen: (SettingsPage) -> Unit,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+) {
     Column(Modifier.fillMaxSize().background(Moon.WinBg)) {
         Column(Modifier.padding(start = 26.dp, end = 24.dp, top = 18.dp, bottom = 14.dp)) {
             // The pill sits on the title's own line, not centred on the title+version block —
@@ -79,6 +83,7 @@ fun SettingsScreen(state: AppState, onOpen: (SettingsPage) -> Unit) {
         }
         LazyColumn(
             Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            state = listState,
             contentPadding = PaddingValues(bottom = bottomNavSpace()),
         ) {
             items(SettingsPage.hub.size) { i ->

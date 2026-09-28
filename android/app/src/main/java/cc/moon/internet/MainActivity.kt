@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import cc.moon.internet.core.RoutingProfile
 import cc.moon.internet.core.ServerProfile
@@ -159,6 +160,8 @@ class MainActivity : ComponentActivity() {
                 var page by remember { mutableStateOf(Page.valueOf(pageName)) }
                 val homeScroll = rememberLazyListState()
                 val serversScroll = rememberLazyListState()
+                val settingsScroll = rememberLazyListState()
+                val navScope = androidx.compose.runtime.rememberCoroutineScope()
                 LaunchedEffect(page) {
                     pageName = page.name
                     // Back to the top whenever a page opens — the desktop does this on IsVisibleChanged.
@@ -444,7 +447,7 @@ class MainActivity : ComponentActivity() {
                                     onClearLogs = { vm.clearLogs() },
                                     onViewLog = { logView = vm.logsTail() },
                                 )
-                            } ?: SettingsScreen(state = state, onOpen = { settingsPage = it })
+                            } ?: SettingsScreen(state = state, onOpen = { settingsPage = it }, listState = settingsScroll)
                         }
                         }   // Crossfade
 
@@ -533,12 +536,26 @@ class MainActivity : ComponentActivity() {
                     BottomNav(
                         page = page,
                         modifier = Modifier.align(Alignment.BottomCenter),
-                        onServers = { page = Page.Servers },
-                        onHome = { page = Page.Home },
+                        // Tapping the tab you are already on takes the page back to the top —
+                        // the way every phone app behaves, and the only way back up from the
+                        // bottom of a long server list without a lot of swiping.
+                        onServers = {
+                            if (page == Page.Servers) navScope.launch { serversScroll.animateScrollToItem(0) }
+                            else page = Page.Servers
+                        },
+                        onHome = {
+                            if (page == Page.Home) navScope.launch { homeScroll.animateScrollToItem(0) }
+                            else page = Page.Home
+                        },
                         // Always the settings root. Opening the logs, wandering to Servers and
                         // pressing Настройки put you back in the logs, because only a tap while
-                        // already ON settings cleared the sub-page.
-                        onSettings = { settingsPage = null; settingsBack.clear(); page = Page.Settings },
+                        // already ON settings cleared the sub-page. On the root itself the tap
+                        // has nothing left to close, so it scrolls instead.
+                        onSettings = {
+                            if (page == Page.Settings && settingsPage == null)
+                                navScope.launch { settingsScroll.animateScrollToItem(0) }
+                            else { settingsPage = null; settingsBack.clear(); page = Page.Settings }
+                        },
                     )
                 }
                 }   // Scaffold content

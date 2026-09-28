@@ -2503,11 +2503,24 @@ public partial class MainViewModel : ObservableObject
         else SubscriptionService.Hwid = null;
     }
 
+    /// <summary>
+    /// Raised when the tab already showing is pressed again. The window answers by taking that
+    /// page back to the top; there is nothing here that knows a scroll position exists, nor any
+    /// reason for it to.
+    /// </summary>
+    public event Action? ScrollToTopRequested;
+
     [RelayCommand]
     private void Navigate(string page)
     {
-        CurrentPage = Enum.Parse<AppPage>(page, ignoreCase: true);
+        var target = Enum.Parse<AppPage>(page, ignoreCase: true);
+        // Pressing the tab you are already on means "back to the top" — the way phones behave, and
+        // the only way out of the bottom of a long server list without a lot of scrolling. Settings
+        // has a sub-page to close first; only once the hub itself is showing does the tap scroll.
+        bool repeat = CurrentPage == target && (target != AppPage.Settings || SettingsPage == "hub");
+        CurrentPage = target;
         if (CurrentPage == AppPage.Settings) { SettingsPage = "hub"; _settingsBack.Clear(); }   // tapping the Settings tab lands on the hub
+        if (repeat) ScrollToTopRequested?.Invoke();
     }
 
     [RelayCommand] private void SelectServer(ServerItem? s) { if (s is not null) SelectedServer = s; }
