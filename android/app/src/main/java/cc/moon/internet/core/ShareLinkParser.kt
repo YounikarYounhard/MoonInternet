@@ -128,6 +128,12 @@ object ShareLinkParser {
             allowInsecure = q("insecure") == "1",
             obfs = q("obfs"),
             obfsPassword = q("obfs-password"),
+            // The rest of the query as it came. The bandwidth hints live there under names that
+            // vary (up / upmbps) and sing-box wants them — see SingBoxHy2Config. The desktop
+            // parser has kept the whole query for exactly this reason since it was written.
+            extra = runCatching {
+                u.queryParameterNames.associateWith { k -> u.getQueryParameter(k).orEmpty() }
+            }.getOrDefault(emptyMap()),
         )
     }
 

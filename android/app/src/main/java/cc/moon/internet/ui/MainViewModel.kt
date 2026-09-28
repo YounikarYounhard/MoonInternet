@@ -963,6 +963,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
             // AmneziaWG needs its own engine up before the core; the service starts it.
             awgConfig = if (s.wg?.isAmnezia == true) s.raw else null,
+            // Hysteria2 likewise: xray's own implementation does not survive РФ filtering, so
+            // sing-box carries it and the core only dials into it.
+            hy2Link = if (s.protocol == cc.moon.internet.core.Protocol.HYSTERIA2) s.raw else null,
         )
     }
 

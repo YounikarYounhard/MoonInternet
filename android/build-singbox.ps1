@@ -1,0 +1,83 @@
+﻿<#
+    Builds sing-box for Android as jniLibs\arm64-v8a\libsingbox.so.
+
+    Why at all: Hysteria2 on the phone runs on xray's own implementation, and that one is broken
+    under Russian filtering — XTLS/Xray-core#6717, closed as "not planned", while sing-box works
+    on the same endpoints. The desktop has always run Hysteria2 on sing-box; this gives the phone
+    the same engine. Everything else stays on xray, which sing-box cannot replace (no XHTTP).
+
+    Not gomobile (see build-libbox.ps1, written when sing-box was tried as THE core): a plain
+    executable needs no PlatformInterface, and the app already knows how to run one — awgproxy and
+    byedpi arrive the same way. Android only unpacks and marks executable what it finds in jniLibs
+    and only if it is named lib*.so, hence the name.
+
+    Pure Go, no cgo: an android/arm64 build would need the NDK for nothing, and a linux/arm64
+    binary runs on Android as it is. Only the QUIC tag is on — Hysteria2 is all this has to carry.
+
+    Usage:  powershell -ExecutionPolicy Bypass -File android\build-singbox.ps1 [-Tag v1.13.14]
+#>
+#   The tag is bounded by the Go in the toolchain, not by taste: sing-box 1.13 needs Go 1.24, and
+#   asking a 1.23 to build it makes it reach for a newer toolchain over the network — which from
+#   here answers 403. 1.11.15 is what this toolchain builds, and its Hysteria2 is the same engine
+#   the desktop runs. Raise both together when Go gets updated.
+param([string]$Tag = 'v1.11.15')
+
+$ErrorActionPreference = 'Stop'
+$proj = Split-Path $PSScriptRoot -Parent
+
+# git and go both narrate on stderr, and under ErrorActionPreference=Stop PowerShell turns every
+# such line into a terminating error — a clone that worked perfectly still "fails". Judge them by
+# their exit code, which is the only thing they mean by it.
+function Invoke-Native {
+    param([string]$What, [scriptblock]$Run)
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { $said = & $Run 2>&1 | ForEach-Object { "$_" } }
+    finally { $ErrorActionPreference = $old }
+    if ($LASTEXITCODE -ne 0) {
+        # Show what it said. Swallowing the output is how "failed (exit 1)" ends up being all
+        # anybody knows about a broken build.
+        $said | Select-Object -Last 25 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+        throw "$What failed (exit $LASTEXITCODE)"
+    }
+}
+
+$tc = if ($env:MOON_TOOLCHAIN) { $env:MOON_TOOLCHAIN } else { 'C:\moonbuild' }
+$go = Join-Path $tc 'go\bin\go.exe'
+if (-not (Test-Path $go)) { throw "go not found: $go (set MOON_TOOLCHAIN or run the setup)" }
+
+# One checkout per tag, never shared. build-libbox.ps1 keeps singbox-src pinned to its own version
+# and runs `go get` in it, which edits go.mod in place; re-pointing that tree at another tag means
+# forcing a checkout over somebody else's working copy. A directory of our own costs a clone and
+# owes nothing to anyone.
+$work = Join-Path $tc "singbox-$($Tag.TrimStart('v'))"
+if (-not (Test-Path $work)) {
+    Write-Host "Cloning sing-box $Tag ..." -ForegroundColor Cyan
+    Invoke-Native "clone $Tag" { git clone --depth 1 --branch $Tag https://github.com/SagerNet/sing-box.git $work }
+} else {
+    Write-Host "Using the existing checkout of $Tag" -ForegroundColor Cyan
+}
+
+$env:GOPATH      = Join-Path $tc 'gopath'
+$env:GOOS        = 'linux'
+$env:GOARCH      = 'arm64'
+$env:CGO_ENABLED = '0'
+# Build with the Go we have. Left to itself it downloads whatever the module asks for, and a
+# "403 Forbidden" from the module proxy is a far worse error message than "needs a newer Go".
+$env:GOTOOLCHAIN = 'local'
+
+$dest = Join-Path $proj 'android\app\src\main\jniLibs\arm64-v8a'
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+$out = Join-Path $dest 'libsingbox.so'
+
+Push-Location $work
+try {
+    Write-Host 'Building (a couple of minutes) ...' -ForegroundColor Cyan
+    Invoke-Native 'go build' { & $go build -tags with_quic -trimpath -ldflags '-s -w' -o $out ./cmd/sing-box }
+}
+finally { Pop-Location }
+
+$mb = [math]::Round((Get-Item $out).Length / 1MB, 1)
+Write-Host ""
+Write-Host "Done: android\app\src\main\jniLibs\arm64-v8a\libsingbox.so ($mb MB)" -ForegroundColor Green
+Write-Host "Check it on a phone:  adb push <file> /data/local/tmp/sb; adb shell 'chmod 755 /data/local/tmp/sb; /data/local/tmp/sb version'" -ForegroundColor DarkGray

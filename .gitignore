@@ -75,6 +75,10 @@ android/local.properties
 *.keystore
 # prebuilt core, produced by android/build-xray.ps1 (19 MB)
 android/app/libs/*.aar
+# sing-box, produced by android/build-singbox.ps1 (20 MB) — it carries Hysteria2 and nothing else.
+# The two small engines beside it are committed; this one is the size of the AAR, so it is treated
+# like the AAR: build it, do not store it.
+android/app/src/main/jniLibs/*/libsingbox.so
 
 .testshots/
 .refapk/

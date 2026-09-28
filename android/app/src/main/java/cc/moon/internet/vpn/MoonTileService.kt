@@ -109,6 +109,10 @@ class MoonTileService : TileService() {
             MoonVpnService.start(
                 applicationContext, finalConfig, server.label,
                 tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
+                // Both protocols need their own engine listening before the core, and the tile used
+                // to start neither — from here AmneziaWG and Hysteria2 dialled into an empty port.
+                awgConfig = if (server.wg?.isAmnezia == true) server.raw else null,
+                hy2Link = if (server.protocol == cc.moon.internet.core.Protocol.HYSTERIA2) server.raw else null,
             )
         }
     }

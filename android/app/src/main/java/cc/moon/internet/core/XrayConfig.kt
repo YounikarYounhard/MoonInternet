@@ -297,12 +297,13 @@ object XrayConfig {
                     }
                 })
 
-            // Hysteria2 is a transport in xray, not a protocol: the outbound only carries the
-            // endpoint, and the password lives in streamSettings.hysteriaSettings.auth below.
-            Protocol.HYSTERIA2 -> JSONObject()
-                .put("version", 2)
-                .put("address", s.address)
-                .put("port", s.port)
+            // Hysteria2 no longer reaches xray as itself. Its implementation there does not survive
+            // Russian filtering — XTLS/Xray-core#6717, closed as "not planned", with sing-box working
+            // on the very same endpoints — so sing-box carries it and this outbound is a SOCKS dial
+            // into it on loopback, exactly as AmneziaWG is carried by awgproxy below.
+            Protocol.HYSTERIA2 -> servers(JSONObject()
+                .put("address", "127.0.0.1")
+                .put("port", cc.moon.internet.vpn.SingBoxRunner.PORT))
 
             // WireGuard/AmneziaWG never reaches xray as itself: awgproxy holds the tunnel and this
             // outbound is a SOCKS dial into it on loopback. Doing it this way is what hands
@@ -345,7 +346,9 @@ object XrayConfig {
         // updated. Better a config that loads and may connect than one the core throws out.
         var migratedAlpn: String? = null
         val net = when {
-            s.protocol == Protocol.HYSTERIA2 -> "hysteria"
+            // Hysteria2 leaves as a plain SOCKS dial into sing-box, so it carries no transport and
+            // no TLS of its own — both belong to sing-box now, not to this config.
+            s.protocol == Protocol.HYSTERIA2 -> "tcp"
             s.network == "h2" || s.network == "http" -> { migratedAlpn = "h2"; "xhttp" }
             s.network == "quic" -> { migratedAlpn = "h3"; "xhttp" }
             // XHTTP under the name it shipped with — a saved profile can still carry it.
@@ -357,23 +360,16 @@ object XrayConfig {
         // REALITY rides RAW, XHTTP or gRPC and nothing else — the core says so and refuses the rest
         // outright. A link claiming otherwise is a mislabelled one (panels do emit security=reality
         // for plain TLS), so it goes out as TLS: it may work, where a rejected config cannot.
-        val security =
-            if (s.security == "reality" && net !in listOf("tcp", "raw", "xhttp", "grpc")) "tls"
-            else s.security
-
-        if (net == "hysteria") {
-            st.put("hysteriaSettings", JSONObject()
-                .put("version", 2)
-                .put("auth", s.password.orEmpty())
-                .apply {
-                    if (!s.obfsPassword.isNullOrBlank()) {
-                        put("obfs", JSONObject().put("type", "salamander").put("password", s.obfsPassword))
-                    }
-                })
+        val security = when {
+            // The link says TLS because Hysteria2 always is one, but this outbound is a loopback
+            // SOCKS dial — wrapping that in TLS would be dialling sing-box as if it were the server.
+            s.protocol == Protocol.HYSTERIA2 -> "none"
+            s.security == "reality" && net !in listOf("tcp", "raw", "xhttp", "grpc") -> "tls"
+            else -> s.security
         }
 
-        if (security == "tls" || security == "reality" || net == "hysteria") {
-            st.put("security", if (net == "hysteria") "tls" else security)
+        if (security == "tls" || security == "reality") {
+            st.put("security", security)
             val tls = JSONObject()
             s.sni?.takeIf { it.isNotBlank() }?.let { tls.put("serverName", it) }
             s.fingerprint?.takeIf { it.isNotBlank() }?.let { tls.put("fingerprint", it) }
@@ -604,7 +600,8 @@ object XrayConfig {
         Protocol.TROJAN -> "trojan"
         Protocol.SHADOWSOCKS -> "shadowsocks"
         Protocol.SOCKS -> "socks"
-        Protocol.HYSTERIA2 -> "hysteria"   // xray names it without the version
+        // Not "hysteria": sing-box holds that tunnel now and this outbound only dials into it.
+        Protocol.HYSTERIA2 -> "socks"
         // Not "wireguard": xray never speaks it. awgproxy holds the tunnel and this outbound is a
         // SOCKS dial into it, which is what lends AmneziaWG the whole routing table for free.
         Protocol.WIREGUARD -> "socks"

@@ -35,6 +35,8 @@ class MoonVpnService : VpnService() {
         const val EXTRA_ZAPRET = "zapret"
         /** The AmneziaWG config text, when the chosen server is one. */
         const val EXTRA_AWG = "awg"
+        /** The Hysteria2 share link, when the chosen server is one — sing-box carries those. */
+        const val EXTRA_HY2 = "hy2"
         const val ACTION_RECONNECT = "cc.moon.internet.RECONNECT"
         const val ACTION_PING = "cc.moon.internet.PING"
         const val ACTION_PAUSE = "cc.moon.internet.PAUSE"
@@ -111,6 +113,7 @@ class MoonVpnService : VpnService() {
             tun: Boolean = true, perAppMode: String = "off", perApps: List<String> = emptyList(),
             zapretStrategy: String? = null,
             awgConfig: String? = null,
+            hy2Link: String? = null,
         ) {
             androidx.core.content.ContextCompat.startForegroundService(
                 ctx,
@@ -124,6 +127,7 @@ class MoonVpnService : VpnService() {
                 putExtra(EXTRA_TUN, tun)
                 putExtra(EXTRA_ZAPRET, zapretStrategy)
                 putExtra(EXTRA_AWG, awgConfig)
+                putExtra(EXTRA_HY2, hy2Link)
             },
             )
         }
@@ -147,6 +151,7 @@ class MoonVpnService : VpnService() {
     @Volatile private var reconnecting = false
     private val byedpi by lazy { ByedpiRunner(this) }
     private val awgRunner by lazy { AwgRunner(this) }
+    private val singBox by lazy { SingBoxRunner(this) }
     private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
     private var currentNetwork: android.net.Network? = null
     // see the companion: one clock, shared with the UI
@@ -197,6 +202,7 @@ class MoonVpnService : VpnService() {
                     intent.getBooleanExtra(EXTRA_TUN, true),
                     intent.getStringExtra(EXTRA_ZAPRET),
                     intent.getStringExtra(EXTRA_AWG),
+                    intent.getStringExtra(EXTRA_HY2),
                 )
             }
         }
@@ -205,7 +211,7 @@ class MoonVpnService : VpnService() {
 
     private fun startTunnel(
         config: String, profileName: String, mtu: Int, appMode: String, apps: List<String>,
-        tun: Boolean = true, zapret: String? = null, awg: String? = null,
+        tun: Boolean = true, zapret: String? = null, awg: String? = null, hy2: String? = null,
     ) {
         cc.moon.internet.data.DevLog.log("туннель", "поднимаю: $profileName")
         _state.value = State.Connecting
@@ -268,6 +274,20 @@ class MoonVpnService : VpnService() {
                         _state.value = State.Disconnected; stopTunnel(); return@launch
                     }
                     watchNetwork()
+                }
+
+                // Hysteria2: sing-box carries it and xray's proxy outbound is a SOCKS dial into it,
+                // so it has to be listening before the core starts — same order as the two above.
+                if (hy2 != null) {
+                    val profile = cc.moon.internet.core.ShareLinkParser.parse(hy2)
+                    if (profile == null) {
+                        lastError.value = "Ссылка Hysteria2 не читается"
+                        _state.value = State.Disconnected; stopTunnel(); return@launch
+                    }
+                    singBox.start(profile)?.let { why ->
+                        lastError.value = why
+                        _state.value = State.Disconnected; stopTunnel(); return@launch
+                    }
                 }
 
                 intentionalStop = false
@@ -460,6 +480,7 @@ class MoonVpnService : VpnService() {
         stopWatchingNetwork()
         runCatching { byedpi.stop() }
         runCatching { awgRunner.stop() }
+        runCatching { singBox.stop() }
         runCatching { runner?.stop() }
         runner = null
         runCatching { tunFd?.close() }

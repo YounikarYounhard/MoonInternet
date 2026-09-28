@@ -87,13 +87,42 @@ class CoreLogicTest {
     }
 
     @Test
-    fun `hysteria2 carries its password in the transport, not the outbound`() {
+    fun `hysteria2 leaves xray as a socks dial into sing-box`() {
+        // It used to ride xray's own hysteria transport. That implementation does not survive
+        // Russian filtering (XTLS/Xray-core#6717, closed as "not planned") while sing-box does, so
+        // the engine that carries Hysteria2 on the desktop carries it here too and xray only dials
+        // into it — the arrangement AmneziaWG has had through awgproxy all along.
         val s = server(protocol = Protocol.HYSTERIA2)
         val out = XrayConfig.buildOutbound(s)
-        assertEquals("hysteria", out.getString("protocol"))
-        val hy = out.getJSONObject("streamSettings").getJSONObject("hysteriaSettings")
-        assertEquals(2, hy.getInt("version"))
-        assertEquals("pw", hy.getString("auth"))
+        assertEquals("socks", out.getString("protocol"))
+        val target = out.getJSONObject("settings").getJSONArray("servers").getJSONObject(0)
+        assertEquals("127.0.0.1", target.getString("address"))
+        assertEquals(cc.moon.internet.vpn.SingBoxRunner.PORT, target.getInt("port"))
+        // No TLS and no transport of its own — both belong to sing-box now. Wrapping a loopback
+        // dial in TLS would mean handshaking with sing-box as though it were the server.
+        val stream = out.getJSONObject("streamSettings")
+        assertEquals("tcp", stream.getString("network"))
+        assertTrue(!stream.has("hysteriaSettings") && !stream.has("tlsSettings"))
+    }
+
+    @Test
+    fun `sing-box gets the hysteria2 details xray had nowhere to put`() {
+        val s = server(protocol = Protocol.HYSTERIA2).copy(
+            sni = "h.example", obfsPassword = "sala", extra = mapOf("up" to "50", "down" to "200"),
+        )
+        val cfg = JSONObject(cc.moon.internet.core.SingBoxHy2Config.build(s, 1092))
+        val proxy = cfg.getJSONArray("outbounds").getJSONObject(0)
+        assertEquals("hysteria2", proxy.getString("type"))
+        assertEquals("pw", proxy.getString("password"))
+        assertEquals("salamander", proxy.getJSONObject("obfs").getString("type"))
+        // Bandwidth hints drive Hysteria's congestion control, and xray had no field for them —
+        // on the phone they were simply dropped.
+        assertEquals(50, proxy.getInt("up_mbps"))
+        assertEquals(200, proxy.getInt("down_mbps"))
+        assertEquals("h.example", proxy.getJSONObject("tls").getString("server_name"))
+        val inbound = cfg.getJSONArray("inbounds").getJSONObject(0)
+        assertEquals("127.0.0.1", inbound.getString("listen"))
+        assertEquals(1092, inbound.getInt("listen_port"))
     }
 
     // ---- local proxy, the way the other Android clients expose it -------------

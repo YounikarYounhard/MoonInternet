@@ -63,6 +63,10 @@ class BootReceiver : BroadcastReceiver() {
                 MoonVpnService.start(
                     ctx, config, server.label,
                     tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
+                    // Same as the tile: these two are carried by their own engine, and reconnecting
+                    // after a reboot without starting it dials into an empty port.
+                    awgConfig = if (server.wg?.isAmnezia == true) server.raw else null,
+                    hy2Link = if (server.protocol == cc.moon.internet.core.Protocol.HYSTERIA2) server.raw else null,
                 )
             } catch (_: Throwable) {
                 // A failed reconnect after a reboot is not worth a crash on a device that just
