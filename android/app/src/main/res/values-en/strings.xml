@@ -29,7 +29,7 @@
     <string name="cores_remove">"Remove"</string>
     <string name="cores_xray">"The main engine. VLESS, VMess, Trojan, Shadowsocks and routing."</string>
     <string name="cores_singbox">"Hysteria2. The main engine has an implementation of its own and it does not work under filtering."</string>
-    <string name="cores_awg">"AmneziaWG and WireGuard. The main engine does not speak them at all."</string>
+    <string name="cores_awg">"AmneziaWG only — plain WireGuard the main engine speaks itself."</string>
     <string name="cores_zapret">"Bypass without a server. Adds the mode switch to the Home screen."</string>
     <string name="cores_need_title">"An engine is needed"</string>
     <string name="cores_need_body">"%1$s needs the «%2$s» engine. Install it now?"</string>

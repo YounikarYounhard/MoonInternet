@@ -23,12 +23,23 @@ enum class MoonCore(
     val title: String,
     /** The file the installer puts in the native library directory, or null when it is a library. */
     val binary: String?,
+    /** Always here. Ships with the app and cannot be removed, because something needs it. */
+    val builtIn: Boolean = false,
 ) {
-    /** The core everything else is built around; it is a library inside the APK, never separate. */
-    Xray("xray", "Xray", null),
-    SingBox("singbox", "sing-box", "libsingbox.so"),
-    Amnezia("awg", "AmneziaWG", "libawgproxy.so"),
+    // Declaration order is the order of the Ядра page.
+    /** The core everything else is built around; a library inside the APK, never separate. */
+    Xray("xray", "Xray", null, builtIn = true),
+    /**
+     * Second, and apart from the rest: Запрет is not another way to reach a server, it is a
+     * feature of its own — no server, no subscription, nothing to choose between.
+     */
     Zapret("zapret", "Zapret", "libbyedpi.so"),
+    /**
+     * Built in despite its 20 MB: Hysteria2 is in very nearly every subscription, so an install
+     * without it is an install that cannot connect to half of what it is given.
+     */
+    SingBox("singbox", "sing-box", "libsingbox.so", builtIn = true),
+    Amnezia("awg", "AmneziaWG", "libawgproxy.so"),
     ;
 
     /** True when the engine's binary is on the device and can be executed. */
@@ -37,19 +48,17 @@ enum class MoonCore(
 
     companion object {
         /**
-         * Which engine a server needs, or null when xray carries it alone.
+         * The engine this server needs beyond what ships with the app, or null when it is already
+         * covered.
          *
-         * Hysteria2 is here because xray's own implementation does not survive РФ filtering, and
-         * AmneziaWG because xray never spoke it at all — see SingBoxRunner and AwgRunner.
+         * Only AmneziaWG, and only when the config really is obfuscated: plain WireGuard is one of
+         * xray's own protocols, so awgproxy is needed for the obfuscation and nothing else.
          */
-        fun forProtocol(p: Protocol): MoonCore? = when (p) {
-            Protocol.HYSTERIA2 -> SingBox
-            Protocol.WIREGUARD -> Amnezia
-            else -> null
-        }
+        fun forServer(s: ServerProfile): MoonCore? =
+            if (s.wg?.isAmnezia == true) Amnezia else null
 
-        /** Engines the user chooses to have; the rest of the list is not optional. */
-        val optional = listOf(SingBox, Amnezia, Zapret)
+        /** Engines the user chooses to have; everything else ships with the app. */
+        val optional = entries.filter { !it.builtIn }
 
         fun byId(id: String): MoonCore? = entries.firstOrNull { it.id == id }
     }

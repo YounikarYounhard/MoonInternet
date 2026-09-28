@@ -81,6 +81,21 @@ class SelectionTest {
     }
 
     @Test
+    fun onlyTheObfuscatedWireGuardNeedsAnEngineOfItsOwn() {
+        // xray speaks WireGuard itself, so awgproxy is there for the obfuscation and nothing else.
+        // Getting this wrong means either asking to install an engine nobody needs, or dialling
+        // AmneziaWG through a core that cannot speak it.
+        val plain = cc.moon.internet.core.WireGuardConfig(
+            privateKey = "k", peerPublicKey = "p", endpoint = "1.2.3.4:51820")
+        val awg = plain.copy(jc = "4", jmin = "40", jmax = "70")
+        val base = ServerProfile(protocol = Protocol.WIREGUARD, name = "wg", address = "1.2.3.4", port = 51820)
+        assertNull(cc.moon.internet.core.MoonCore.forServer(base.copy(wg = plain)))
+        assertEquals(cc.moon.internet.core.MoonCore.Amnezia, cc.moon.internet.core.MoonCore.forServer(base.copy(wg = awg)))
+        // Everything else is carried by what ships with the app.
+        assertNull(cc.moon.internet.core.MoonCore.forServer(chosen))
+    }
+
+    @Test
     fun hostPortComesOutOfALinkAndOnlyWhenItIsThere() {
         assertEquals("nl.example:8443", hostPortOf("vless://uuid@nl.example:8443?type=grpc"))
         assertEquals("1.2.3.4:443", hostPortOf("awg:pubkey@1.2.3.4:443"))

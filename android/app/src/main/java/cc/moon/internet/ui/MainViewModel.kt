@@ -859,6 +859,40 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }.getOrDefault(-1L)
     }
 
+    // ---- engines ---------------------------------------------------------
+    /**
+     * The engine a connection is waiting on, with the protocol that asked for it, or null.
+     *
+     * Set instead of connecting, so the screen can ask rather than the attempt failing somewhere
+     * down inside the core with a message nobody can act on.
+     */
+    private val _needCore = MutableStateFlow<Pair<cc.moon.internet.core.MoonCore, String>?>(null)
+    val needCore = _needCore.asStateFlow()
+
+    /** True while an engine is being put in place; the screen blocks itself meanwhile. */
+    private val _installingCore = MutableStateFlow(false)
+    val installingCore = _installingCore.asStateFlow()
+
+    fun cancelCoreRequest() { _needCore.value = null }
+
+    /**
+     * Put the engine in place and carry on with the connection that wanted it.
+     *
+     * Today the binary already ships with the app, so this only writes down that it is wanted.
+     * When the engines move out into split APKs the download and the install go here, and the
+     * system will end the process itself once the package changes — which is the restart, and the
+     * reason this is a screen you cannot touch rather than a quiet background task.
+     */
+    fun installCore() = viewModelScope.launch {
+        val (core, _) = _needCore.value ?: return@launch
+        _needCore.value = null
+        _installingCore.value = true
+        store.update { it.copy(installedCores = it.installedCores + core.id) }
+        kotlinx.coroutines.delay(600)   // the step is instant for now; do not flash the screen
+        _installingCore.value = false
+        connect()
+    }
+
     // ---- connection ------------------------------------------------------
     fun connect() = viewModelScope.launch {
         // Запрет has no server to dial and no routing to apply: it edits what leaves the phone
@@ -868,6 +902,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return@launch
         }
         var s = store.selectedServer() ?: run { _status.value = s(R.string.vm_pick_server); return@launch }
+
+        // Some servers need an engine this install may not have. Ask before dialling rather than
+        // failing halfway with a message about a port nobody opened.
+        cc.moon.internet.core.MoonCore.forServer(s)
+            ?.takeIf { it.id !in store.state.value.installedCores }
+            ?.let { _needCore.value = it to s.protocolLabel; return@launch }
 
         // "The chosen server is silent -> take the fastest live one." That is what the setting
         // says, and until now it only applied when auto-connect picked a server at launch:

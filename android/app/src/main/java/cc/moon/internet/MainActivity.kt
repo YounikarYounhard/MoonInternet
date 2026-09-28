@@ -162,6 +162,8 @@ class MainActivity : ComponentActivity() {
                 val serversScroll = rememberLazyListState()
                 val settingsScroll = rememberLazyListState()
                 val navScope = androidx.compose.runtime.rememberCoroutineScope()
+                val needCore by vm.needCore.collectAsState()
+                val installingCore by vm.installingCore.collectAsState()
                 LaunchedEffect(page) {
                     pageName = page.name
                     // Back to the top whenever a page opens — the desktop does this on IsVisibleChanged.
@@ -533,6 +535,17 @@ class MainActivity : ComponentActivity() {
 
                     }
 
+                    // A server whose engine this install does not have: ask, then either put it in
+                    // place and carry on, or leave everything alone.
+                    needCore?.let { (core, protocol) ->
+                        CoreNeededDialog(
+                            coreTitle = core.title,
+                            protocol = protocol,
+                            onInstall = { vm.installCore() },
+                            onDismiss = { vm.cancelCoreRequest() },
+                        )
+                    }
+
                     // outside the padded Box on purpose: it has to sit over the nav inset too
                     BottomNav(
                         page = page,
@@ -558,6 +571,10 @@ class MainActivity : ComponentActivity() {
                             else { settingsPage = null; settingsBack.clear(); page = Page.Settings }
                         },
                     )
+
+                    // Last, so it covers the nav as well: while an engine is going in there is
+                    // nothing on this screen worth pressing.
+                    if (installingCore) CoreInstallingOverlay()
                 }
                 }   // Scaffold content
                 }   // background Box

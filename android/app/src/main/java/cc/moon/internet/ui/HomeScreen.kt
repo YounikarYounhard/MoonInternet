@@ -108,6 +108,9 @@ fun HomeScreen(
         // Two, not the desktop's three: a proxy-only mode is not a thing on Android — HAPP, INCY
         // and v2RayTun do not offer one either. Запрет is the mode the row was left open for, and
         // until it is installed there is only one mode — so the row goes and the moon moves up.
+        // Without the row the moon sat straight under the status bar. A little air in its place —
+        // not the whole band the row used to take.
+        if (!showModes) item { Spacer(Modifier.height(26.dp)) }
         if (showModes) item {
             Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

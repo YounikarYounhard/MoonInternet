@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -196,6 +198,76 @@ internal fun SheetItem(icon: ImageVector, text: String, onClick: () -> Unit, tin
  * Обновление — the dialog behind the tile on Home. Mirrors the desktop overlay: installed and
  * published versions, what changed, and a download that hands off to the browser.
  */
+/**
+ * "This server needs an engine you do not have."
+ *
+ * Asked before dialling rather than after: without it the attempt failed somewhere inside the core,
+ * against a port nobody had opened, and the message that came back said nothing anybody could act
+ * on. Отмена leaves everything as it was and does not connect.
+ */
+@Composable
+fun CoreNeededDialog(
+    coreTitle: String,
+    protocol: String,
+    onInstall: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Moon.Card,
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Memory, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.cores_need_title), color = Moon.TextPrimary,
+                     fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Text(stringResource(R.string.cores_need_body, protocol, coreTitle),
+                 color = Moon.TextSecondary, fontSize = 13.sp, lineHeight = 18.sp)
+        },
+        confirmButton = {
+            TextButton(onClick = onInstall) {
+                Text(stringResource(R.string.cores_install), color = Moon.Accent, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.settingsscreen_200), color = Moon.TextSecondary)
+            }
+        },
+    )
+}
+
+/**
+ * The screen that cannot be touched while an engine is being put in place.
+ *
+ * Deliberately blocking: once the engines arrive as separate packages the system ends the process
+ * partway through, and a half-pressed button on the way out is worse than a moment of waiting.
+ */
+@Composable
+fun CoreInstallingOverlay() {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xE60D0A18))
+            // Swallows everything, including the taps behind it.
+            .pointerInput(Unit) { detectTapGestures { } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = Moon.Accent, strokeWidth = 3.dp)
+            Text(stringResource(R.string.cores_installing), color = Moon.TextPrimary,
+                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                 modifier = Modifier.padding(top = 16.dp))
+            Text(stringResource(R.string.cores_restart), color = Moon.TextMuted,
+                 fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
+
 @Composable
 fun UpdateDialog(
     currentVersion: String,

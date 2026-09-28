@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import cc.moon.internet.R
 import cc.moon.internet.core.MoonCore
@@ -1107,11 +1108,17 @@ private fun DevPage(onCopy: (String, String) -> Unit) {
 @Composable
 private fun CoresPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit) {
     val ctx = LocalContext.current
+    val about = mapOf(
+        MoonCore.Xray to R.string.cores_xray,
+        MoonCore.Zapret to R.string.cores_zapret,
+        MoonCore.SingBox to R.string.cores_singbox,
+        MoonCore.Amnezia to R.string.cores_awg,
+    )
     Column {
-        CoreRow(MoonCore.Xray, stringResource(R.string.cores_xray), state, onSet, ctx, builtIn = true)
-        CoreRow(MoonCore.SingBox, stringResource(R.string.cores_singbox), state, onSet, ctx)
-        CoreRow(MoonCore.Amnezia, stringResource(R.string.cores_awg), state, onSet, ctx)
-        CoreRow(MoonCore.Zapret, stringResource(R.string.cores_zapret), state, onSet, ctx)
+        // Declaration order, which is the order the page is meant to read in.
+        MoonCore.entries.forEach { core ->
+            CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx)
+        }
     }
 }
 
@@ -1122,41 +1129,33 @@ private fun CoreRow(
     state: AppState,
     onSet: ((AppState.() -> AppState)) -> Unit,
     ctx: android.content.Context,
-    builtIn: Boolean = false,
 ) {
-    val installed = builtIn || core.id in state.installedCores
+    val installed = core.builtIn || core.id in state.installedCores
     MoonCard {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(core.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
                      color = Moon.TextPrimary, modifier = Modifier.weight(1f))
-                Text(
-                    stringResource(
-                        if (builtIn) R.string.cores_builtin
-                        else if (installed) R.string.cores_installed
-                        else R.string.cores_absent
-                    ),
-                    fontSize = 12.sp,
-                    color = if (installed) Moon.AccentText else Moon.TextMuted,
-                )
+                CoreBadge(core.builtIn, installed)
             }
             Text(about, color = Moon.TextSecondary, fontSize = 12.5.sp,
                  lineHeight = 17.sp, modifier = Modifier.padding(top = 4.dp))
-            if (!builtIn) {
-                Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Nothing to press for what ships with the app: it is here and it stays.
+            if (!core.builtIn) {
+                Row(Modifier.padding(top = 11.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // The binary is still in the build, so installing is a matter of saying so.
                     // Once the engines ship separately this is where the download goes.
                     if (!installed) {
-                        Chip(stringResource(R.string.cores_install), false) {
+                        Chip(stringResource(R.string.cores_install), true) {
                             if (core.present(ctx)) onSet { copy(installedCores = installedCores + core.id) }
                         }
-                    } else if (core == MoonCore.Zapret) {
+                    } else {
                         Chip(stringResource(R.string.cores_remove), false) {
                             onSet {
                                 copy(
                                     installedCores = installedCores - core.id,
-                                    // Leaving it selected would hide the row that switches it off.
-                                    connMode = if (connMode == "zapret") "tun" else connMode,
+                                    // Leaving Запрет selected would hide the row that switches it off.
+                                    connMode = if (core == MoonCore.Zapret && connMode == "zapret") "tun" else connMode,
                                 )
                             }
                         }
@@ -1164,6 +1163,29 @@ private fun CoreRow(
                 }
             }
         }
+    }
+}
+
+/**
+ * The word that says where an engine stands, as a plate rather than loose text.
+ *
+ * Three states that used to look identical: what ships with the app, what this install added, and
+ * what is not here. Built-in is deliberately the quiet one — it is not a choice anybody made.
+ */
+@Composable
+private fun CoreBadge(builtIn: Boolean, installed: Boolean) {
+    val (text, fg, bg) = when {
+        builtIn -> Triple(stringResource(R.string.cores_builtin), Moon.TextSecondary, Moon.ChipBg)
+        installed -> Triple(stringResource(R.string.cores_installed), Moon.AccentText, Moon.Accent.copy(alpha = 0.16f))
+        else -> Triple(stringResource(R.string.cores_absent), Moon.TextMuted, Color.Transparent)
+    }
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(bg)
+            .padding(horizontal = 9.dp, vertical = 3.dp)
+    ) {
+        Text(text, color = fg, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

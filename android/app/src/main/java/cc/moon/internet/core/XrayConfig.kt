@@ -266,7 +266,7 @@ object XrayConfig {
         mux: Boolean = false,
         fragment: Boolean = false,
     ): JSONObject {
-        val o = JSONObject().put("tag", tag).put("protocol", protoName(s.protocol))
+        val o = JSONObject().put("tag", tag).put("protocol", protoName(s))
         o.put("settings", when (s.protocol) {
             Protocol.VLESS -> vnext(s, JSONObject()
                 .put("id", s.id.orEmpty())
@@ -305,10 +305,22 @@ object XrayConfig {
                 .put("address", "127.0.0.1")
                 .put("port", cc.moon.internet.vpn.SingBoxRunner.PORT))
 
-            // WireGuard/AmneziaWG never reaches xray as itself: awgproxy holds the tunnel and this
-            // outbound is a SOCKS dial into it on loopback. Doing it this way is what hands
-            // AmneziaWG the whole routing table without any of it being written a second time.
-            Protocol.WIREGUARD -> JSONObject().put("servers", JSONArray().put(
+            // Plain WireGuard is one of xray's own protocols, so it goes out as itself. Only the
+            // obfuscated kind needs awgproxy — that is what awgproxy is for — and then this
+            // outbound is a SOCKS dial into it on loopback, which hands it the whole routing table
+            // without any of it being written a second time.
+            Protocol.WIREGUARD -> s.wg?.takeIf { !it.isAmnezia }?.let { wg ->
+                JSONObject()
+                    .put("secretKey", wg.privateKey)
+                    .put("address", JSONArray().apply { wg.address.forEach(::put) })
+                    .put("mtu", if (wg.mtu > 0) wg.mtu else 1420)
+                    .put("peers", JSONArray().put(JSONObject()
+                        .put("publicKey", wg.peerPublicKey)
+                        .put("endpoint", wg.endpoint)
+                        .put("keepAlive", wg.persistentKeepalive)
+                        .put("allowedIPs", JSONArray().apply { wg.allowedIps.forEach(::put) })
+                        .apply { wg.presharedKey?.takeIf { it.isNotBlank() }?.let { put("preSharedKey", it) } }))
+            } ?: JSONObject().put("servers", JSONArray().put(
                 JSONObject().put("address", "127.0.0.1")
                     .put("port", cc.moon.internet.vpn.AwgRunner.PORT)))
 
@@ -594,7 +606,7 @@ object XrayConfig {
     internal fun isIpLiteral(host: String): Boolean =
         host.contains(':') || (host.isNotEmpty() && host.all { it.isDigit() || it == '.' })
 
-    private fun protoName(p: Protocol) = when (p) {
+    private fun protoName(s: ServerProfile) = when (s.protocol) {
         Protocol.VLESS -> "vless"
         Protocol.VMESS -> "vmess"
         Protocol.TROJAN -> "trojan"
@@ -602,10 +614,10 @@ object XrayConfig {
         Protocol.SOCKS -> "socks"
         // Not "hysteria": sing-box holds that tunnel now and this outbound only dials into it.
         Protocol.HYSTERIA2 -> "socks"
-        // Not "wireguard": xray never speaks it. awgproxy holds the tunnel and this outbound is a
-        // SOCKS dial into it, which is what lends AmneziaWG the whole routing table for free.
-        Protocol.WIREGUARD -> "socks"
-        else -> p.name.lowercase()
+        // Per server, not per protocol: xray speaks WireGuard itself, and only the obfuscated kind
+        // goes out as a SOCKS dial into awgproxy.
+        Protocol.WIREGUARD -> if (s.wg?.isAmnezia == true) "socks" else "wireguard"
+        else -> s.protocol.name.lowercase()
     }
 
     /** Protocols the xray core can actually dial — the rest are hidden from the picker. */

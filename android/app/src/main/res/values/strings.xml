@@ -31,7 +31,7 @@
     <string name="cores_remove">"Удалить"</string>
     <string name="cores_xray">"Основное ядро. VLESS, VMess, Trojan, Shadowsocks и маршрутизация."</string>
     <string name="cores_singbox">"Hysteria2. У основного ядра своя реализация, и под фильтрацией она не работает."</string>
-    <string name="cores_awg">"AmneziaWG и WireGuard. Основное ядро их не умеет вовсе."</string>
+    <string name="cores_awg">"Только AmneziaWG — обычный WireGuard основное ядро умеет само."</string>
     <string name="cores_zapret">"Обход блокировок без сервера. Добавляет переключатель режима на Главную."</string>
     <string name="cores_need_title">"Нужно ядро"</string>
     <string name="cores_need_body">"Для протокола %1$s требуется ядро «%2$s». Установить его сейчас?"</string>
