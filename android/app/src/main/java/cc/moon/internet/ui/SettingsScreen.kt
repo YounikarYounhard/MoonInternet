@@ -22,7 +22,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import cc.moon.internet.R
+import cc.moon.internet.core.MoonCore
 import cc.moon.internet.core.RoutingProfile
 import cc.moon.internet.data.AppState
 
@@ -45,6 +47,7 @@ enum class SettingsPage(
     Ping(R.string.page_ping, R.string.page_ping_sub, Icons.Filled.Speed),
     Zapret(R.string.page_zapret, R.string.page_zapret_sub, Icons.Filled.Bolt),
     Auto(R.string.page_auto, R.string.page_auto_sub, Icons.Filled.PlayCircle),
+    Cores(R.string.page_cores, R.string.page_cores_sub, Icons.Filled.Memory),
     Notifications(R.string.page_notify, R.string.page_notify_sub, Icons.Filled.Notifications),
     Logs(R.string.page_logs, R.string.page_logs_sub, Icons.Filled.Description),
     About(R.string.page_about, R.string.page_about_sub, Icons.Filled.Info),
@@ -59,7 +62,7 @@ enum class SettingsPage(
 
     companion object {
         /** Exactly the cards the desktop hub shows, in the same order. */
-        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Zapret, Auto, Notifications, Logs, About)
+        val hub = listOf(Appearance, Connection, Routing, Subscriptions, Ping, Zapret, Auto, Cores, Notifications, Logs, About)
     }
 }
 
@@ -86,8 +89,13 @@ fun SettingsScreen(
             state = listState,
             contentPadding = PaddingValues(bottom = bottomNavSpace()),
         ) {
-            items(SettingsPage.hub.size) { i ->
-                val p = SettingsPage.hub[i]
+            // Запрет's own page goes with its engine: a page of settings for something the app
+            // cannot run is a door onto an empty room.
+            val hub = SettingsPage.hub.filter {
+                it != SettingsPage.Zapret || MoonCore.Zapret.id in state.installedCores
+            }
+            items(hub.size) { i ->
+                val p = hub[i]
                 HubCard(p.icon, stringResource(p.titleRes), stringResource(p.subtitleRes)) { onOpen(p) }
             }
         }
@@ -143,6 +151,7 @@ fun SettingsDetail(
                 SettingsPage.Ping -> PingPage(state, onSet)
                 SettingsPage.Zapret -> ZapretPage(state, onSet, zapretPing, zapretBusy, onCheckZapret, onAutoPickZapret)
                 SettingsPage.Auto -> AutoPage(state, onSet)
+                SettingsPage.Cores -> CoresPage(state, onSet)
                 SettingsPage.Notifications -> NotificationsPage(state, onSet)
                 SettingsPage.Logs -> LogsPage(state, logsSize, onSet, onClearLogs, onViewLog)
                 SettingsPage.Privacy -> PrivacyPage()
@@ -1080,6 +1089,81 @@ private fun DevPage(onCopy: (String, String) -> Unit) {
         }
         Text(stringResource(R.string.dev_hint), color = Moon.TextMuted, fontSize = 11.sp,
              modifier = Modifier.padding(4.dp, 10.dp))
+    }
+}
+
+/**
+ * Which engines this install has.
+ *
+ * Two of them are most of the download — sing-box is 20 MB for Hysteria2 alone, awgproxy 6 MB for
+ * AmneziaWG — against an app that is otherwise about four, and Запрет is here for a different
+ * reason: it weighs 71 KB and costs nothing to carry, but having it puts a row of mode buttons on
+ * the Home screen that most people never touch.
+ *
+ * Removing is not offered for what the build still carries: until the engines ship as separate
+ * packages, "remove" could only hide a file that stays on disk, and a button that lies about what
+ * it did is worse than no button.
+ */
+@Composable
+private fun CoresPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit) {
+    val ctx = LocalContext.current
+    Column {
+        CoreRow(MoonCore.Xray, stringResource(R.string.cores_xray), state, onSet, ctx, builtIn = true)
+        CoreRow(MoonCore.SingBox, stringResource(R.string.cores_singbox), state, onSet, ctx)
+        CoreRow(MoonCore.Amnezia, stringResource(R.string.cores_awg), state, onSet, ctx)
+        CoreRow(MoonCore.Zapret, stringResource(R.string.cores_zapret), state, onSet, ctx)
+    }
+}
+
+@Composable
+private fun CoreRow(
+    core: MoonCore,
+    about: String,
+    state: AppState,
+    onSet: ((AppState.() -> AppState)) -> Unit,
+    ctx: android.content.Context,
+    builtIn: Boolean = false,
+) {
+    val installed = builtIn || core.id in state.installedCores
+    MoonCard {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(core.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                     color = Moon.TextPrimary, modifier = Modifier.weight(1f))
+                Text(
+                    stringResource(
+                        if (builtIn) R.string.cores_builtin
+                        else if (installed) R.string.cores_installed
+                        else R.string.cores_absent
+                    ),
+                    fontSize = 12.sp,
+                    color = if (installed) Moon.AccentText else Moon.TextMuted,
+                )
+            }
+            Text(about, color = Moon.TextSecondary, fontSize = 12.5.sp,
+                 lineHeight = 17.sp, modifier = Modifier.padding(top = 4.dp))
+            if (!builtIn) {
+                Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // The binary is still in the build, so installing is a matter of saying so.
+                    // Once the engines ship separately this is where the download goes.
+                    if (!installed) {
+                        Chip(stringResource(R.string.cores_install), false) {
+                            if (core.present(ctx)) onSet { copy(installedCores = installedCores + core.id) }
+                        }
+                    } else if (core == MoonCore.Zapret) {
+                        Chip(stringResource(R.string.cores_remove), false) {
+                            onSet {
+                                copy(
+                                    installedCores = installedCores - core.id,
+                                    // Leaving it selected would hide the row that switches it off.
+                                    connMode = if (connMode == "zapret") "tun" else connMode,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

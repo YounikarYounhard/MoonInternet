@@ -58,6 +58,8 @@ fun HomeScreen(
     /** "tun" or "zapret" — the segmented switch above the moon. */
     connMode: String,
     onConnMode: (String) -> Unit,
+    /** The switch only exists once Запрет is installed; with one mode there is nothing to choose. */
+    showModes: Boolean,
     zapretStrategy: String,
     onPickZapret: (String) -> Unit,
     zapretPing: String,
@@ -104,8 +106,9 @@ fun HomeScreen(
     ) {
         // ---- режим, с плиткой обновления слева -----------------------------
         // Two, not the desktop's three: a proxy-only mode is not a thing on Android — HAPP, INCY
-        // and v2RayTun do not offer one either. Запрет is the mode the row was left open for.
-        item {
+        // and v2RayTun do not offer one either. Запрет is the mode the row was left open for, and
+        // until it is installed there is only one mode — so the row goes and the moon moves up.
+        if (showModes) item {
             Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Surface(

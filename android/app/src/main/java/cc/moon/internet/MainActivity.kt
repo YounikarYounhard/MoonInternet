@@ -310,6 +310,7 @@ class MainActivity : ComponentActivity() {
                                 // that is about to change shape reads as a freeze.
                                 switching = switchingMode,
                                 onConnMode = vm::setConnMode,
+                                showModes = cc.moon.internet.core.MoonCore.Zapret.id in state.installedCores,
                                 zapretStrategy = state.zapretStrategy,
                                 onPickZapret = vm::pickZapret,
                                 zapretPing = zapretPing,

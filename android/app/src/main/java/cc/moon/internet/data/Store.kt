@@ -171,6 +171,15 @@ data class AppState(
      * saved value from the old default wins forever and the change only reaches new installs.
      */
     val settingsVersion: Int = 0,
+    /**
+     * Ids of the engines this install has, beyond the one it is built around — see [MoonCore].
+     *
+     * Kept here rather than read off the disk every time because the two are about to differ: an
+     * engine that is present but not wanted still has its binary in the build until the splits
+     * exist, and Запрет is exactly that case — it weighs 71 KB, so nothing is saved by leaving it
+     * out, and the point was never the size but the row of mode buttons it puts on the Home screen.
+     */
+    val installedCores: List<String> = emptyList(),
 )
 
 /**
@@ -195,7 +204,7 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 15 }
+    private companion object { const val CURRENT_VERSION = 16 }
 
     private val loadOnce = kotlinx.coroutines.sync.Mutex()
     @Volatile private var loaded = false
@@ -252,6 +261,13 @@ class Store(private val ctx: Context) {
                 // v15: auto-connect keeps the server you chose instead of jumping to the first one.
                 autoConnectTarget = if (loaded.autoConnectTarget == "first") "last" else loaded.autoConnectTarget,
                 selectedServerRaw = loaded.selectedServerRaw?.substringBefore('#'),
+                // v16: engines became something you have. Whatever is already in the build counts
+                // as installed, so nobody loses a protocol on update — except Запрет, which is the
+                // one this was done for: it stays out unless this install has actually used it.
+                installedCores = MoonCore.optional
+                    .filter { it.present(ctx) }
+                    .filter { it != MoonCore.Zapret || loaded.connMode == "zapret" }
+                    .map { it.id },
                 settingsVersion = CURRENT_VERSION,
             ).also { save(it) }
         // Ids handed out here must survive the next launch, or the selection points at nothing.
