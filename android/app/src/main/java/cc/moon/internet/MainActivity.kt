@@ -19,6 +19,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -762,12 +763,35 @@ private fun NavTab(
 }
 
 /**
- * Back to the top of a list, as one unbroken movement.
+ * Back to the top of a list, as one unbroken movement on a curve of our own.
  *
- * It used to skip most of the way instantly and animate only the last stretch — quicker, and a
- * visible jolt: the jump is the part the eye catches, and no amount of easing afterwards hides it.
- * One animation the whole way costs a little more time and is the thing that actually looks smooth.
+ * Two earlier attempts at this were both called harsh, for two different reasons. Skipping most of
+ * the way instantly and animating the rest puts a jolt in the middle that no easing afterwards can
+ * hide. Plain animateScrollToItem has no jolt but no curve either — Compose's own spec goes to
+ * full speed almost at once and brakes at the end, so the list flickers past at its fastest right
+ * where the eye is still trying to follow it.
+ *
+ * So the distance is worked out up front and animated with a symmetric ease-in-out: slow away from
+ * the standstill, slow into the top, quickest in the middle where there is nothing to read anyway.
+ * Time grows with distance but stops growing, so a long list does not turn this into a journey.
+ *
+ * The distance is an estimate — item heights vary and a lazy list only knows the ones on screen —
+ * so it deliberately falls a little short and the item-based call finishes the last stretch. Short
+ * rather than long on purpose: an overshoot would have to come back, and that bounce is the one
+ * thing worse than a jolt.
  */
 private suspend fun androidx.compose.foundation.lazy.LazyListState.smoothToTop() {
+    val onScreen = layoutInfo.visibleItemsInfo
+    if (firstVisibleItemIndex > 0 && onScreen.isNotEmpty()) {
+        val itemHeight = onScreen.sumOf { it.size } / onScreen.size
+        val distance = firstVisibleItemIndex.toFloat() * itemHeight + firstVisibleItemScrollOffset
+        animateScrollBy(
+            -distance * 0.9f,
+            tween(
+                durationMillis = (distance / 9f).toInt().coerceIn(360, 780),
+                easing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f),
+            ),
+        )
+    }
     animateScrollToItem(0)
 }

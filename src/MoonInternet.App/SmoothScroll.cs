@@ -35,7 +35,7 @@ public static class SmoothScroll
         // Long enough to read as a movement, short enough not to be a wait. A fixed duration makes
         // a short page feel sluggish and a long one feel like a rocket, so it grows with the
         // distance and then stops growing.
-        double ms = Math.Clamp(from * 0.5, 320, 600);
+        double ms = Math.Clamp(from * 0.6, 360, 780);
         var slide = new DoubleAnimation(from, 0, TimeSpan.FromMilliseconds(ms))
         {
             // Eased at BOTH ends. An ease-out alone leaves the start abrupt — full speed from a
