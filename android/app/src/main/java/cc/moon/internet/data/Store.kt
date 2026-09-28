@@ -605,11 +605,15 @@ internal fun orderServers(
     // Filtering plainly. A protocol that no longer exists ANYWHERE would empty every list with no
     // chip selected to explain why, so it is caught before it gets here — see order(), which asks
     // that question of the whole collection rather than of one subscription at a time.
-    val kept = if (protocol.isEmpty()) list else list.filter { it.protocolLabel == protocol }
+    // The connected row is exempt from both filters. Pick a VLESS server, connect, then tap the
+    // Hysteria2 chip and the server you are actually using vanishes — the one row that should never
+    // be in question. Same for «★ Избранное» when it is not starred.
+    val active = { s: ServerProfile -> activeRaw != null && s.key == activeRaw }
+    val kept = if (protocol.isEmpty()) list else list.filter { it.protocolLabel == protocol || active(it) }
     return when (sort) {
         "ping" -> kept.sortedWith(compareBy(pinned, fav, { pings[it.pingKey]?.takeIf { p -> p >= 0 } ?: Int.MAX_VALUE }, { it.label }))
         "name" -> kept.sortedWith(compareBy(pinned, fav, { it.label.lowercase() }))
-        "favorite" -> kept.filter { fav(it) == 0 }.sortedWith(compareBy(pinned))
+        "favorite" -> kept.filter { fav(it) == 0 || active(it) }.sortedWith(compareBy(pinned))
         // "Обычная" is the subscription's own order with the stars lifted out of it — and the
         // pinned row above those, like every other mode here. It was the one branch that forgot
         // to ask, so in the order everybody actually uses the active server never moved at all.

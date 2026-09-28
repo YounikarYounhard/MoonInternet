@@ -51,10 +51,23 @@ class ServerOrderTest {
             assertEquals("sort=$sort", "alpha",
                 orderServers(all, emptyMap(), listOf(c.key), sort, "", a.key).first().label)
         }
-        // Not «★ Избранное». That one is a filter rather than an order — you asked to see the
-        // starred ones — so a server that is merely active is not in the list to be ranked.
-        assertEquals(listOf("charlie"),
+        // «★ Избранное» too, though it is a filter rather than an order: the row you are connected
+        // through is never the one to hide. It goes first, ahead of the starred ones.
+        assertEquals(listOf("alpha", "charlie"),
             names(orderServers(all, emptyMap(), listOf(c.key), "favorite", "", a.key)))
+    }
+
+    @Test
+    fun theConnectedServerSurvivesTheProtocolFilter() {
+        // Connect to a VLESS server, tap the Hysteria2 chip, and the server actually carrying your
+        // traffic used to vanish from the list — the one row that should never be in question.
+        val hy = server("hydra").copy(protocol = Protocol.HYSTERIA2)
+        val list = all + hy
+        assertEquals(listOf("alpha", "hydra"),
+            names(orderServers(list, emptyMap(), emptyList(), "", hy.protocolLabel, a.key)))
+        // With nothing connected it filters as plainly as before.
+        assertEquals(listOf("hydra"),
+            names(orderServers(list, emptyMap(), emptyList(), "", hy.protocolLabel, null)))
     }
 
     @Test
