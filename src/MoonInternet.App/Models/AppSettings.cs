@@ -30,6 +30,12 @@ public sealed class AppSettings
     /// </summary>
     public string ConnMode { get; set; } = "tun";
 
+    /// <summary>
+    /// Which engines this install has, by <see cref="MoonCore.Id"/>. The built-in ones are in the
+    /// list too, so one check answers the question for every engine rather than two.
+    /// </summary>
+    public List<string> InstalledCores { get; set; } = new() { "xray", "singbox" };
+
     /// <summary>Which zapret strategy to run, by its file name — <c>general (ALT2)</c>.</summary>
     public string ZapretStrategy { get; set; } = "general";
 
@@ -119,7 +125,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 13;
+    private const int CurrentVersion = 14;
 
     private void Migrate()
     {
@@ -167,6 +173,15 @@ public sealed class AppSettings
         // quietly replaced a deliberate choice with the top of the list on every launch — which
         // reads as the app switching servers by itself.
         if (SettingsVersion < 13 && AutoConnectTarget == "first") AutoConnectTarget = "last";
+
+        // v14: engines became something you have or do not have. Nobody asked for any of them, so
+        // an existing install keeps everything it is already using — except Запрет, which is only
+        // kept by someone who actually switched to that mode. Otherwise the upgrade would put a
+        // third mode button in front of people who never wanted it, which is the thing this change
+        // exists to stop.
+        if (SettingsVersion < 14)
+            InstalledCores = new List<string> { "xray", "singbox", "awg" }
+                .Concat(ConnMode == "zapret" ? new[] { "zapret" } : Array.Empty<string>()).ToList();
 
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }

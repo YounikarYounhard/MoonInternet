@@ -999,6 +999,56 @@ public partial class MainViewModel : ObservableObject
         finally { ZapretBusy = false; }
     }
 
+    // ===== Ядра =====
+    /// <summary>One row of the Ядра page. Immutable: the list is rebuilt when anything changes.
+    /// <paramref name="Divider"/> draws the hairline above it — everything but the first of a group.</summary>
+    public sealed record CoreRow(string Id, string Title, string About, bool Installed, bool Divider)
+    {
+        public bool NotInstalled => !Installed;
+    }
+
+    public ObservableCollection<CoreRow> BuiltInCores { get; } = new();
+    public ObservableCollection<CoreRow> OptionalCores { get; } = new();
+
+    /// <summary>Whether the Запрет button belongs on the mode row at all.</summary>
+    public bool ZapretInstalled => _settings.InstalledCores.Contains("zapret");
+
+    private void RefreshCores()
+    {
+        BuiltInCores.Clear();
+        OptionalCores.Clear();
+        foreach (var c in MoonCore.All)
+        {
+            var into = c.BuiltIn ? BuiltInCores : OptionalCores;
+            into.Add(new CoreRow(c.Id, c.Title, Localization.Loc.T(c.DescKey),
+                                 _settings.InstalledCores.Contains(c.Id), into.Count > 0));
+        }
+        OnPropertyChanged(nameof(ZapretInstalled));
+    }
+
+    [RelayCommand]
+    private void InstallCore(string id)
+    {
+        // The files ship with the build for now, so installing is a matter of saying so. Once the
+        // engines move out into their own download this is where it goes.
+        var core = MoonCore.All.FirstOrDefault(c => c.Id == id);
+        if (core is null || !core.Present(CoreLocator.CoresDir())) return;
+        if (!_settings.InstalledCores.Contains(id)) _settings.InstalledCores.Add(id);
+        _settings.Save();
+        RefreshCores();
+    }
+
+    [RelayCommand]
+    private void RemoveCore(string id)
+    {
+        _settings.InstalledCores.Remove(id);
+        _settings.Save();
+        RefreshCores();
+        // Leaving Запрет selected would take away the button that switches it back off — and with
+        // it the only way out of a mode that is no longer installed.
+        if (id == "zapret" && ConnMode == "zapret") _ = SetConnMode("tun");
+    }
+
     /// <summary>Reads the strategies off disk. Cheap, and the folder only changes on an update.</summary>
     private void LoadZapretStrategies()
     {
@@ -1643,6 +1693,10 @@ public partial class MainViewModel : ObservableObject
         ConnMode = _settings.ConnMode;
         ZapretGameFilter = _settings.ZapretGameFilter;
         LoadZapretStrategies();
+        RefreshCores();
+        // A mode whose engine is not installed is a mode with no way back to it once the button is
+        // gone, so a save that still says "zapret" starts on the tunnel instead.
+        if (ConnMode == "zapret" && !ZapretInstalled) { ConnMode = "tun"; _settings.ConnMode = "tun"; }
         LaunchMinimized = _settings.StartMinimized;
         Autostart = _settings.Autostart;
         var saved = LayoutStore.Load();
@@ -2174,6 +2228,7 @@ public partial class MainViewModel : ObservableObject
         "subs" => "S_SettingsView_009",
         "ping" => "S_SettingsView_011",
         "auto" => "S_SettingsView_013",
+        "cores" => "S_Page_Cores",
         "logs" => "S_SettingsView_015",
         "privacy" => "S_SettingsView_188",
         "about" => "S_SettingsView_017",

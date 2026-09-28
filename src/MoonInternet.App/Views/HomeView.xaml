@@ -25,8 +25,11 @@
                         <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="TUN" Padding="22,7"
                                      IsChecked="{Binding IsTunMode, Mode=OneWay}"
                                      Command="{Binding SetConnModeCommand}" CommandParameter="tun"/>
+                        <!-- Only once its engine is installed. Прокси and TUN are the app itself, so
+                             unlike the phone the row never disappears — it just loses a third button. -->
                         <RadioButton Style="{StaticResource SegButton}" GroupName="mode" Content="{DynamicResource S_Mode_Zapret}" Padding="18,7"
                                      IsChecked="{Binding IsZapretMode, Mode=OneWay}"
+                                     Visibility="{Binding ZapretInstalled, Converter={StaticResource BoolVis}}"
                                      Command="{Binding SetConnModeCommand}" CommandParameter="zapret"/>
                     </StackPanel>
                 </Border>

@@ -26,19 +26,20 @@ enum class MoonCore(
     /** Always here. Ships with the app and cannot be removed, because something needs it. */
     val builtIn: Boolean = false,
 ) {
-    // Declaration order is the order of the Ядра page.
+    // Declaration order is the order of the Ядра page, and the built-in ones come first because
+    // the page shows them as their own group: what the app carries, then what can be added to it.
     /** The core everything else is built around; a library inside the APK, never separate. */
     Xray("xray", "Xray", null, builtIn = true),
-    /**
-     * Second, and apart from the rest: Запрет is not another way to reach a server, it is a
-     * feature of its own — no server, no subscription, nothing to choose between.
-     */
-    Zapret("zapret", "Zapret", "libbyedpi.so"),
     /**
      * Built in despite its 20 MB: Hysteria2 is in very nearly every subscription, so an install
      * without it is an install that cannot connect to half of what it is given.
      */
     SingBox("singbox", "sing-box", "libsingbox.so", builtIn = true),
+    /**
+     * First of the optional ones: Запрет is not another way to reach a server, it is a feature of
+     * its own — no server, no subscription, nothing to choose between.
+     */
+    Zapret("zapret", "Zapret", "libbyedpi.so"),
     Amnezia("awg", "AmneziaWG", "libawgproxy.so"),
     ;
 

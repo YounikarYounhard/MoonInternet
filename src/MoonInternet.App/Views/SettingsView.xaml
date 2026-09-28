@@ -123,8 +123,11 @@
                 <Button Style="{StaticResource HubCard}" Tag="&#xE71B;" Content="{DynamicResource S_SettingsView_007}" ToolTip="{DynamicResource S_SettingsView_008}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="routing"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xE8F1;" Content="{DynamicResource S_SettingsView_009}" ToolTip="{DynamicResource S_SettingsView_010}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="subs"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xEC4A;" Content="{DynamicResource S_SettingsView_011}" ToolTip="{DynamicResource S_SettingsView_012}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="ping"/>
-                <Button Style="{StaticResource HubCard}" Tag="&#xE945;" Content="{DynamicResource S_Zapret_PageTitle}" ToolTip="{DynamicResource S_Zapret_PageHint}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="zapret"/>
+                <!-- Zapret's own settings go with its engine: no engine, no page to open. -->
+                <Button Style="{StaticResource HubCard}" Tag="&#xE945;" Content="{DynamicResource S_Zapret_PageTitle}" ToolTip="{DynamicResource S_Zapret_PageHint}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="zapret"
+                        Visibility="{Binding ZapretInstalled, Converter={StaticResource BoolVis}}"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xEC92;" Content="{DynamicResource S_SettingsView_013}" ToolTip="{DynamicResource S_SettingsView_014}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="auto"/>
+                <Button Style="{StaticResource HubCard}" Tag="&#xE950;" Content="{DynamicResource S_Page_Cores}" ToolTip="{DynamicResource S_Page_Cores_Sub}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="cores"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xEA8F;" Content="{DynamicResource S_Page_Notify}" ToolTip="{DynamicResource S_Notify_Hub_Sub}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="notify"/>
                 <Button Style="{StaticResource HubCard}" Tag="&#xE7C3;" Content="{DynamicResource S_SettingsView_015}" ToolTip="{DynamicResource S_SettingsView_016}" Command="{Binding OpenSettingsPageCommand}" CommandParameter="logs"/>
                 <!-- Политики конфиденциальности здесь нет: она открывается из «О приложении»,
@@ -553,6 +556,69 @@
                         </Grid>
                     </StackPanel>
                 </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= ЯДРА ================= -->
+        <!-- Two groups under their own labels: what the app carries, and what can be added to it.
+             The phone page is the same list in the same order, down to the wording. -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" PreviewMouseWheel="PageScroll_PreviewMouseWheel"
+                      Visibility="{Binding SettingsPage, Converter={StaticResource EnumVis}, ConverterParameter=cores}">
+            <StackPanel Margin="24,20,24,24">
+
+                <TextBlock Text="{DynamicResource S_Cores_GroupBuiltin}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,0,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <ItemsControl ItemsSource="{Binding BuiltInCores}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"
+                                            Visibility="{Binding Divider, Converter={StaticResource BoolVis}}"/>
+                                    <StackPanel Margin="12">
+                                        <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding About}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <TextBlock Text="{DynamicResource S_Cores_GroupOptional}" Foreground="{StaticResource SectionLabel}" FontSize="10.5" FontWeight="SemiBold" Margin="4,18,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="6">
+                    <ItemsControl ItemsSource="{Binding OptionalCores}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                <Border Height="1" Background="{StaticResource BorderSoft}" Margin="12,0"
+                                        Visibility="{Binding Divider, Converter={StaticResource BoolVis}}"/>
+                                <Grid Margin="12">
+                                    <StackPanel Margin="0,0,110,0">
+                                        <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding About}" Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{DynamicResource S_Cores_Installed}" Foreground="{StaticResource Green}" FontSize="11.5" FontWeight="SemiBold" Margin="0,6,0,0"
+                                                   Visibility="{Binding Installed, Converter={StaticResource BoolVis}}"/>
+                                    </StackPanel>
+                                    <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_Cores_Install}" FontSize="12.5" Padding="14,7"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Command="{Binding DataContext.InstallCoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Id}"
+                                            Visibility="{Binding NotInstalled, Converter={StaticResource BoolVis}}"/>
+                                    <!-- Red, like every other button here that takes something away. -->
+                                    <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_Cores_Remove}" FontSize="12.5" Padding="14,7"
+                                            Background="#33FF6B8A" Foreground="{StaticResource Danger}"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Command="{Binding DataContext.RemoveCoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding Id}"
+                                            Visibility="{Binding Installed, Converter={StaticResource BoolVis}}"/>
+                                </Grid>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <TextBlock Text="{DynamicResource S_Cores_Note}" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="4,14,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </ScrollViewer>
 

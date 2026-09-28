@@ -22,7 +22,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import cc.moon.internet.R
 import cc.moon.internet.core.MoonCore
@@ -1096,32 +1095,45 @@ private fun DevPage(onCopy: (String, String) -> Unit) {
 /**
  * Which engines this install has.
  *
- * Two of them are most of the download — sing-box is 20 MB for Hysteria2 alone, awgproxy 6 MB for
- * AmneziaWG — against an app that is otherwise about four, and Запрет is here for a different
- * reason: it weighs 71 KB and costs nothing to carry, but having it puts a row of mode buttons on
- * the Home screen that most people never touch.
+ * Two groups under their own labels, each one card with hairlines between the rows — the same
+ * shape every other settings page uses. Four loose cards in a row, which is what this was, read as
+ * one grey block with no hierarchy in it, and nothing on the page said which engines are a choice
+ * and which are simply the app.
  *
- * Removing is not offered for what the build still carries: until the engines ship as separate
- * packages, "remove" could only hide a file that stays on disk, and a button that lies about what
- * it did is worse than no button.
+ * Removing is not offered for what the build carries: until the engines ship as separate packages,
+ * "remove" could only hide a file that stays on disk, and a button that lies is worse than none.
  */
 @Composable
 private fun CoresPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit) {
     val ctx = LocalContext.current
     val about = mapOf(
         MoonCore.Xray to R.string.cores_xray,
-        MoonCore.Zapret to R.string.cores_zapret,
         MoonCore.SingBox to R.string.cores_singbox,
+        MoonCore.Zapret to R.string.cores_zapret,
         MoonCore.Amnezia to R.string.cores_awg,
     )
+    val (builtIn, optional) = MoonCore.entries.partition { it.builtIn }
     Column {
-        // Declaration order, which is the order the page is meant to read in.
-        MoonCore.entries.forEach { core ->
-            CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx)
+        SectionLabel(stringResource(R.string.cores_group_builtin), top = 0)
+        MoonCard(padding = 0) {
+            builtIn.forEachIndexed { i, core ->
+                if (i > 0) RowDivider()
+                CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx)
+            }
         }
+        SectionLabel(stringResource(R.string.cores_group_optional))
+        MoonCard(padding = 0) {
+            optional.forEachIndexed { i, core ->
+                if (i > 0) RowDivider()
+                CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx)
+            }
+        }
+        Text(stringResource(R.string.cores_note), color = Moon.TextMuted, fontSize = 11.sp,
+             lineHeight = 16.sp, modifier = Modifier.padding(start = 4.dp, top = 14.dp))
     }
 }
 
+/** Name and what it does on the left, what to do about it on the right — geometry of [NavRow]. */
 @Composable
 private fun CoreRow(
     core: MoonCore,
@@ -1130,62 +1142,49 @@ private fun CoreRow(
     onSet: ((AppState.() -> AppState)) -> Unit,
     ctx: android.content.Context,
 ) {
-    val installed = core.builtIn || core.id in state.installedCores
-    MoonCard {
-        Column(Modifier.padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(core.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                     color = Moon.TextPrimary, modifier = Modifier.weight(1f))
-                CoreBadge(core.builtIn, installed)
+    val installed = core.id in state.installedCores
+    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(core.title, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(about, color = Moon.TextSecondary, fontSize = 12.sp, lineHeight = 16.sp,
+                 modifier = Modifier.padding(top = 2.dp))
+            // The state of an optional engine, under its own name rather than off in the margin:
+            // the button beside it says what pressing does, not where the engine stands.
+            if (!core.builtIn && installed) {
+                Text(stringResource(R.string.cores_installed), color = Moon.Green, fontSize = 11.5.sp,
+                     fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp))
             }
-            Text(about, color = Moon.TextSecondary, fontSize = 12.5.sp,
-                 lineHeight = 17.sp, modifier = Modifier.padding(top = 4.dp))
-            // Nothing to press for what ships with the app: it is here and it stays.
-            if (!core.builtIn) {
-                Row(Modifier.padding(top = 11.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // The binary is still in the build, so installing is a matter of saying so.
-                    // Once the engines ship separately this is where the download goes.
-                    if (!installed) {
-                        Chip(stringResource(R.string.cores_install), true) {
-                            if (core.present(ctx)) onSet { copy(installedCores = installedCores + core.id) }
+        }
+        // Nothing to press for what ships with the app: it is here and it stays.
+        if (!core.builtIn) {
+            // The binary is still in the build, so installing is a matter of saying so. Once the
+            // engines ship separately this is where the download goes.
+            if (!installed) {
+                Chip(stringResource(R.string.cores_install), true) {
+                    if (core.present(ctx)) onSet { copy(installedCores = installedCores + core.id) }
+                }
+            } else {
+                // Red, like every other button here that takes something away.
+                Surface(
+                    onClick = {
+                        onSet {
+                            copy(
+                                installedCores = installedCores - core.id,
+                                // Leaving Запрет selected would hide the row that switches it off.
+                                connMode = if (core == MoonCore.Zapret && connMode == "zapret") "tun" else connMode,
+                            )
                         }
-                    } else {
-                        Chip(stringResource(R.string.cores_remove), false) {
-                            onSet {
-                                copy(
-                                    installedCores = installedCores - core.id,
-                                    // Leaving Запрет selected would hide the row that switches it off.
-                                    connMode = if (core == MoonCore.Zapret && connMode == "zapret") "tun" else connMode,
-                                )
-                            }
-                        }
-                    }
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    color = Moon.Danger.copy(alpha = 0.16f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Moon.Danger.copy(alpha = 0.55f)),
+                ) {
+                    Text(stringResource(R.string.cores_remove),
+                         Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                         color = Moon.Danger, fontSize = 12.5.sp)
                 }
             }
         }
-    }
-}
-
-/**
- * The word that says where an engine stands, as a plate rather than loose text.
- *
- * Three states that used to look identical: what ships with the app, what this install added, and
- * what is not here. Built-in is deliberately the quiet one — it is not a choice anybody made.
- */
-@Composable
-private fun CoreBadge(builtIn: Boolean, installed: Boolean) {
-    val (text, fg, bg) = when {
-        builtIn -> Triple(stringResource(R.string.cores_builtin), Moon.TextSecondary, Moon.ChipBg)
-        installed -> Triple(stringResource(R.string.cores_installed), Moon.AccentText, Moon.Accent.copy(alpha = 0.16f))
-        else -> Triple(stringResource(R.string.cores_absent), Moon.TextMuted, Color.Transparent)
-    }
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(9.dp))
-            .background(bg)
-            .padding(horizontal = 9.dp, vertical = 3.dp)
-    ) {
-        Text(text, color = fg, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
