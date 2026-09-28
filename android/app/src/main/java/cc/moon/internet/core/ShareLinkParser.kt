@@ -125,7 +125,10 @@ object ShareLinkParser {
             security = "tls",
             sni = q("sni") ?: q("peer"),
             alpn = q("alpn"),
-            allowInsecure = q("insecure") == "1",
+            // "true" as well as "1": panels write both, the desktop parser has always taken either,
+            // and the phone taking only one meant a self-signed server failed its handshake here
+            // and connected there.
+            allowInsecure = q("insecure") in listOf("1", "true"),
             obfs = q("obfs"),
             obfsPassword = q("obfs-password"),
             // The rest of the query as it came. The bandwidth hints live there under names that
