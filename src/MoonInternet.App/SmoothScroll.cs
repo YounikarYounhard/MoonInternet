@@ -35,11 +35,13 @@ public static class SmoothScroll
         // Long enough to read as a movement, short enough not to be a wait. A fixed duration makes
         // a short page feel sluggish and a long one feel like a rocket, so it grows with the
         // distance and then stops growing.
-        double ms = Math.Clamp(from * 0.55, 180, 420);
+        double ms = Math.Clamp(from * 0.5, 320, 600);
         var slide = new DoubleAnimation(from, 0, TimeSpan.FromMilliseconds(ms))
         {
-            // Fast off the mark, easing into the top — the same shape the phone's fling has.
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            // Eased at BOTH ends. An ease-out alone leaves the start abrupt — full speed from a
+            // standstill in one frame, which is the jolt the eye actually objects to; the soft
+            // landing was never the problem. This pulls away gently and arrives gently.
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
             // Released at the end, so the wheel and the scrollbar own the offset again. The value
             // it falls back to is zero, which is where the animation was going anyway.
             FillBehavior = FillBehavior.Stop,

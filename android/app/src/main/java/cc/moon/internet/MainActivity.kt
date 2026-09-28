@@ -762,14 +762,12 @@ private fun NavTab(
 }
 
 /**
- * Back to the top of a list: quick, but still a movement rather than a jump.
+ * Back to the top of a list, as one unbroken movement.
  *
- * animateScrollToItem on its own walks the whole way through the list, so from the bottom of
- * thirty-six servers it is a long blur that ends whenever it ends. Everything past a couple of
- * screenfuls is skipped instantly first and only the last stretch is animated, which means the
- * page glides up at the same speed whether it started ten items down or a hundred.
+ * It used to skip most of the way instantly and animate only the last stretch — quicker, and a
+ * visible jolt: the jump is the part the eye catches, and no amount of easing afterwards hides it.
+ * One animation the whole way costs a little more time and is the thing that actually looks smooth.
  */
 private suspend fun androidx.compose.foundation.lazy.LazyListState.smoothToTop() {
-    if (firstVisibleItemIndex > 8) scrollToItem(8)
     animateScrollToItem(0)
 }

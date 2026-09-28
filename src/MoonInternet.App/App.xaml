@@ -542,7 +542,13 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="b" CornerRadius="11" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
                                 BorderBrush="#8CFF6B8A" BorderThickness="1">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <!-- A TextBlock of our own, not a ContentPresenter: a presenter wraps a
+                                 string in a TextBlock, and the window-wide TextBlock style then
+                                 paints it TextPrimary — over the button's own Foreground. Which is
+                                 why this button was a red plate with white letters on it. -->
+                            <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#4DFF6B8A"/></Trigger>
