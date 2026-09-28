@@ -24,8 +24,8 @@
     <string name="page_auto_sub">"Автоподключение, выбор сервера"</string>
     <string name="page_cores">"Ядра"</string>
     <string name="page_cores_sub">"Движки протоколов и обхода блокировок"</string>
-    <string name="cores_group_builtin">"ВХОДЯТ В ПРИЛОЖЕНИЕ"</string>
-    <string name="cores_group_optional">"МОЖНО ДОБАВИТЬ"</string>
+    <string name="cores_group_builtin">"ВСТРОЕННЫЕ"</string>
+    <string name="cores_group_optional">"ДОПОЛНИТЕЛЬНЫЕ"</string>
     <string name="cores_installed">"Установлено"</string>
     <string name="cores_install">"Установить"</string>
     <string name="cores_remove">"Удалить"</string>

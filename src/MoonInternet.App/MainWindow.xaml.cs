@@ -39,7 +39,7 @@ public partial class MainWindow : Window
     private void ScrollActivePageToTop()
     {
         foreach (var sv in Descendants<System.Windows.Controls.ScrollViewer>(this))
-            if (sv.IsVisible) sv.ScrollToVerticalOffset(0);
+            if (sv.IsVisible) SmoothScroll.ToTop(sv);
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject

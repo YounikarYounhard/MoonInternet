@@ -605,8 +605,7 @@
                                             CommandParameter="{Binding Id}"
                                             Visibility="{Binding NotInstalled, Converter={StaticResource BoolVis}}"/>
                                     <!-- Red, like every other button here that takes something away. -->
-                                    <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_Cores_Remove}" FontSize="12.5" Padding="14,7"
-                                            Background="#33FF6B8A" Foreground="{StaticResource Danger}"
+                                    <Button Style="{StaticResource DangerChip}" Content="{DynamicResource S_Cores_Remove}" FontSize="12.5" Padding="14,7"
                                             HorizontalAlignment="Right" VerticalAlignment="Center"
                                             Command="{Binding DataContext.RemoveCoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding Id}"

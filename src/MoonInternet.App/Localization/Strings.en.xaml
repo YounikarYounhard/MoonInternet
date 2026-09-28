@@ -494,8 +494,8 @@
     <s:String x:Key="S_VM_ZapretFailed">Could not start Zapret</s:String>
     <s:String x:Key="S_Page_Cores">Engines</s:String>
     <s:String x:Key="S_Page_Cores_Sub">Protocol and bypass engines</s:String>
-    <s:String x:Key="S_Cores_GroupBuiltin">SHIPPED WITH THE APP</s:String>
-    <s:String x:Key="S_Cores_GroupOptional">CAN BE ADDED</s:String>
+    <s:String x:Key="S_Cores_GroupBuiltin">BUILT IN</s:String>
+    <s:String x:Key="S_Cores_GroupOptional">ADDITIONAL</s:String>
     <s:String x:Key="S_Cores_Installed">Installed</s:String>
     <s:String x:Key="S_Cores_Install">Install</s:String>
     <s:String x:Key="S_Cores_Remove">Remove</s:String>

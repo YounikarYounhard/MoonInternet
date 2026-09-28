@@ -22,8 +22,8 @@
     <string name="page_auto_sub">"Auto-connect, server choice"</string>
     <string name="page_cores">"Engines"</string>
     <string name="page_cores_sub">"Protocol and bypass engines"</string>
-    <string name="cores_group_builtin">"SHIPPED WITH THE APP"</string>
-    <string name="cores_group_optional">"CAN BE ADDED"</string>
+    <string name="cores_group_builtin">"BUILT IN"</string>
+    <string name="cores_group_optional">"ADDITIONAL"</string>
     <string name="cores_installed">"Installed"</string>
     <string name="cores_install">"Install"</string>
     <string name="cores_remove">"Remove"</string>

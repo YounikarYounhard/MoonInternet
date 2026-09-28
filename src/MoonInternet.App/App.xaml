@@ -531,6 +531,27 @@
             <Setter Property="Foreground" Value="{StaticResource Danger}"/>
         </Style>
 
+        <!-- Red plate for a button that takes something away. PrimaryButton draws no border, and a
+             fill alone at this alpha reads as dark plum on our card rather than as red — the outline
+             is what makes it read. Same three values as the phone's chip. -->
+        <Style x:Key="DangerChip" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Foreground" Value="{StaticResource Danger}"/>
+            <Setter Property="Background" Value="#33FF6B8A"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" CornerRadius="11" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+                                BorderBrush="#8CFF6B8A" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#4DFF6B8A"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ===== Dropdown menu opened from a "⋯" button (dark, rounded; items use TrayMenuItem) ===== -->
         <Style x:Key="DropMenu" TargetType="ContextMenu">
             <!-- A menu is its own popup window, so it does not inherit the smooth text

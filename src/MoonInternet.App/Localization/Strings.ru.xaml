@@ -464,8 +464,8 @@
     <s:String x:Key="S_VM_ZapretFailed">Не удалось включить Zapret</s:String>
     <s:String x:Key="S_Page_Cores">Ядра</s:String>
     <s:String x:Key="S_Page_Cores_Sub">Движки протоколов и обхода блокировок</s:String>
-    <s:String x:Key="S_Cores_GroupBuiltin">ВХОДЯТ В ПРИЛОЖЕНИЕ</s:String>
-    <s:String x:Key="S_Cores_GroupOptional">МОЖНО ДОБАВИТЬ</s:String>
+    <s:String x:Key="S_Cores_GroupBuiltin">ВСТРОЕННЫЕ</s:String>
+    <s:String x:Key="S_Cores_GroupOptional">ДОПОЛНИТЕЛЬНЫЕ</s:String>
     <s:String x:Key="S_Cores_Installed">Установлено</s:String>
     <s:String x:Key="S_Cores_Install">Установить</s:String>
     <s:String x:Key="S_Cores_Remove">Удалить</s:String>

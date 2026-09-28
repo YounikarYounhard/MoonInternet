@@ -554,11 +554,11 @@ class MainActivity : ComponentActivity() {
                         // the way every phone app behaves, and the only way back up from the
                         // bottom of a long server list without a lot of swiping.
                         onServers = {
-                            if (page == Page.Servers) navScope.launch { serversScroll.animateScrollToItem(0) }
+                            if (page == Page.Servers) navScope.launch { serversScroll.smoothToTop() }
                             else page = Page.Servers
                         },
                         onHome = {
-                            if (page == Page.Home) navScope.launch { homeScroll.animateScrollToItem(0) }
+                            if (page == Page.Home) navScope.launch { homeScroll.smoothToTop() }
                             else page = Page.Home
                         },
                         // Always the settings root. Opening the logs, wandering to Servers and
@@ -567,7 +567,7 @@ class MainActivity : ComponentActivity() {
                         // has nothing left to close, so it scrolls instead.
                         onSettings = {
                             if (page == Page.Settings && settingsPage == null)
-                                navScope.launch { settingsScroll.animateScrollToItem(0) }
+                                navScope.launch { settingsScroll.smoothToTop() }
                             else { settingsPage = null; settingsBack.clear(); page = Page.Settings }
                         },
                     )
@@ -759,4 +759,17 @@ private fun NavTab(
         Text(text, color = if (active) Moon.TextPrimary else Moon.TextSecondary, fontSize = 11.5.sp,
              fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
     }
+}
+
+/**
+ * Back to the top of a list: quick, but still a movement rather than a jump.
+ *
+ * animateScrollToItem on its own walks the whole way through the list, so from the bottom of
+ * thirty-six servers it is a long blur that ends whenever it ends. Everything past a couple of
+ * screenfuls is skipped instantly first and only the last stretch is animated, which means the
+ * page glides up at the same speed whether it started ten items down or a hundred.
+ */
+private suspend fun androidx.compose.foundation.lazy.LazyListState.smoothToTop() {
+    if (firstVisibleItemIndex > 8) scrollToItem(8)
+    animateScrollToItem(0)
 }
