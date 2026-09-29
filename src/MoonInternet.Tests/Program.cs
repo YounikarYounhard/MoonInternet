@@ -911,5 +911,25 @@ Check("apppaths dir exists", System.IO.Directory.Exists(dd));
 try { var t = System.IO.Path.Combine(dd, ".t"); System.IO.File.WriteAllText(t, "x"); System.IO.File.Delete(t); Check("apppaths writable", true); }
 catch { Check("apppaths writable", false); }
 
+// --- A downloaded engine wins over the bundled one ---
+// AmneziaWG is not in the installer any more: it is fetched into the writable data folder, because
+// the folder beside the exe is under Program Files and the app runs without administrator rights.
+// Get this resolution wrong and the app says the engine is missing while it sits on disk — silently,
+// and only for the people who downloaded it.
+string awgHome = System.IO.Path.Combine(MoonInternet.Core.AppPaths.In("cores"), "awg");
+string awgHomeExe = System.IO.Path.Combine(awgHome, "awgproxy.exe");
+try
+{
+    if (System.IO.Directory.Exists(awgHome)) System.IO.Directory.Delete(awgHome, true);
+    using (var none = new AwgProxyRunner(System.IO.Path.Combine(dd, "no-such-cores")))
+        Check("awg missing everywhere reads as missing", !none.CoreAvailable);
+
+    System.IO.Directory.CreateDirectory(awgHome);
+    System.IO.File.WriteAllText(awgHomeExe, "");
+    using (var downloaded = new AwgProxyRunner(System.IO.Path.Combine(dd, "no-such-cores")))
+        Check("awg found where it was downloaded", downloaded.CoreAvailable);
+}
+finally { try { System.IO.Directory.Delete(awgHome, true); } catch { } }
+
 Console.WriteLine($"\n{passed} passed, {failed} failed");
 return failed == 0 ? 0 : 1;

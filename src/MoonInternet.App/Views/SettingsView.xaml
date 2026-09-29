@@ -610,6 +610,13 @@
                                             Command="{Binding DataContext.RemoveCoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding Id}"
                                             Visibility="{Binding Installed, Converter={StaticResource BoolVis}}"/>
+                                    <!-- While it downloads, the percentage stands where the button
+                                         was: a button that still says "Установить" during its own
+                                         download invites a second press. -->
+                                    <TextBlock Text="{Binding Busy}" Foreground="{StaticResource AccentText}"
+                                               FontSize="12.5" FontWeight="SemiBold"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Visibility="{Binding Working, Converter={StaticResource BoolVis}}"/>
                                 </Grid>
                                 </StackPanel>
                             </DataTemplate>

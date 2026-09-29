@@ -1002,9 +1002,11 @@ public partial class MainViewModel : ObservableObject
     // ===== Ядра =====
     /// <summary>One row of the Ядра page. Immutable: the list is rebuilt when anything changes.
     /// <paramref name="Divider"/> draws the hairline above it — everything but the first of a group.</summary>
-    public sealed record CoreRow(string Id, string Title, string About, bool Installed, bool Divider)
+    public sealed record CoreRow(
+        string Id, string Title, string About, bool Installed, bool Divider, string Busy = "")
     {
-        public bool NotInstalled => !Installed;
+        public bool NotInstalled => !Installed && Busy.Length == 0;
+        public bool Working => Busy.Length > 0;
     }
 
     public ObservableCollection<CoreRow> BuiltInCores { get; } = new();
@@ -1013,34 +1015,107 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Whether the Запрет button belongs on the mode row at all.</summary>
     public bool ZapretInstalled => _settings.InstalledCores.Contains("zapret");
 
+    /// <summary>What a row shows while it is downloading, keyed by engine id.</summary>
+    private readonly Dictionary<string, string> _coreBusy = new();
+
     private void RefreshCores()
     {
         BuiltInCores.Clear();
         OptionalCores.Clear();
+        string bundled = CoreLocator.CoresDir();
         foreach (var c in MoonCore.All)
         {
             var into = c.BuiltIn ? BuiltInCores : OptionalCores;
-            into.Add(new CoreRow(c.Id, c.Title, Localization.Loc.T(c.DescKey),
-                                 _settings.InstalledCores.Contains(c.Id), into.Count > 0));
+            // For a downloaded engine: the files, not the intention — one chosen once but never
+            // fetched is not installed. For one still in the installer the choice is all there is.
+            bool installed = c.BuiltIn || (c.Downloadable ? c.Present(bundled)
+                                                          : _settings.InstalledCores.Contains(c.Id));
+            into.Add(new CoreRow(c.Id, c.Title, Localization.Loc.T(c.DescKey), installed,
+                                 into.Count > 0, _coreBusy.GetValueOrDefault(c.Id, "")));
         }
         OnPropertyChanged(nameof(ZapretInstalled));
     }
 
     [RelayCommand]
-    private void InstallCore(string id)
+    private async Task InstallCore(string id)
     {
-        // The files ship with the build for now, so installing is a matter of saying so. Once the
-        // engines move out into their own download this is where it goes.
-        var core = MoonCore.All.FirstOrDefault(c => c.Id == id);
-        if (core is null || !core.Present(CoreLocator.CoresDir())) return;
-        if (!_settings.InstalledCores.Contains(id)) _settings.InstalledCores.Add(id);
-        _settings.Save();
+        var core = MoonCore.ById(id);
+        if (core is null) return;
+
+        // An engine still carried in the installer has nothing to fetch; wanting it is the whole
+        // installation.
+        if (!core.Downloadable)
+        {
+            if (!core.Present(CoreLocator.CoresDir())) return;
+            if (!_settings.InstalledCores.Contains(id)) _settings.InstalledCores.Add(id);
+            _settings.Save();
+            RefreshCores();
+            return;
+        }
+
+        if (_coreBusy.ContainsKey(id)) return;
+        _coreBusy[id] = Localization.Loc.T("S_Cores_Fetching");
+        RefreshCores();
+        string? why = await FetchCoreAsync(core);
+        _coreBusy.Remove(id);
+        if (why is null && !_settings.InstalledCores.Contains(id))
+        {
+            _settings.InstalledCores.Add(id);
+            _settings.Save();
+        }
+        if (why is not null) Status = why;
+        RefreshCores();
+    }
+
+    /// <summary>Downloads one engine, verifying it against the catalogue. Null when it is in place.</summary>
+    private async Task<string?> FetchCoreAsync(MoonCore core)
+    {
+        var rel = (await CoreStore.CatalogueAsync()).FirstOrDefault(r => r.Id == core.Id);
+        if (rel is null) return Localization.Loc.T("S_Cores_NoCatalog");
+        MoonInternet.Core.DevLog.Log("ядро", $"ставлю {core.Title} {rel.Version}");
+        var progress = new Progress<int>(p =>
+        {
+            _coreBusy[core.Id] = $"{p} %";
+            RefreshCores();
+        });
+        string? why = await CoreStore.InstallAsync(core, rel, progress);
+        MoonInternet.Core.DevLog.Log("ядро", why ?? $"{core.Title} {rel.Version} на месте");
+        return why;
+    }
+
+    /// <summary>
+    /// After an app update: an engine the user has, missing or older than the catalogue says, comes
+    /// back on its own.
+    ///
+    /// The engines live outside the install folder, so an update does not remove them — but a newer
+    /// app can want a newer engine, and this is where that is noticed. Silent on purpose: the user
+    /// asked for the engine once and does not need to be asked again.
+    /// </summary>
+    private async Task RefreshDownloadedCoresAsync()
+    {
+        var wanted = MoonCore.All.Where(c => c.Downloadable && _settings.InstalledCores.Contains(c.Id)).ToList();
+        if (wanted.Count == 0) return;
+        var catalogue = await CoreStore.CatalogueAsync();
+        string bundled = CoreLocator.CoresDir();
+        foreach (var core in wanted)
+        {
+            var rel = catalogue.FirstOrDefault(r => r.Id == core.Id);
+            if (rel is null) continue;
+            bool here = core.Present(bundled);
+            if (here && CoreStore.VersionOf(core.Id) == rel.Version) continue;
+            MoonInternet.Core.DevLog.Log("ядро",
+                here ? $"обновляю {core.Title} до {rel.Version}" : $"докачиваю {core.Title} {rel.Version}");
+            if (await CoreStore.InstallAsync(core, rel) is { } why)
+                MoonInternet.Core.DevLog.Log("ядро", why);
+        }
         RefreshCores();
     }
 
     [RelayCommand]
     private void RemoveCore(string id)
     {
+        var core = MoonCore.ById(id);
+        if (core is { Downloadable: true }) CoreStore.Remove(core);
         _settings.InstalledCores.Remove(id);
         _settings.Save();
         RefreshCores();
@@ -1697,6 +1772,8 @@ public partial class MainViewModel : ObservableObject
         // A mode whose engine is not installed is a mode with no way back to it once the button is
         // gone, so a save that still says "zapret" starts on the tunnel instead.
         if (ConnMode == "zapret" && !ZapretInstalled) { ConnMode = "tun"; _settings.ConnMode = "tun"; }
+        // Quietly, in the background: anything downloaded that is now missing or out of date.
+        _ = RefreshDownloadedCoresAsync();
         LaunchMinimized = _settings.StartMinimized;
         Autostart = _settings.Autostart;
         var saved = LayoutStore.Load();

@@ -158,9 +158,13 @@ jobs:
           # why this only ever bit local builds.
           if (Test-Path dist\app\cores) { Remove-Item dist\app\cores -Recurse -Force }
           Copy-Item cores dist\app\cores -Recurse -Force
-          foreach ($e in 'xray\xray.exe', 'singbox\sing-box.exe', 'tun2socks\tun2socks.exe', 'awg\awgproxy.exe') {
+          foreach ($e in 'xray\xray.exe', 'singbox\sing-box.exe', 'tun2socks\tun2socks.exe') {
             if (-not (Test-Path "dist\app\cores\$e")) { throw "core missing: $e" }
           }
+          # AmneziaWG is downloaded after installation, into a folder the app can write to without
+          # administrator rights, so it has no business in the installer. Built above all the same:
+          # pack-cores.ps1 turns it into the release asset the app fetches.
+          Remove-Item dist\app\cores\awg -Recurse -Force -ErrorAction SilentlyContinue
           "{0:N0} MB of app" -f ((Get-ChildItem dist\app -Recurse -File |
             Measure-Object Length -Sum).Sum / 1MB)
 

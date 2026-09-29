@@ -15,7 +15,7 @@ namespace MoonInternet.Services;
 /// </summary>
 public sealed class AwgProxyRunner : IDisposable
 {
-    private readonly string _exePath;
+    private readonly string _coresDir;
     private Process? _proc;
     private bool _stopping;
     private string? _uapiPath;
@@ -24,7 +24,25 @@ public sealed class AwgProxyRunner : IDisposable
     public bool CoreAvailable => File.Exists(_exePath);
     public event Action? ProcessExited;
 
-    public AwgProxyRunner(string coresDir) => _exePath = Path.Combine(coresDir, "awg", "awgproxy.exe");
+    public AwgProxyRunner(string coresDir) => _coresDir = coresDir;
+
+    /// <summary>
+    /// Two places, in this order.
+    ///
+    /// AmneziaWG is not in the installer any more: it is downloaded afterwards into the writable
+    /// data folder, which is also the folder an app update leaves alone. The path beside the exe
+    /// stays as the fallback, for a build that still carries it. Resolved on every use rather than
+    /// once in the constructor — the engine can be installed while the app is running, and a path
+    /// decided at startup would go on saying it is missing.
+    /// </summary>
+    private string _exePath
+    {
+        get
+        {
+            string downloaded = Path.Combine(MoonInternet.Core.AppPaths.In("cores"), "awg", "awgproxy.exe");
+            return File.Exists(downloaded) ? downloaded : Path.Combine(_coresDir, "awg", "awgproxy.exe");
+        }
+    }
 
     /// <param name="keepPort">
     /// Come back up on the port we were already using. For a restart we decide on rather than one
