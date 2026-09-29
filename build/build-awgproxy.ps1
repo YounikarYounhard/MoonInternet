@@ -62,16 +62,27 @@ try {
         # other ABIs would just be an app that dies the moment it tries to connect.
         $env:GOOS = 'android'
         $env:GOARCH = 'arm64'
-        $env:CGO_ENABLED = '0'
-        $dest = Join-Path (Split-Path $here -Parent) 'android\app\src\main\jniLibs\arm64-v8a'
-        New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-        # libawgproxy.so is an executable wearing a library's name. Android only unpacks and
-        # marks executable what lives under jniLibs, so a binary that has to be run has to be
-        # called lib*.so to get there — the same disguise libbyedpi.so wears.
+        # A real shared library now, not an executable wearing a library's name.
+        #
+        # The engine is downloaded after the app is installed, and it lands in the app's data
+        # directory — the one place Android will not exec a file from since Android 10. It will
+        # map one executable and load it, which is what a .so is for. c-shared needs cgo, hence
+        # the NDK compiler: this is the one build of ours that cannot have CGO_ENABLED=0.
+        $sdk = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { 'C:\moonbuild\android-sdk' }
+        $ndk = (Get-ChildItem (Join-Path $sdk 'ndk') -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
+        $cc = Join-Path $ndk 'toolchains\llvm\prebuilt\windows-x86_64\bin\aarch64-linux-android24-clang.cmd'
+        if (-not (Test-Path $cc)) { throw "NDK clang not found: $cc" }
+        $env:CGO_ENABLED = '1'
+        $env:CC = $cc
+
+        $dest = Join-Path (Split-Path $here -Parent) 'dist\cores\android\arm64-v8a'
+        New-Item -ItemType Directory -Force -Path $dest | Out-Null
         $out = Join-Path $dest 'libawgproxy.so'
-        & $go build -trimpath -ldflags '-s -w' -o $out .
+        & $go build -tags moonlib -buildmode=c-shared -trimpath -ldflags '-s -w' -o $out .
         if ($LASTEXITCODE -ne 0) { throw 'go build failed' }
+        # The C header cgo writes beside it is for a C caller; ours is loaded by name at runtime.
+        Remove-Item ($out -replace '\.so$', '.h') -ErrorAction SilentlyContinue
         Write-Host "Built $out ($([math]::Round((Get-Item $out).Length/1MB,1)) MB)" -ForegroundColor Green
     }
     else {

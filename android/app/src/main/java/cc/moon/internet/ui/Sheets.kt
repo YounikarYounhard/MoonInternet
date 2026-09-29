@@ -244,11 +244,12 @@ fun CoreNeededDialog(
 /**
  * The screen that cannot be touched while an engine is being put in place.
  *
- * Deliberately blocking: once the engines arrive as separate packages the system ends the process
- * partway through, and a half-pressed button on the way out is worse than a moment of waiting.
+ * Blocking because it is a download measured in megabytes and starting a second one halfway
+ * through is not a thing to allow. Not because anything restarts — the engine is a file in the
+ * app's own data, so nothing is swapped out underneath the app while this is up.
  */
 @Composable
-fun CoreInstallingOverlay() {
+fun CoreInstallingOverlay(percent: Int) {
     Box(
         Modifier
             .fillMaxSize()
@@ -258,12 +259,20 @@ fun CoreInstallingOverlay() {
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = Moon.Accent, strokeWidth = 3.dp)
+            // Determinate as soon as anything has arrived: this is megabytes over somebody's
+            // mobile data, and a spinner that could mean five seconds or fifty is what makes
+            // people force-quit halfway.
+            if (percent > 0) {
+                CircularProgressIndicator(progress = { percent / 100f },
+                                          color = Moon.Accent, strokeWidth = 3.dp)
+            } else {
+                CircularProgressIndicator(color = Moon.Accent, strokeWidth = 3.dp)
+            }
             Text(stringResource(R.string.cores_installing), color = Moon.TextPrimary,
                  fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                  modifier = Modifier.padding(top = 16.dp))
-            Text(stringResource(R.string.cores_restart), color = Moon.TextMuted,
-                 fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(if (percent > 0) "$percent %" else stringResource(R.string.cores_wait),
+                 color = Moon.TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }

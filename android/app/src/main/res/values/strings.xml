@@ -37,7 +37,7 @@
     <string name="cores_need_title">"Нужно ядро"</string>
     <string name="cores_need_body">"Для протокола %1$s требуется ядро «%2$s». Установить его сейчас?"</string>
     <string name="cores_installing">"Устанавливаю ядро…"</string>
-    <string name="cores_restart">"Приложение перезапустится"</string>
+    <string name="cores_wait">"Это займёт несколько секунд"</string>
     <string name="page_logs">"Логи"</string>
     <string name="page_logs_sub">"Диагностика и журналы"</string>
     <string name="page_about">"О приложении"</string>

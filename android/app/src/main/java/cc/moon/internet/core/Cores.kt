@@ -11,11 +11,12 @@ import java.io.File
  * four. So an engine is something you have or do not have, and the app says so rather than pretending
  * a protocol is broken.
  *
- * "Here" means the binary is in the native library directory. That is the only place Android will
- * execute anything from — a file downloaded into the app's own storage cannot be run at all since
- * Android 10 — and it is filled by the installer from the APK and from any split APK added later.
- * Which is why the same check keeps working once the engines move out into splits: nothing about
- * this file changes, the binary simply arrives later.
+ * The optional ones are downloaded after the app is installed, into the app's own data directory,
+ * and loaded as shared libraries. That is not a detail — it is the whole shape of this. Since
+ * Android 10 an app may not *run* a file it wrote into its data directory, but it may *load* one,
+ * so an engine that can be downloaded is a library with an entry point rather than a program. In
+ * exchange the engine is an ordinary file: untouched by an app update, tied to no version code,
+ * and installed without the user approving a package. See CoreStore and moonload.c.
  */
 enum class MoonCore(
     val id: String,
@@ -25,6 +26,14 @@ enum class MoonCore(
     val binary: String?,
     /** Always here. Ships with the app and cannot be removed, because something needs it. */
     val builtIn: Boolean = false,
+    /**
+     * Fetched over the network into app data rather than carried in the APK.
+     *
+     * Separate from [builtIn] because they answer different questions: builtIn is whether the user
+     * gets a say, this is where the file comes from. Engines are moving across one at a time, so
+     * for a while both kinds of optional engine exist.
+     */
+    val downloadable: Boolean = false,
 ) {
     // Declaration order is the order of the Ядра page, and the built-in ones come first because
     // the page shows them as their own group: what the app carries, then what can be added to it.
@@ -40,12 +49,18 @@ enum class MoonCore(
      * its own — no server, no subscription, nothing to choose between.
      */
     Zapret("zapret", "Zapret", "libbyedpi.so"),
-    Amnezia("awg", "AmneziaWG", "libawgproxy.so"),
+    Amnezia("awg", "AmneziaWG", "libawgproxy.so", downloadable = true),
     ;
 
-    /** True when the engine's binary is on the device and can be executed. */
-    fun present(ctx: Context): Boolean =
-        binary == null || File(ctx.applicationInfo.nativeLibraryDir, binary).exists()
+    /** True when the engine's code is on the device and can actually be started. */
+    fun present(ctx: Context): Boolean = when {
+        binary == null -> true
+        // Downloaded engines live in app data, which survives an app update and belongs to no
+        // version code — the reason they are libraries rather than programs.
+        downloadable -> CoreStore.have(ctx, this)
+        // What ships in the APK is unpacked into the native library directory by the installer.
+        else -> File(ctx.applicationInfo.nativeLibraryDir, binary).exists()
+    }
 
     companion object {
         /**

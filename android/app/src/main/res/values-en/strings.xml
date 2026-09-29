@@ -35,7 +35,7 @@
     <string name="cores_need_title">"An engine is needed"</string>
     <string name="cores_need_body">"%1$s needs the «%2$s» engine. Install it now?"</string>
     <string name="cores_installing">"Installing the engine…"</string>
-    <string name="cores_restart">"The app will restart"</string>
+    <string name="cores_wait">"This takes a few seconds"</string>
     <string name="page_logs">"Logs"</string>
     <string name="page_logs_sub">"Diagnostics and journals"</string>
     <string name="page_about">"About"</string>

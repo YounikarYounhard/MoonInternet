@@ -165,6 +165,7 @@ class MainActivity : ComponentActivity() {
                 val navScope = androidx.compose.runtime.rememberCoroutineScope()
                 val needCore by vm.needCore.collectAsState()
                 val installingCore by vm.installingCore.collectAsState()
+                val coreProgress by vm.coreProgress.collectAsState()
                 LaunchedEffect(page) {
                     pageName = page.name
                     // Back to the top whenever a page opens — the desktop does this on IsVisibleChanged.
@@ -433,6 +434,7 @@ class MainActivity : ComponentActivity() {
                                     zapretBusy = zapretBusy,
                                     onCheckZapret = { vm.checkZapret() },
                                     onAutoPickZapret = { vm.autoPickZapret() },
+                                    onInstallCore = { vm.installCore(it, thenConnect = false) },
                                     state = state,
                                     routing = vm.activeRouting(),
                                     apps = installedApps,
@@ -575,7 +577,7 @@ class MainActivity : ComponentActivity() {
 
                     // Last, so it covers the nav as well: while an engine is going in there is
                     // nothing on this screen worth pressing.
-                    if (installingCore) CoreInstallingOverlay()
+                    if (installingCore) CoreInstallingOverlay(coreProgress)
                 }
                 }   // Scaffold content
                 }   // background Box

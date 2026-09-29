@@ -125,6 +125,7 @@ fun SettingsDetail(
     zapretBusy: Boolean,
     onCheckZapret: () -> Unit,
     onAutoPickZapret: () -> Unit,
+    onInstallCore: (cc.moon.internet.core.MoonCore) -> Unit,
 ) {
     // The header is outside the scrolling area on purpose: the desktop page keeps its title and
     // back button fixed while only the body moves.
@@ -151,7 +152,7 @@ fun SettingsDetail(
                 SettingsPage.Ping -> PingPage(state, onSet)
                 SettingsPage.Zapret -> ZapretPage(state, onSet, zapretPing, zapretBusy, onCheckZapret, onAutoPickZapret)
                 SettingsPage.Auto -> AutoPage(state, onSet)
-                SettingsPage.Cores -> CoresPage(state, onSet)
+                SettingsPage.Cores -> CoresPage(state, onSet, onInstallCore)
                 SettingsPage.Notifications -> NotificationsPage(state, onSet)
                 SettingsPage.Logs -> LogsPage(state, logsSize, onSet, onClearLogs, onViewLog)
                 SettingsPage.Privacy -> PrivacyPage()
@@ -1100,11 +1101,16 @@ private fun DevPage(onCopy: (String, String) -> Unit) {
  * one grey block with no hierarchy in it, and nothing on the page said which engines are a choice
  * and which are simply the app.
  *
- * Removing is not offered for what the build carries: until the engines ship as separate packages,
- * "remove" could only hide a file that stays on disk, and a button that lies is worse than none.
+ * Removing is not offered for what the build carries: those are inside the APK and "remove" could
+ * only hide a file that stays on disk, and a button that lies is worse than none. The optional ones
+ * are real files in app data, so removing one really does free its megabytes.
  */
 @Composable
-private fun CoresPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit) {
+private fun CoresPage(
+    state: AppState,
+    onSet: ((AppState.() -> AppState)) -> Unit,
+    onInstallCore: (MoonCore) -> Unit,
+) {
     val ctx = LocalContext.current
     val about = mapOf(
         MoonCore.Xray to R.string.cores_xray,
@@ -1118,14 +1124,14 @@ private fun CoresPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Uni
         MoonCard(padding = 0) {
             builtIn.forEachIndexed { i, core ->
                 if (i > 0) RowDivider()
-                CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx)
+                CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx, onInstallCore)
             }
         }
         SectionLabel(stringResource(R.string.cores_group_optional))
         MoonCard(padding = 0) {
             optional.forEachIndexed { i, core ->
                 if (i > 0) RowDivider()
-                CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx)
+                CoreRow(core, stringResource(about.getValue(core)), state, onSet, ctx, onInstallCore)
             }
         }
         Text(stringResource(R.string.cores_note), color = Moon.TextMuted, fontSize = 11.sp,
@@ -1141,8 +1147,12 @@ private fun CoreRow(
     state: AppState,
     onSet: ((AppState.() -> AppState)) -> Unit,
     ctx: android.content.Context,
+    onInstall: (MoonCore) -> Unit,
 ) {
-    val installed = core.id in state.installedCores
+    // For a downloaded engine: the file, not the intention — one chosen once but never fetched is
+    // not installed. For one still carried in the APK the choice is all there is.
+    val installed = core.builtIn ||
+        if (core.downloadable) core.present(ctx) else core.id in state.installedCores
     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(core.title, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -1157,16 +1167,13 @@ private fun CoreRow(
         }
         // Nothing to press for what ships with the app: it is here and it stays.
         if (!core.builtIn) {
-            // The binary is still in the build, so installing is a matter of saying so. Once the
-            // engines ship separately this is where the download goes.
             if (!installed) {
-                Chip(stringResource(R.string.cores_install), true) {
-                    if (core.present(ctx)) onSet { copy(installedCores = installedCores + core.id) }
-                }
+                Chip(stringResource(R.string.cores_install), true) { onInstall(core) }
             } else {
                 // Red, like every other button here that takes something away.
                 Surface(
                     onClick = {
+                        cc.moon.internet.core.CoreStore.remove(ctx, core)
                         onSet {
                             copy(
                                 installedCores = installedCores - core.id,

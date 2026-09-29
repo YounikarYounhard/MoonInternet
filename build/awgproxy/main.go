@@ -66,34 +66,67 @@ const (
 )
 
 func main() {
-	uapiPath := flag.String("uapi", "", "file holding the UAPI document for IpcSet")
-	listen := flag.String("listen", "127.0.0.1:1090", "address for the SOCKS5 listener")
-	addrs := flag.String("addr", "", "tunnel addresses, comma separated (10.8.1.2/32)")
-	dns := flag.String("dns", "1.1.1.1", "resolvers inside the tunnel, comma separated")
-	mtu := flag.Int("mtu", defaultMtu, "tunnel MTU; "+strconv.Itoa(defaultMtu)+" is both the default and the ceiling")
-	verbose := flag.Bool("v", false, "log what the device is doing")
-	flag.Parse()
+	if err := run(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, "awgproxy:", err)
+		os.Exit(1)
+	}
+}
+
+// What a running core has that a stop has to reach. On the desktop the process simply dies and
+// none of this is needed; on Android the core is a library loaded into a process that has to
+// outlive it, so there has to be a way back out of the accept loop.
+var current struct {
+	sync.Mutex
+	ln  net.Listener
+	dev *device.Device
+}
+
+// stopCore ends a run started by [run]. Safe to call when nothing is running, and safe to call
+// twice — closing the listener is what breaks the accept loop, and everything else is idempotent.
+func stopCore() {
+	current.Lock()
+	ln, dev := current.ln, current.dev
+	current.ln, current.dev = nil, nil
+	current.Unlock()
+	if ln != nil {
+		ln.Close()
+	}
+	if dev != nil {
+		dev.Close()
+	}
+}
+
+// run is the whole program. It blocks until the listener is closed, and returns an error instead
+// of calling os.Exit so that the library build can report a failure rather than take the host
+// process down with it.
+func run(args []string) error {
+	fs := flag.NewFlagSet("awgproxy", flag.ContinueOnError)
+	uapiPath := fs.String("uapi", "", "file holding the UAPI document for IpcSet")
+	listen := fs.String("listen", "127.0.0.1:1090", "address for the SOCKS5 listener")
+	addrs := fs.String("addr", "", "tunnel addresses, comma separated (10.8.1.2/32)")
+	dns := fs.String("dns", "1.1.1.1", "resolvers inside the tunnel, comma separated")
+	mtu := fs.Int("mtu", defaultMtu, "tunnel MTU; "+strconv.Itoa(defaultMtu)+" is both the default and the ceiling")
+	verbose := fs.Bool("v", false, "log what the device is doing")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
 
 	if *uapiPath == "" || *addrs == "" {
-		fmt.Fprintln(os.Stderr, "awgproxy: -uapi and -addr are both required")
-		os.Exit(2)
+		return errors.New("-uapi and -addr are both required")
 	}
 
 	uapi, err := os.ReadFile(*uapiPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "awgproxy: cannot read the uapi file:", err)
-		os.Exit(1)
+		return fmt.Errorf("cannot read the uapi file: %w", err)
 	}
 
 	localAddrs, err := parseAddrs(*addrs)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "awgproxy:", err)
-		os.Exit(1)
+		return err
 	}
 	resolvers, err := parseAddrs(*dns)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "awgproxy:", err)
-		os.Exit(1)
+		return err
 	}
 
 	if *mtu <= 0 || *mtu > defaultMtu {
@@ -105,8 +138,7 @@ func main() {
 	// one amneziawg-go ships, for the two reasons set out in tunnel.go.
 	tun, tnet, err := createTunnel(localAddrs, resolvers, *mtu)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "awgproxy: cannot create the userspace interface:", err)
-		os.Exit(1)
+		return fmt.Errorf("cannot create the userspace interface: %w", err)
 	}
 
 	level := device.LogLevelError
@@ -116,21 +148,29 @@ func main() {
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(level, "awg "))
 
 	if err := dev.IpcSet(string(uapi)); err != nil {
-		fmt.Fprintln(os.Stderr, "awgproxy: the core refused the config:", err)
-		os.Exit(1)
+		dev.Close()
+		return fmt.Errorf("the core refused the config: %w", err)
 	}
 	if err := dev.Up(); err != nil {
-		fmt.Fprintln(os.Stderr, "awgproxy: cannot bring the device up:", err)
-		os.Exit(1)
+		dev.Close()
+		return fmt.Errorf("cannot bring the device up: %w", err)
 	}
-	defer dev.Close()
 
 	ln, err := net.Listen("tcp", *listen)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "awgproxy: cannot listen on", *listen+":", err)
-		os.Exit(1)
+		dev.Close()
+		return fmt.Errorf("cannot listen on %s: %w", *listen, err)
 	}
-	defer ln.Close()
+
+	current.Lock()
+	current.ln, current.dev = ln, dev
+	current.Unlock()
+
+	// One closer, not two. Closing on the way out of here AND in stopCore meant the device was
+	// shut twice whenever the app asked it to stop — which is every time you switch away from an
+	// AmneziaWG server. stopCore takes what it finds and leaves nothing behind, so calling it
+	// again does nothing, and it is the only thing that closes either of these.
+	defer stopCore()
 
 	// The one line the app waits for: the port is open, not merely the process alive. Same knock
 	// the byedpi runner learned to need.
@@ -140,7 +180,7 @@ func main() {
 		c, err := ln.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
-				return
+				return nil
 			}
 			continue
 		}

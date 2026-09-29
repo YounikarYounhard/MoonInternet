@@ -228,6 +228,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 viewModelScope.launch { pingServers(store.allServers, auto = true) }.join()
             announceIfUpdated()
             requestAutoConnect()
+            // Last, and quietly: an engine the user already has, missing or older than the
+            // catalogue says, comes back on its own. This is what an app update looks like from
+            // the engines' side — they outlive it, and only a newer one has to be fetched.
+            refreshCores()
         }
         // Always check at launch. Gating the check itself on the notification setting left the
         // About page showing a dash for the GitHub version and "you are up to date" for something
@@ -873,24 +877,71 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _installingCore = MutableStateFlow(false)
     val installingCore = _installingCore.asStateFlow()
 
+    /** 0–100 while an engine downloads, so the blocking screen has something to say. */
+    private val _coreProgress = MutableStateFlow(0)
+    val coreProgress = _coreProgress.asStateFlow()
+
     fun cancelCoreRequest() { _needCore.value = null }
 
     /**
-     * Put the engine in place and carry on with the connection that wanted it.
+     * Fetch the engine and carry on with the connection that wanted it.
      *
-     * Today the binary already ships with the app, so this only writes down that it is wanted.
-     * When the engines move out into split APKs the download and the install go here, and the
-     * system will end the process itself once the package changes — which is the restart, and the
-     * reason this is a screen you cannot touch rather than a quiet background task.
+     * No restart: the engine is a file in the app's own data, not a package, so there is nothing
+     * for the system to swap out underneath us. Still a screen you cannot touch — it is a download
+     * measured in megabytes, and starting a second one halfway through is not a thing to allow.
      */
-    fun installCore() = viewModelScope.launch {
-        val (core, _) = _needCore.value ?: return@launch
-        _needCore.value = null
-        _installingCore.value = true
-        store.update { it.copy(installedCores = it.installedCores + core.id) }
-        kotlinx.coroutines.delay(600)   // the step is instant for now; do not flash the screen
-        _installingCore.value = false
-        connect()
+    fun installCore(core: cc.moon.internet.core.MoonCore? = null, thenConnect: Boolean = true) =
+        viewModelScope.launch {
+            val want = core ?: _needCore.value?.first ?: return@launch
+            _needCore.value = null
+            // An engine still carried in the APK has nothing to fetch; wanting it is the whole
+            // installation. Only the downloaded ones need the blocking screen.
+            if (want.downloadable) {
+                _installingCore.value = true
+                _coreProgress.value = 0
+                val why = fetchCore(want)
+                _installingCore.value = false
+                if (why != null) { _status.value = why; return@launch }
+            }
+            store.update { it.copy(installedCores = it.installedCores + want.id) }
+            if (thenConnect) connect()
+        }
+
+    /** Downloads one engine, verifying it against the catalogue. Null when it is in place. */
+    private suspend fun fetchCore(core: cc.moon.internet.core.MoonCore): String? {
+        val app = getApplication<android.app.Application>()
+        val rel = cc.moon.internet.core.CoreStore.catalogue().firstOrNull { it.id == core.id }
+            ?: return "Не удалось получить список ядер"
+        cc.moon.internet.data.DevLog.log("ядро", "ставлю ${core.title} ${rel.version}")
+        val why = cc.moon.internet.core.CoreStore.install(app, rel) { _coreProgress.value = it }
+        cc.moon.internet.data.DevLog.log("ядро", why ?: "${core.title} ${rel.version} на месте")
+        return why
+    }
+
+    /**
+     * After an app update: an engine the user has, in a version this build did not ship with, is
+     * fetched again in the background.
+     *
+     * The engines outlive the app they were installed by — that is the point of keeping them in app
+     * data — so nothing is lost on an update. What can happen is that a newer app wants a newer
+     * engine, and this is where that is noticed. Silent on purpose: the user asked for the engine
+     * once and does not need to be asked again.
+     */
+    fun refreshCores() = viewModelScope.launch {
+        val app = getApplication<android.app.Application>()
+        val wanted = store.state.value.installedCores
+        if (wanted.isEmpty()) return@launch
+        val catalogue = cc.moon.internet.core.CoreStore.catalogue()
+        for (core in cc.moon.internet.core.MoonCore.optional) {
+            if (!core.downloadable || core.id !in wanted) continue
+            val rel = catalogue.firstOrNull { it.id == core.id } ?: continue
+            val here = cc.moon.internet.core.CoreStore.have(app, core)
+            if (here && cc.moon.internet.core.CoreStore.versionOf(app, core.id) == rel.version) continue
+            cc.moon.internet.data.DevLog.log("ядро", if (here) "обновляю ${core.title} до ${rel.version}"
+                               else "докачиваю ${core.title} ${rel.version}")
+            cc.moon.internet.core.CoreStore.install(app, rel)
+                ?.let { cc.moon.internet.data.DevLog.log("ядро", it) }
+        }
     }
 
     // ---- connection ------------------------------------------------------
@@ -904,9 +955,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         var s = store.selectedServer() ?: run { _status.value = s(R.string.vm_pick_server); return@launch }
 
         // Some servers need an engine this install may not have. Ask before dialling rather than
-        // failing halfway with a message about a port nobody opened.
+        // failing halfway with a message about a port nobody opened. Asked about the file on disk
+        // rather than about the list of what was once chosen: an engine whose download never
+        // finished has to be offered again, not dialled into.
         cc.moon.internet.core.MoonCore.forServer(s)
-            ?.takeIf { it.id !in store.state.value.installedCores }
+            ?.takeIf { !it.present(getApplication()) }
             ?.let { _needCore.value = it to s.protocolLabel; return@launch }
 
         // "The chosen server is silent -> take the fastest live one." That is what the setting
