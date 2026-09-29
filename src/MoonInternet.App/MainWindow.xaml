@@ -161,7 +161,10 @@
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Grid Background="Transparent">
-                                <Image x:Name="img" Source="{Binding NavMoonImage}" Width="56" Height="56" Stretch="Uniform" Opacity="0.92"/>
+                                <!-- 400 px of art at 56: the worst downscale in the window, and the
+                                     one that sparkled most with the default filter. -->
+                                <Image x:Name="img" Source="{Binding NavMoonImage}" Width="56" Height="56" Stretch="Uniform" Opacity="0.92"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">

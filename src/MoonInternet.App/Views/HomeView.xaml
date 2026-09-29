@@ -72,14 +72,26 @@
                                 <!-- moon image = the button. Thin ring around it makes it read as a button. No glow disc. -->
                                 <Grid x:Name="moon" Width="204" Height="204" Background="Transparent" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
                                     <Grid.RenderTransform><ScaleTransform/></Grid.RenderTransform>
-                                    <!-- button ring: brightens on hover (whole round zone is clickable via Background=Transparent) -->
-                                    <Ellipse x:Name="ring" Width="198" Height="198" StrokeThickness="1.5" Stroke="White" Opacity="0.22"/>
-                                    <!-- OFF art (bundled default = Выключено.png); fixed square box → never cropped -->
-                                    <Image x:Name="moonOff" Source="{Binding MoonOffImage}" Stretch="Uniform" Width="172" Height="172"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <!-- ON art (bundled default = Вклучено.png); starts hidden -->
-                                    <Image x:Name="moonOn" Source="{Binding MoonOnImage}" Stretch="Uniform" Width="172" Height="172"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0"/>
+                                    <!-- A second scale of its own, so the breathing while connecting and the
+                                         squash on press do not take turns owning one transform: the press
+                                         animation holds its end value, and a shared transform would stop the
+                                         breath dead the first time the button was clicked. -->
+                                    <Grid x:Name="breath" RenderTransformOrigin="0.5,0.5">
+                                        <Grid.RenderTransform><ScaleTransform/></Grid.RenderTransform>
+                                        <!-- button ring: brightens on hover (whole round zone is clickable via Background=Transparent) -->
+                                        <Ellipse x:Name="ring" Width="198" Height="198" StrokeThickness="1.5" Stroke="White" Opacity="0.22"/>
+                                        <!-- The art is 400 px drawn at 172. WPF's default filter samples that
+                                             down point by point and the edge of the moon sparkles — the
+                                             "pixels" you can see. HighQuality averages the area instead. -->
+                                        <!-- OFF art (bundled default = Выключено.png); fixed square box → never cropped -->
+                                        <Image x:Name="moonOff" Source="{Binding MoonOffImage}" Stretch="Uniform" Width="172" Height="172"
+                                               RenderOptions.BitmapScalingMode="HighQuality"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <!-- ON art (bundled default = Вклучено.png); starts hidden -->
+                                        <Image x:Name="moonOn" Source="{Binding MoonOnImage}" Stretch="Uniform" Width="172" Height="172"
+                                               RenderOptions.BitmapScalingMode="HighQuality"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0"/>
+                                    </Grid>
                                 </Grid>
                                 <TextBlock Text="{Binding StateText}" HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Margin="0,10,0,0"/>
                             </StackPanel>
@@ -110,6 +122,25 @@
                                         </Storyboard></BeginStoryboard>
                                     </Trigger.ExitActions>
                                 </Trigger>
+                                <!-- Breathing while it dials: 1 → 1.04 and back, forever, the same
+                                     900 ms curve the phone uses. A still moon over "Подключение…"
+                                     reads as a freeze, which is when people press again. -->
+                                <DataTrigger Binding="{Binding IsConnecting}" Value="True">
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard x:Name="breathing"><Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                            <DoubleAnimation Storyboard.TargetName="breath" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.04" Duration="0:0:0.9"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                            <DoubleAnimation Storyboard.TargetName="breath" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.04" Duration="0:0:0.9"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        </Storyboard></BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <StopStoryboard BeginStoryboardName="breathing"/>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="breath" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.25"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                            <DoubleAnimation Storyboard.TargetName="breath" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.25"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        </Storyboard></BeginStoryboard>
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+
                                 <!-- state change: current moon fades OUT, then the new one fades IN -->
                                 <DataTrigger Binding="{Binding MoonAwake}" Value="True">
                                     <DataTrigger.EnterActions>
