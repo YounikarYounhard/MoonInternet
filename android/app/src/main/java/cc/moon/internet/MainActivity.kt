@@ -490,6 +490,10 @@ class MainActivity : ComponentActivity() {
                                 onCopy = { copy(s.raw.orEmpty(), toastLink); serverMenu = null },
                                 onQr = { qrOf = s.label to s.raw.orEmpty(); serverMenu = null },
                                 onJson = { jsonOf = s; serverMenu = null },
+                                // Offered only where it can be honoured: a server from a
+                                // subscription comes back on the next refresh.
+                                onDelete = if (state.subscriptions.any { sub -> sub.isLoose && sub.servers.any { it.key == s.key } })
+                                    { { vm.removeServer(s); serverMenu = null } } else null,
                             )
                         }
 

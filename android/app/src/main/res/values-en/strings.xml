@@ -324,6 +324,9 @@
     <string name="vm_sub_update_failed">"Could not update"</string>
     <string name="vm_sub_update_failed_named">"Could not update “%1$s”"</string>
     <string name="vm_sub_removed">"Subscription removed"</string>
+    <string name="vm_loose_removed">"Connections removed"</string>
+    <string name="vm_server_removed">"Connection removed"</string>
+    <string name="sheets_delete_all">"Remove all connections"</string>
     <string name="vm_pinging">"Pinging %1$d…"</string>
     <string name="vm_no_reply">"no reply"</string>
     <string name="vm_offline">"No internet — this is not the servers"</string>

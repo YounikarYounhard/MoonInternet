@@ -63,7 +63,13 @@ fun SubscriptionSheet(
         }
         Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
             .height(1.dp).background(Moon.BorderSoft))
-        SheetItem(Icons.Filled.Delete, stringResource(R.string.settingsscreen_084), onDelete, Moon.Danger)
+        // «Мои подключения» is not a subscription: there is nothing to unsubscribe from, only a
+        // pile of hand-pasted links to throw away. The word has to say which.
+        SheetItem(
+            Icons.Filled.Delete,
+            stringResource(if (sub.isLoose) R.string.sheets_delete_all else R.string.settingsscreen_084),
+            onDelete, Moon.Danger,
+        )
         Spacer(Modifier.height(20.dp))
     }
 }
@@ -83,6 +89,12 @@ fun ServerSheet(
     onCopy: () -> Unit,
     onQr: () -> Unit,
     onJson: () -> Unit,
+    /**
+     * Only for a server added by hand. One that came from a subscription would be back on the next
+     * refresh, so the line is left out rather than offered and then undone behind the user's back —
+     * the same rule this file already follows for what a hand-made group cannot do.
+     */
+    onDelete: (() -> Unit)? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Moon.Card) {
         SheetHeader(server.label, "${server.protocolLabel} · ${server.address}:${server.port}")
@@ -99,6 +111,11 @@ fun ServerSheet(
         SheetItem(Icons.Filled.Code, stringResource(R.string.sheets_007), onJson)
         SheetItem(Icons.Filled.ContentCopy, stringResource(R.string.sheets_002), onCopy)
         SheetItem(Icons.Filled.QrCode2, stringResource(R.string.sheets_003), onQr)
+        if (onDelete != null) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)
+                .height(1.dp).background(Moon.BorderSoft))
+            SheetItem(Icons.Filled.Delete, stringResource(R.string.settingsscreen_084), onDelete, Moon.Danger)
+        }
         Spacer(Modifier.height(20.dp))
     }
 }

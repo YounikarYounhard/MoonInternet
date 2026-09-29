@@ -496,8 +496,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun removeSubscription(url: String) = viewModelScope.launch {
+        val loose = url.startsWith(LOOSE_URL.substringBefore(':'))
         store.removeSubscription(url)
-        _status.value = s(R.string.vm_sub_removed)
+        // «Мои подключения» is not a subscription — saying one was removed sends people looking
+        // for something they never had.
+        _status.value = s(if (loose) R.string.vm_loose_removed else R.string.vm_sub_removed)
+    }
+
+    fun removeServer(server: ServerProfile) = viewModelScope.launch {
+        store.removeServer(server)
+        _status.value = s(R.string.vm_server_removed)
     }
 
     fun toggleCollapse(url: String) = viewModelScope.launch {

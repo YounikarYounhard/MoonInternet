@@ -384,6 +384,27 @@ class Store(private val ctx: Context) {
     suspend fun removeSubscription(url: String) =
         update { it.copy(subscriptions = it.subscriptions.filterNot { s -> s.url == url }) }
 
+    /**
+     * Drops one hand-added server. Its group goes with it when it was the last one: an empty «Мои
+     * подключения» is a card with nothing behind it and no reason to be on screen.
+     *
+     * Only the loose groups are touched. A server from a subscription would be back on the next
+     * refresh, so removing it here would undo itself — which is why the menu does not offer it.
+     */
+    suspend fun removeServer(server: ServerProfile) = update { st ->
+        val subs = st.subscriptions.mapNotNull { sub ->
+            if (!sub.isLoose) sub
+            else sub.copy(servers = sub.servers.filterNot { it.key == server.key })
+                .takeIf { it.servers.isNotEmpty() }
+        }
+        st.copy(
+            subscriptions = subs,
+            // Neither the choice nor a star may point at something that is gone.
+            selectedServerRaw = st.selectedServerRaw.takeIf { it != server.key },
+            favorites = st.favorites - server.key,
+        )
+    }
+
     /** The routing profile currently in effect. */
     /**
      * The routing the tunnel will use.
