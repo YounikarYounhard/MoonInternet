@@ -1664,8 +1664,17 @@ public partial class MainViewModel : ObservableObject
     {
         ConnectionState.Connected => Disconnecting ? Localization.Loc.T("S_VM_017") : Localization.Loc.T("S_VM_018"),
         ConnectionState.Connecting => string.IsNullOrEmpty(ConnectingStatus) ? Localization.Loc.T("S_VM_019") : ConnectingStatus,
-        _ => SelectedServer is null ? Localization.Loc.T("S_VM_020") : Localization.Loc.T("S_VM_021")
+        // Idle is idle: the moon is asleep whether or not a server has been chosen. "Нет активного
+        // соединения" used to sit here permanently on a fresh install, announcing the obvious
+        // before anybody had asked for anything. It is an answer to pressing Connect with nothing
+        // selected, and that is the only time it appears now.
+        _ => AskedWithoutServer ? Localization.Loc.T("S_VM_020") : Localization.Loc.T("S_VM_021")
     };
+
+    /// <summary>Connect was pressed with no server chosen. Cleared the moment one is.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StateText))]
+    private bool askedWithoutServer;
     partial void OnConnectionStateChanged(ConnectionState value)
     {
         if (value != ConnectionState.Connecting) ConnectingStatus = "";
@@ -1705,6 +1714,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedServerChanged(ServerItem? value)
     {
         _pillPingMs = -2;                        // measured for the server we just left, not this one
+        if (value is not null) AskedWithoutServer = false;   // the complaint has been answered
         PinSelectedServer();                     // the new choice is what belongs at the top now
         foreach (var sub in Subscriptions) sub.Refresh();
         ReorderSubscriptions();                  // ...and its subscription with it
@@ -3454,7 +3464,10 @@ public partial class MainViewModel : ObservableObject
         // connect that declined to start looked exactly like a click that never registered. That
         // is the "кнопка не работает" report. ErrorText is the line under the moon.
         ErrorText = "";
-        if (SelectedServer is null) { ErrorText = Status = Localization.Loc.T("S_VM_230"); CurrentPage = AppPage.Servers; return; }
+        // Say so under the moon and stay put. Throwing the page over to the server list took the
+        // decision out of the user's hands — press the wrong thing once and you are somewhere you
+        // did not ask to be — and the red "Выберите сервер" said the same thing a second time.
+        if (SelectedServer is null) { AskedWithoutServer = true; return; }
         if (!_conn.CoreAvailable) { ErrorText = Status = Localization.Loc.T("S_VM_231"); return; }
 
         // "The chosen server is silent -> take the fastest live one" only ever applied when
