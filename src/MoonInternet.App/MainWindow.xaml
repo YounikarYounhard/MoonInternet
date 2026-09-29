@@ -288,6 +288,13 @@
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE7C3;" Content="{DynamicResource S_MainWindow_025}" Command="{Binding SheetServerConfigCommand}"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE8C8;" Content="{DynamicResource S_MainWindow_026}" Command="{Binding SheetCopyServerUrlCommand}"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="{DynamicResource S_MainWindow_027}" Command="{Binding SheetServerQrCommand}"/>
+                    <!-- Only for a server added by hand: one from a subscription comes back on the
+                         next refresh, so deleting it would undo itself. -->
+                    <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,6"
+                            Visibility="{Binding SheetServerRemovable, Converter={StaticResource BoolVis}}"/>
+                    <Button Style="{StaticResource SheetRowDanger}" Tag="&#xE74D;" Content="{DynamicResource S_MainWindow_031}"
+                            Command="{Binding SheetDeleteServerCommand}"
+                            Visibility="{Binding SheetServerRemovable, Converter={StaticResource BoolVis}}"/>
                 </StackPanel>
             </Border>
         </Border>
@@ -313,8 +320,11 @@
                             Visibility="{Binding SheetSub.IsSubscription, Converter={StaticResource BoolVis}}"/>
                     <Button Style="{StaticResource SheetRow}" Tag="&#xE71B;" Content="{DynamicResource S_MainWindow_030}" Command="{Binding SheetSubQrCommand}"
                             Visibility="{Binding SheetSub.IsSubscription, Converter={StaticResource BoolVis}}"/>
+                    <Button Style="{StaticResource SheetRow}" Tag="&#xEC4A;" Content="{DynamicResource S_Sheet_PingAll}" Command="{Binding SheetPingSubCommand}"/>
                     <Border Height="1" Background="{StaticResource BorderSoft}" Margin="14,6"/>
-                    <Button Style="{StaticResource SheetRowDanger}" Tag="&#xE74D;" Content="{DynamicResource S_MainWindow_031}" Command="{Binding SheetDeleteSubCommand}"/>
+                    <!-- «Мои подключения» is not a subscription: there is nothing to unsubscribe
+                         from, only a pile of links to throw away. The word has to say which. -->
+                    <Button Style="{StaticResource SheetRowDanger}" Tag="&#xE74D;" Content="{Binding SheetSub.DeleteText}" Command="{Binding SheetDeleteSubCommand}"/>
                 </StackPanel>
             </Border>
         </Border>

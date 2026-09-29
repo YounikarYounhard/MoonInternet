@@ -2933,7 +2933,22 @@ public partial class MainViewModel : ObservableObject
 
     // ===== action sheets: in-window menus (a WPF ContextMenu is its own window and spills outside the app) =====
     [ObservableProperty] private bool showServerSheet;
-    [ObservableProperty] private ServerItem? sheetServer;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SheetServerRemovable))]
+    private ServerItem? sheetServer;
+
+    /// <summary>
+    /// Only a server added by hand can be removed.
+    ///
+    /// One that came from a subscription would be back on the next refresh, so the line is left out
+    /// rather than offered and then undone behind the user's back — the same rule the subscription
+    /// sheet already follows for the things a hand-made group cannot do.
+    /// </summary>
+    public bool SheetServerRemovable => SheetServer is { } s && OwnerOf(s) is { IsLoose: true };
+
+    private SubscriptionVM? OwnerOf(ServerItem s) => Subscriptions.FirstOrDefault(x => x.Servers.Contains(s));
+
     [RelayCommand] private void OpenServerSheet(ServerItem? s) { if (s is null) return; SheetServer = s; ShowServerSheet = true; }
     [RelayCommand] private void CloseServerSheet() => ShowServerSheet = false;
 
@@ -2951,7 +2966,37 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void SheetSubSettings() { ShowSubSheet = false; if (SheetSub is { } s) OpenEditDialog(s); }
     [RelayCommand] private void SheetCopySubUrl() { ShowSubSheet = false; CopySubUrl(SheetSub); }
     [RelayCommand] private void SheetSubQr() { ShowSubSheet = false; ShowSubQr(SheetSub); }
+    [RelayCommand] private async Task SheetPingSub() { ShowSubSheet = false; await PingSubscription(SheetSub); }
     [RelayCommand] private void SheetDeleteSub() { ShowSubSheet = false; DeleteSubscription(SheetSub); }
+
+    /// <summary>
+    /// Drops one hand-added server. Its link is the only record of it, so removing that link from
+    /// the cached group is the whole deletion; the group itself goes when its last server does,
+    /// because an empty «Мои подключения» is a plate with nothing behind it.
+    /// </summary>
+    [RelayCommand]
+    private void SheetDeleteServer()
+    {
+        ShowServerSheet = false;
+        if (SheetServer is not { } item || OwnerOf(item) is not { IsLoose: true } owner) return;
+
+        string raw = item.Profile.Raw;
+        owner.Servers.Remove(item);
+        foreach (var cached in _settings.CachedSubs.Where(c => c.Url == owner.Url))
+            cached.Links.RemoveAll(l => l == raw);
+
+        if (owner.Servers.Count == 0)
+        {
+            Subscriptions.Remove(owner);
+            _settings.CachedSubs.RemoveAll(c => c.Url == owner.Url);
+        }
+        else owner.Refresh();
+
+        _settings.Save();
+        if (ReferenceEquals(SelectedServer, item)) SelectedServer = AllServers.FirstOrDefault();
+        RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
+        Status = Localization.Loc.T("S_VM_ServerRemoved");
+    }
 
     /// <summary>Latency probe for one server. WireGuard/AmneziaWG endpoints are UDP-only, so a TCP connect would
     /// always read as a timeout — use ICMP for those and the configured method for everything else.</summary>
@@ -3128,7 +3173,10 @@ public partial class MainViewModel : ObservableObject
         _settings.Save();
         if (SelectedServer is { } sel && sub.Servers.Contains(sel)) SelectedServer = AllServers.FirstOrDefault();
         RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
-        Status = Localization.Loc.T("S_VM_216");
+        // «Мои подключения» is not a subscription — nothing was ever subscribed to. Saying
+        // "подписка удалена" over a group of hand-pasted links describes something that never
+        // existed, which is how people end up looking for a subscription they did not have.
+        Status = Localization.Loc.T(sub.IsLoose ? "S_VM_LooseRemoved" : "S_VM_216");
     }
 
     // ===== Add / edit subscription mini-dialog (Name + URL) =====

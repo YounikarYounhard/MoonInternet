@@ -128,6 +128,14 @@ public partial class SubscriptionVM : ObservableObject
     public bool IsSubscription => !IsLoose;
 
     /// <summary>
+    /// What the red line in the ⋯ menu says. A subscription is unsubscribed from; «Мои
+    /// подключения» is a pile of hand-pasted links, and "Удалить" over it reads as though a
+    /// subscription were about to go — one the user never had.
+    /// </summary>
+    public string DeleteText =>
+        MoonInternet.App.Localization.Loc.T(IsLoose ? "S_Sheet_DeleteAll" : "S_MainWindow_031");
+
+    /// <summary>
     /// Whether this plate is worth drawing. Picking a protocol that one subscription does not
     /// carry used to leave its plate sitting there, open and empty, as though the servers had gone
     /// missing. A subscription with no servers at all keeps its plate — that plate is the only way
