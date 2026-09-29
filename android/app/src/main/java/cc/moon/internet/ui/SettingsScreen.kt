@@ -1152,7 +1152,7 @@ private fun CoreRow(
     // For a downloaded engine: the file, not the intention — one chosen once but never fetched is
     // not installed. For one still carried in the APK the choice is all there is.
     val installed = core.builtIn ||
-        if (core.downloadable) core.present(ctx) else core.id in state.installedCores
+        (core.id in state.installedCores && (!core.downloadable || core.present(ctx)))
     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(core.title, color = Moon.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)

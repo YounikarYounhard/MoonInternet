@@ -919,7 +919,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun fetchCore(core: cc.moon.internet.core.MoonCore): String? {
         val app = getApplication<android.app.Application>()
         val rel = cc.moon.internet.core.CoreStore.catalogue().firstOrNull { it.id == core.id }
-            ?: return "Не удалось получить список ядер"
+        // No catalogue, but the build happens to carry this engine: take what is here rather than
+        // refuse over a list we only needed in order to find a copy we already have.
+            ?: return if (core.present(getApplication())) null else "Не удалось получить список ядер"
         cc.moon.internet.data.DevLog.log("ядро", "ставлю ${core.title} ${rel.version}")
         val why = cc.moon.internet.core.CoreStore.install(app, rel) { _coreProgress.value = it }
         cc.moon.internet.data.DevLog.log("ядро", why ?: "${core.title} ${rel.version} на месте")
@@ -967,7 +969,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // rather than about the list of what was once chosen: an engine whose download never
         // finished has to be offered again, not dialled into.
         cc.moon.internet.core.MoonCore.forServer(s)
-            ?.takeIf { !it.present(getApplication()) }
+            ?.takeIf { it.id !in store.state.value.installedCores || !it.present(getApplication()) }
             ?.let { _needCore.value = it to s.protocolLabel; return@launch }
 
         // "The chosen server is silent -> take the fastest live one." That is what the setting

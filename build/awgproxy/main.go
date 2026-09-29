@@ -147,7 +147,12 @@ func run(args []string) error {
 	}
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(level, "awg "))
 
-	if err := dev.IpcSet(string(uapi)); err != nil {
+	doc, err := resolveEndpoints(string(uapi))
+	if err != nil {
+		dev.Close()
+		return err
+	}
+	if err := dev.IpcSet(doc); err != nil {
 		dev.Close()
 		return fmt.Errorf("the core refused the config: %w", err)
 	}
@@ -186,6 +191,48 @@ func run(args []string) error {
 		}
 		go serve(c, tnet)
 	}
+}
+
+// resolveEndpoints turns every `endpoint=host:port` in the UAPI document into an address the
+// engine will accept.
+//
+// amneziawg-go parses an endpoint with netip.ParseAddr and refuses anything that is not already a
+// literal IP — a peer written as `endpoint=vpn.example.com:51820` is rejected outright with
+// "IPC error -22 ... unexpected character". Plenty of providers hand out exactly that, and the
+// Amnezia client works with them because it resolves the name itself before starting the engine.
+// So do we, here rather than in either app: one lookup, both platforms, and it happens at connect
+// time, when the answer is current.
+//
+// IPv4 first. The tunnel's transport is whatever the host has, and a server reachable over both
+// usually has the v4 path configured while the v6 one is an accident of the DNS zone.
+func resolveEndpoints(doc string) (string, error) {
+	lines := strings.Split(doc, "\n")
+	for i, line := range lines {
+		value, ok := strings.CutPrefix(line, "endpoint=")
+		if !ok {
+			continue
+		}
+		host, port, err := net.SplitHostPort(strings.TrimSpace(value))
+		if err != nil {
+			continue // not something we understand; let the engine say what it thinks
+		}
+		if _, err := netip.ParseAddr(host); err == nil {
+			continue // already an address
+		}
+		ips, err := net.LookupIP(host)
+		if err != nil || len(ips) == 0 {
+			return "", fmt.Errorf("cannot resolve the server address %q: %w", host, err)
+		}
+		pick := ips[0]
+		for _, ip := range ips {
+			if ip.To4() != nil {
+				pick = ip
+				break
+			}
+		}
+		lines[i] = "endpoint=" + net.JoinHostPort(pick.String(), port)
+	}
+	return strings.Join(lines, "\n"), nil
 }
 
 func parseAddrs(list string) ([]netip.Addr, error) {

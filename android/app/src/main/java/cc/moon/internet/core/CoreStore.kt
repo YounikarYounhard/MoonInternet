@@ -47,8 +47,23 @@ object CoreStore {
 
     fun dir(ctx: Context): File = File(ctx.filesDir, "cores").apply { mkdirs() }
 
-    /** Where this engine's library is, or null for one that is part of the app. */
-    fun fileOf(ctx: Context, core: MoonCore): File? = core.binary?.let { File(dir(ctx), it) }
+    /**
+     * Where this engine's library is — downloaded first, then the copy that shipped in the APK.
+     *
+     * Two places on purpose, the same order the desktop uses. The download is the point of all
+     * this, but until a build's engines are published there has to be something to fall back on,
+     * and a downloaded engine must still win over whatever the APK happened to carry.
+     *
+     * Both are loadable: the native library directory is read-only and executable, app data is
+     * writable and may be mapped executable. Only *running* a file as a program is denied there,
+     * which is why engines are libraries.
+     */
+    fun fileOf(ctx: Context, core: MoonCore): File? {
+        val name = core.binary ?: return null
+        val downloaded = File(dir(ctx), name)
+        return if (downloaded.exists()) downloaded
+               else File(ctx.applicationInfo.nativeLibraryDir, name)
+    }
 
     fun have(ctx: Context, core: MoonCore): Boolean = fileOf(ctx, core)?.exists() ?: true
 
@@ -129,7 +144,9 @@ object CoreStore {
         }
 
     fun remove(ctx: Context, core: MoonCore) {
-        fileOf(ctx, core)?.let { it.setWritable(true); it.delete() }
+        // Only the downloaded copy. What shipped inside the APK is not ours to delete, and trying
+        // would leave the row saying "removed" over a file that is still there.
+        core.binary?.let { File(dir(ctx), it) }?.let { it.setWritable(true); it.delete() }
         versions(ctx).let { p ->
             p.remove(core.id)
             runCatching { File(dir(ctx), VERSIONS).outputStream().use { s -> p.store(s, null) } }
