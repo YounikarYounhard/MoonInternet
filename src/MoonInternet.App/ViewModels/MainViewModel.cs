@@ -2213,16 +2213,14 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool devMode;
 
     private int _versionTaps;
-    private DateTime _lastVersionTap;
 
     [RelayCommand]
     private void TapVersion()
     {
         if (DevMode) return;
-        // The run resets after a pause, so idle clicking over a minute never adds up to a mode
-        // nobody asked for.
-        if ((DateTime.UtcNow - _lastVersionTap).TotalSeconds > 2) _versionTaps = 0;
-        _lastVersionTap = DateTime.UtcNow;
+        // Seven presses, and no clock on them — the phone counts the same way. A two-second window
+        // was in here at first and it made the gesture look broken: nobody presses that fast, the
+        // run kept resetting, and the section never appeared however long you sat there clicking.
         if (++_versionTaps < 7) return;
         _versionTaps = 0;
         DevMode = true;
