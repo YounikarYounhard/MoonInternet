@@ -1767,6 +1767,7 @@ public partial class MainViewModel : ObservableObject
         TunMode = _settings.TunMode;
         ConnMode = _settings.ConnMode;
         ZapretGameFilter = _settings.ZapretGameFilter;
+        DevMode = _settings.DevMode;
         LoadZapretStrategies();
         RefreshCores();
         // A mode whose engine is not installed is a mode with no way back to it once the button is
@@ -2200,6 +2201,42 @@ public partial class MainViewModel : ObservableObject
         _logViewerFile = MoonInternet.Core.AppPaths.In("dev.log");
         LoadLogTail();
         ShowLogViewer = true;
+    }
+
+    // ===== Режим разработчика =====
+    /// <summary>
+    /// Off until asked for, and asked for the way the phone asks: by tapping the version.
+    ///
+    /// Not a secret and not a trick — just the standing convention for "I know what I am doing",
+    /// and the same gesture on both platforms so there is one thing to remember rather than two.
+    /// </summary>
+    [ObservableProperty] private bool devMode;
+
+    private int _versionTaps;
+    private DateTime _lastVersionTap;
+
+    [RelayCommand]
+    private void TapVersion()
+    {
+        if (DevMode) return;
+        // The run resets after a pause, so idle clicking over a minute never adds up to a mode
+        // nobody asked for.
+        if ((DateTime.UtcNow - _lastVersionTap).TotalSeconds > 2) _versionTaps = 0;
+        _lastVersionTap = DateTime.UtcNow;
+        if (++_versionTaps < 7) return;
+        _versionTaps = 0;
+        DevMode = true;
+        _settings.DevMode = true;
+        _settings.Save();
+        Status = Localization.Loc.T("S_Dev_On");
+    }
+
+    [RelayCommand]
+    private void DisableDevMode()
+    {
+        DevMode = false;
+        _settings.DevMode = false;
+        _settings.Save();
     }
 
     /// <summary>Which file the viewer is showing; null = whichever log was written to last.</summary>

@@ -36,6 +36,13 @@ public sealed class AppSettings
     /// </summary>
     public List<string> InstalledCores { get; set; } = new() { "xray", "singbox" };
 
+    /// <summary>
+    /// Unlocked by tapping the version, exactly as on the phone. Hides the event log rather than
+    /// the other way round: it is a page about what the app did and why, which is worth having but
+    /// is not worth a row in front of everybody.
+    /// </summary>
+    public bool DevMode { get; set; }
+
     /// <summary>Which zapret strategy to run, by its file name — <c>general (ALT2)</c>.</summary>
     public string ZapretStrategy { get; set; } = "general";
 
