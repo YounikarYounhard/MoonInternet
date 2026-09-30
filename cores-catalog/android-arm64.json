@@ -5,9 +5,9 @@
                       "id":  "awg",
                       "version":  "3.1-b5928ef",
                       "file":  "libawgproxy.so",
-                      "size":  6569032,
-                      "sha256":  "0db46ddcc42f9751c5d3559d5a57e8ef1b7f6e90393738ab03ac4e99a09afeb4",
-                      "url":  "https://github.com/YounikarYounhard/MoonInternet/releases/download/cores-2026.09/libawgproxy.so"
+                      "size":  6571336,
+                      "sha256":  "c2c185c27df80fda0eb73dd70ea25cf1b6f04823784db0fb779a8adc43cb3e40",
+                      "url":  "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/cores/libawgproxy.so"
                   }
               ]
 }

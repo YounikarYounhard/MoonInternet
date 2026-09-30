@@ -113,7 +113,16 @@
                 android:value="VPN tunnel kept alive while connected"/>
         </service>
 
+        <!-- A downloaded engine runs here, in a process of its own. Two Go runtimes cannot share
+             one process — xray's garbage collector and the engine's walk each other's memory and
+             the app dies with "addspecial on invalid pointer". See CoreService. -->
+        <service
+            android:name=".vpn.CoreService"
+            android:exported="false"
+            android:process=":core"/>
+
         <!-- Quick Settings tile: connect straight from the notification shade -->
+
         <service
             android:name=".vpn.MoonTileService"
             android:exported="true"

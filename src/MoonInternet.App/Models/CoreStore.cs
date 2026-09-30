@@ -23,8 +23,11 @@ public sealed record CoreRelease(string Id, string Version, string File, long Si
 /// </summary>
 public static class CoreStore
 {
+    // A branch of its own, not master: the engines are megabytes and they change on their own
+    // schedule, so a core can be republished without touching the app — and the app's history does
+    // not carry a copy of every engine it ever shipped.
     private const string Catalog =
-        "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/master/cores-catalog/windows-x64.json";
+        "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/cores/windows-x64.json";
 
     private static string Dir => AppPaths.In("cores");
     private static string VersionsFile => Path.Combine(Dir, "versions.json");

@@ -12,9 +12,11 @@
     Usage:  powershell -ExecutionPolicy Bypass -File build\pack-cores.ps1 [-Tag cores-2026.09]
 #>
 param(
-    # The release the catalogue points its URLs at. Engines change far less often than the app, so
-    # this moves on its own schedule and old apps keep resolving to the build they were tested with.
-    [string]$Tag = 'cores-2026.09',
+    # The branch that carries the engines. A branch of its own, not master: the binaries are
+    # megabytes and they change on their own schedule, so keeping them out of the app's history
+    # means a core can be republished without touching a line of the app — and the app's history
+    # does not carry a copy of every engine it ever shipped.
+    [string]$Branch = 'cores',
     [string]$Repo = 'YounikarYounhard/MoonInternet'
 )
 
@@ -41,7 +43,7 @@ function Publish($id, $version, $file, $path, $catalogue) {
             file    = $file
             size    = $size
             sha256  = $hash
-            url     = "https://github.com/$Repo/releases/download/$Tag/$file"
+            url     = "https://raw.githubusercontent.com/$Repo/$Branch/$file"
         })
     }
     $dest = Join-Path $root "cores-catalog\$catalogue"
@@ -61,4 +63,4 @@ if (Test-Path $androidSo) {
     Write-Host "missing $androidSo - run build\build-awgproxy.ps1 -Android first" -ForegroundColor Yellow
 }
 
-Write-Host "`nAssets in $out - upload them to release $Tag and commit the catalogues." -ForegroundColor Cyan
+Write-Host "`nAssets in $out - publish them on the '$Branch' branch together with the catalogues." -ForegroundColor Cyan

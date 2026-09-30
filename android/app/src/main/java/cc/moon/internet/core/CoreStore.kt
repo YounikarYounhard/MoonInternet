@@ -40,8 +40,11 @@ object CoreStore {
      * The download URL lives in the catalogue rather than being built here, so the binaries can sit
      * in the repository today and move to release assets later without touching the app.
      */
+    // A branch of its own, not master: the engines are megabytes and they change on their own
+    // schedule, so a core can be republished without touching the app — and the app's history does
+    // not carry a copy of every engine it ever shipped.
     private const val CATALOG =
-        "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/master/cores-catalog/android-arm64.json"
+        "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/cores/android-arm64.json"
 
     private const val VERSIONS = "versions.properties"
 

@@ -47,8 +47,10 @@ class AwgRunner(private val ctx: Context) {
             if (wg.dns.isNotEmpty()) { args += "-dns"; args += wg.dns.joinToString(",") }
             if (wg.mtu > 0) { args += "-mtu"; args += wg.mtu.toString() }
 
-            CoreLib.start(MoonCore.Amnezia.id, so.absolutePath, args)
-                ?: awaitPort()
+            // Into its own process: xray is Go and so is this, and two Go runtimes in one process
+            // kill each other's garbage collector. See CoreService.
+            CoreService.start(ctx, MoonCore.Amnezia.id, so.absolutePath, args)
+            awaitPort()
         } catch (e: Throwable) {
             runCatching { uapi.delete() }
             "AmneziaWG не запустился: ${e.message ?: e.javaClass.simpleName}"
@@ -59,10 +61,14 @@ class AwgRunner(private val ctx: Context) {
         }
     }
 
-    /** Knock on the port rather than trust the thread — 15 × 100 ms, as byedpi taught us. */
+    /**
+     * Knock on the port — 25 × 100 ms.
+     *
+     * The only signal there is now: the engine runs in another process, so there is no thread here
+     * to ask about. A little longer than before because starting that process costs a moment.
+     */
     private fun awaitPort(): String? {
-        repeat(15) {
-            if (!CoreLib.running(MoonCore.Amnezia.id)) return "AmneziaWG не поднялся"
+        repeat(25) {
             runCatching {
                 java.net.Socket().use { it.connect(java.net.InetSocketAddress("127.0.0.1", PORT), 300) }
                 return null
@@ -73,7 +79,7 @@ class AwgRunner(private val ctx: Context) {
     }
 
     fun stop() {
-        CoreLib.stop(MoonCore.Amnezia.id)
+        CoreService.stop(ctx, MoonCore.Amnezia.id)
         runCatching { File(ctx.filesDir, "awg.uapi").delete() }
     }
 }
