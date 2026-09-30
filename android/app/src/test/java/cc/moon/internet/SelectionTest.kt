@@ -96,6 +96,22 @@ class SelectionTest {
     }
 
     @Test
+    fun twoAccountsOnOneAmneziaServerAreTwoServers() {
+        // What the two-subscriptions screenshot was: one machine handed to two people. The peer
+        // key and the endpoint are the server's and identical for both; only the tunnel address is
+        // theirs. Keyed on the peer alone the app drew two cards holding one server — one star,
+        // one ping, and the selection lit in both at once.
+        val base = cc.moon.internet.core.WireGuardConfig(
+            privateKey = "mine", peerPublicKey = "server", endpoint = "1.2.3.4:51820", jc = "4")
+        val me = ServerProfile(protocol = Protocol.WIREGUARD, name = "awg", address = "1.2.3.4",
+                               port = 51820, wg = base.copy(address = listOf("10.8.1.2/32")))
+        val you = me.copy(wg = base.copy(privateKey = "yours", address = listOf("10.8.1.3/32")))
+        assertNotEquals(me.key, you.key)
+        // ...and one account read twice is still one server: a re-rendered name changes nothing.
+        assertEquals(me.key, me.copy(name = "другое имя").key)
+    }
+
+    @Test
     fun hostPortComesOutOfALinkAndOnlyWhenItIsThere() {
         assertEquals("nl.example:8443", hostPortOf("vless://uuid@nl.example:8443?type=grpc"))
         assertEquals("1.2.3.4:443", hostPortOf("awg:pubkey@1.2.3.4:443"))

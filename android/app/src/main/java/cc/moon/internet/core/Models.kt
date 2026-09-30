@@ -120,7 +120,15 @@ data class ServerProfile(
      */
     val key: String
         get() {
-            wg?.let { if (it.peerPublicKey.isNotBlank()) return "awg:${it.peerPublicKey}@${it.endpoint}" }
+            // The peer key and the endpoint say which MACHINE this is; the tunnel address says
+            // which ACCOUNT. Two people handed configs for the same AmneziaWG server get the same
+            // peer and the same endpoint and differ only in their own address, so keying on the
+            // peer alone made the app treat two subscriptions as one server — two cards, one star,
+            // one ping, and the selection lighting up in both at once.
+            wg?.let {
+                if (it.peerPublicKey.isNotBlank())
+                    return "awg:${it.peerPublicKey}@${it.endpoint}#${it.address.firstOrNull().orEmpty()}"
+            }
             // Not lower-cased: a uuid is hex either way, but a trojan password is a password.
             val cred = id?.takeIf { it.isNotBlank() } ?: password.orEmpty()
             val host = address.lowercase()

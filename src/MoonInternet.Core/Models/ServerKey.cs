@@ -29,8 +29,13 @@ public static class ServerKey
     /// credentials (some formats do not, and those servers must still be identifiable).</summary>
     public static string Of(OutboundProfile p)
     {
+        // The peer key and the endpoint say which MACHINE this is; the tunnel address says which
+        // ACCOUNT. Two people handed configs for the same AmneziaWG server get the same peer and
+        // the same endpoint and differ only in their own address, so keying on the peer alone made
+        // the app treat two subscriptions as one server — two cards, one star, one ping, and the
+        // selection lighting up in both at once.
         if (p.Wireguard is { PeerPublicKey.Length: > 0 } wg)
-            return $"awg:{wg.PeerPublicKey}@{wg.Endpoint}";
+            return $"awg:{wg.PeerPublicKey}@{wg.Endpoint}#{wg.Address.FirstOrDefault() ?? ""}";
         // Not lower-cased: a UUID is hex either way, but a trojan password is a password.
         string cred = p.Id is { Length: > 0 } id ? id : p.Password ?? "";
         string host = p.Address.ToLowerInvariant();
