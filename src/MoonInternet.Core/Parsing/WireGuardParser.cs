@@ -123,9 +123,35 @@ public static class WireGuardParser
             string lastCfg = lc.ValueKind == JsonValueKind.String ? lc.GetString()! : lc.GetRawText();
             using var inner = JsonDocument.Parse(lastCfg);
             if (inner.RootElement.TryGetProperty("config", out var cfg) && cfg.GetString() is { } text)
-                return text;
+            {
+                // The config writes its resolvers as $PRIMARY_DNS / $SECONDARY_DNS and the real
+                // addresses sit beside it in the outer JSON — the client is expected to fill them
+                // in. Dropping them instead left the tunnel with no DNS at all.
+                string Dns(string name, string fallback) =>
+                    doc.RootElement.TryGetProperty(name, out var d) && d.GetString() is { Length: > 0 } s
+                        ? s : fallback;
+                return text.Replace("$PRIMARY_DNS", Dns("dns1", "1.1.1.1"))
+                           .Replace("$SECONDARY_DNS", Dns("dns2", "1.0.0.1"));
+            }
         }
         return null;
+    }
+
+    /// <summary>
+    /// A number, or one picked out of a range like <c>25-35</c>.
+    ///
+    /// AmneziaWG 3.x writes several timings as ranges and expects the client to choose — the
+    /// choosing is the point, since a value that differs between clients is one fewer thing to
+    /// fingerprint. <c>int.TryParse("25-35")</c> fails, so the setting used to be dropped and the
+    /// tunnel went out with no keepalive at all.
+    /// </summary>
+    internal static int? PickInRange(string v)
+    {
+        if (int.TryParse(v, out int exact)) return exact;
+        string[] parts = v.Split('-', 2);
+        if (parts.Length != 2 || !int.TryParse(parts[0].Trim(), out int lo)
+            || !int.TryParse(parts[1].Trim(), out int hi) || hi < lo) return null;
+        return Random.Shared.Next(lo, hi + 1);
     }
 
     private static WireGuardConfig ParseIni(string ini)
@@ -188,7 +214,7 @@ public static class WireGuardParser
                     case "presharedkey": wg.PresharedKey = val; break;
                     case "allowedips": wg.AllowedIps = Csv(); break;
                     case "endpoint": wg.Endpoint = val; break;
-                    case "persistentkeepalive": if (int.TryParse(val, out var k)) wg.PersistentKeepalive = k; break;
+                    case "persistentkeepalive": if (PickInRange(val) is { } k) wg.PersistentKeepalive = k; break;
                 }
         }
         if (wg.AllowedIps.Count == 0) wg.AllowedIps = new() { "0.0.0.0/0", "::/0" };

@@ -6,11 +6,12 @@ import android.util.Base64
  * Reads AmneziaWG / WireGuard configs — the port of the desktop parser, kept close to it so a
  * server that imports on Windows imports here for the same reasons.
  *
- * Two input shapes, and they are not the same:
+ * Three input shapes:
  *   • the raw `[Interface]` / `[Peer]` text;
- *   • a `vpn://` link, which is base64url of that text as 3x-ui writes it. The Amnezia client's
- *     own vpn:// is base64url(qCompress(json)) instead — not handled here, and it is not what a
- *     panel subscription contains.
+ *   • a `vpn://` link that is base64url of that text — what 3x-ui writes;
+ *   • a `vpn://` link that is base64url of Qt's qCompress(json) — what the Amnezia client itself
+ *     hands out. Same `vpn://` scheme, entirely different payload, so which one it is has to be
+ *     read off the bytes rather than off the prefix.
  */
 object WireGuardParser {
 
@@ -51,11 +52,71 @@ object WireGuardParser {
         return parseIni(ini).takeIf { it.isValid }
     }
 
-    /** The panel writes base64url of the config text. Anything else here is not ours to read. */
+    /**
+     * A `vpn://` payload, whichever of the two things it is.
+     *
+     * 3x-ui base64s the config text itself. The Amnezia client base64s a Qt blob: four bytes of
+     * big-endian uncompressed length, then a zlib stream, then JSON describing the whole profile.
+     * Telling them apart is a matter of looking — the zlib header `78 da` is not `[`.
+     */
     private fun decodeVpnUri(payload: String): String? = runCatching {
         val bytes = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
-        String(bytes).takeIf { it.trimStart().startsWith("[Interface]", true) }
+        val text = String(bytes)
+        if (text.trimStart().startsWith("[Interface]", true)) text else fromAmneziaBlob(bytes)
     }.getOrNull()
+
+    /**
+     * The Amnezia client's own export: qCompress(json) with the finished config inside it.
+     *
+     * The config it carries writes its resolvers as `$PRIMARY_DNS` / `$SECONDARY_DNS` — the client
+     * fills those in from fields that sit beside it in the JSON, so they are substituted here
+     * rather than dropped, which would leave the tunnel with no DNS at all.
+     */
+    private fun fromAmneziaBlob(bytes: ByteArray): String? = runCatching {
+        // Four bytes of length, then raw zlib. Inflater(false) reads the zlib header itself.
+        val inflater = java.util.zip.Inflater()
+        inflater.setInput(bytes, 4, bytes.size - 4)
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(16 * 1024)
+        while (!inflater.finished()) {
+            val n = inflater.inflate(buf)
+            if (n == 0) break
+            out.write(buf, 0, n)
+        }
+        inflater.end()
+
+        val root = org.json.JSONObject(String(out.toByteArray()))
+        val wanted = root.optString("defaultContainer")
+        val containers = root.optJSONArray("containers") ?: return null
+        var awg: org.json.JSONObject? = null
+        for (i in 0 until containers.length()) {
+            val c = containers.getJSONObject(i)
+            val block = c.optJSONObject("awg") ?: continue
+            if (awg == null || c.optString("container") == wanted) awg = block
+        }
+        val config = awg?.optJSONObject("last_config")?.optString("config")
+            ?: awg?.optString("last_config")?.let { org.json.JSONObject(it).optString("config") }
+            ?: return null
+
+        config
+            .replace("\$PRIMARY_DNS", root.optString("dns1", "1.1.1.1"))
+            .replace("\$SECONDARY_DNS", root.optString("dns2", "1.0.0.1"))
+            .takeIf { it.trimStart().startsWith("[Interface]", true) }
+    }.getOrNull()
+
+    /**
+     * A number, or one picked out of a range like `25-35`.
+     *
+     * AmneziaWG 3.x writes several timings as ranges and expects the client to choose — the
+     * choosing is the point, since a value that differs between clients is one fewer thing to
+     * fingerprint. `"25-35".toIntOrNull()` is null, so the whole setting used to be dropped and
+     * the tunnel went out with no keepalive at all.
+     */
+    internal fun pickInRange(v: String): Int? {
+        v.toIntOrNull()?.let { return it }
+        val (lo, hi) = v.split('-', limit = 2).map { it.trim().toIntOrNull() ?: return null }
+        return if (hi >= lo) (lo..hi).random() else null
+    }
 
     private fun parseIni(ini: String): WireGuardConfig {
         var c = WireGuardConfig()
@@ -107,7 +168,7 @@ object WireGuardParser {
                 "presharedkey" -> c.copy(presharedKey = v)
                 "allowedips" -> c.copy(allowedIps = csv())
                 "endpoint" -> c.copy(endpoint = v)
-                "persistentkeepalive" -> v.toIntOrNull()?.let { c.copy(persistentKeepalive = it) } ?: c
+                "persistentkeepalive" -> pickInRange(v)?.let { c.copy(persistentKeepalive = it) } ?: c
                 else -> c
             } else c
         }
