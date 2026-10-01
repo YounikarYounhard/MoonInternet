@@ -641,8 +641,11 @@ private fun PingPage(state: AppState, onSet: ((AppState.() -> AppState)) -> Unit
     Column {
         SectionLabel(stringResource(R.string.ping_kind), top = 0)
         ChipFlow(
-            listOf("moon" to "Moon Ping", "tcp" to "TCP", "httpget" to "HTTP GET",
-                   "httphead" to "HTTP HEAD"),
+            // "HTTP" twice costs the width that pushes the fourth chip onto a line of its own —
+            // and on a phone with the system font turned up it wrapped even where it fitted here.
+            // The section is called ВИД ПИНГА and the line underneath names the chosen method in
+            // full, so the word is already said twice without these.
+            listOf("moon" to "Moon Ping", "tcp" to "TCP", "httpget" to "GET", "httphead" to "HEAD"),
             state.pingMethod,
         ) { v -> onSet { copy(pingMethod = v) } }
         // One line about the method you actually picked, instead of a paragraph covering all of

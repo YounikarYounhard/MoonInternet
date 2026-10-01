@@ -815,8 +815,11 @@
                 <WrapPanel>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="Moon Ping" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="moon" IsChecked="{Binding IsPingMoon, Mode=OneWay}"/>
                     <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="TCP" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="tcp" IsChecked="{Binding IsPingTcp, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP GET" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httpget" IsChecked="{Binding IsPingHttpGet, Mode=OneWay}"/>
-                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HTTP HEAD" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
+                    <!-- "HTTP" twice costs the width that pushes the fourth chip onto a line of its
+                         own. The section is called ВИД ПИНГА and the line underneath names the
+                         chosen method in full, so the word is already said twice without these. -->
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="GET" Margin="0,0,8,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httpget" IsChecked="{Binding IsPingHttpGet, Mode=OneWay}"/>
+                    <RadioButton Style="{StaticResource Chip}" GroupName="pingproto" Content="HEAD" Margin="0,0,0,8" Command="{Binding SetPingMethodCommand}" CommandParameter="httphead" IsChecked="{Binding IsPingHttpHead, Mode=OneWay}"/>
                 </WrapPanel>
                 <!-- One line about the method you picked. The old paragraph described all four at
                      once, so three quarters of it was irrelevant whatever you had selected. -->
