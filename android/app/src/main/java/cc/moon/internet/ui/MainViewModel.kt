@@ -455,6 +455,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun refreshOne(u: String): Boolean =
         runCatching { SubscriptionService.fetch(u, hwidHeader()) }.onSuccess { f ->
+            // An answer with nothing in it is not an answer. A carrier switching towers hands back
+            // its own portal page, the fetch "succeeds", nothing parses out of it — and writing
+            // that down replaces a working subscription with an empty one. Which is what losing
+            // every server on a flaky network looks like from the inside. Keep what we had.
+            if (f.servers.isEmpty() && store.state.value.subscriptions
+                    .firstOrNull { it.url == u }?.servers?.isNotEmpty() == true) {
+                cc.moon.internet.data.DevLog.log(
+                    "подписка", "${hostOf(u)}: ответ без серверов — оставляю прежние")
+                _status.value = s(R.string.vm_sub_empty)
+                return@onSuccess
+            }
             store.update { st ->
                 st.copy(subscriptions = st.subscriptions.map {
                     if (it.url != u) it else it.copy(

@@ -3257,6 +3257,19 @@ public partial class MainViewModel : ObservableObject
                         : !string.IsNullOrWhiteSpace(title) ? title! : HostOf(url);
 
             var sub = Subscriptions.FirstOrDefault(s => s.Url == url);
+
+            // An answer with nothing in it is not an answer. A carrier switching towers, a captive
+            // portal, a panel mid-restart — all hand back a page that fetches fine and parses to
+            // nothing, and writing that down replaces a working subscription with an empty one and
+            // saves the emptiness to disk. Which is what "all my subscriptions disappeared" looks
+            // like from the inside. Keep what we had and say what happened.
+            if (content.Servers.Count == 0 && sub is { Count: > 0 })
+            {
+                MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)}: ответ без серверов — оставляю прежние");
+                ErrorText = Status = Localization.Loc.T("S_VM_SubEmpty");
+                return;
+            }
+
             if (sub is null) { sub = new SubscriptionVM(url, name, FilterServer); Subscriptions.Add(sub); }
             else if (!string.IsNullOrWhiteSpace(NewSubName)) sub.Name = NewSubName.Trim();  // keep name on plain refresh
             sub.SetServers(content.Servers);

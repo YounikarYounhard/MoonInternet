@@ -347,6 +347,7 @@
     <s:String x:Key="S_VM_StabilityDead">{0} — nothing gets through this server</s:String>
     <s:String x:Key="S_VM_LooseSub">My connections</s:String>
     <s:String x:Key="S_VM_LooseRemoved">Connections removed</s:String>
+    <s:String x:Key="S_VM_SubEmpty">The subscription answered empty — keeping the servers it had</s:String>
     <s:String x:Key="S_Sheet_PingAll">Ping all</s:String>
     <s:String x:Key="S_Sheet_DeleteAll">Remove all connections</s:String>
     <s:String x:Key="S_VM_ServerRemoved">Connection removed</s:String>

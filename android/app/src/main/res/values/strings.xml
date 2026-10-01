@@ -326,6 +326,7 @@
     <string name="vm_sub_update_failed">"Не удалось обновить"</string>
     <string name="vm_sub_update_failed_named">"Не удалось обновить «%1$s»"</string>
     <string name="vm_sub_removed">"Подписка удалена"</string>
+    <string name="vm_sub_empty">"Подписка ответила пустым — оставил прежние серверы"</string>
     <string name="vm_loose_removed">"Подключения удалены"</string>
     <string name="vm_server_removed">"Подключение удалено"</string>
     <string name="sheets_delete_all">"Удалить все подключения"</string>

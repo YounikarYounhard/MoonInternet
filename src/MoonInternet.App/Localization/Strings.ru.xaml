@@ -316,6 +316,7 @@
     <s:String x:Key="S_VM_StabilityDead">{0} — через этот сервер ничего не проходит</s:String>
     <s:String x:Key="S_VM_LooseSub">Мои подключения</s:String>
     <s:String x:Key="S_VM_LooseRemoved">Подключения удалены</s:String>
+    <s:String x:Key="S_VM_SubEmpty">Подписка ответила пустым — оставил прежние серверы</s:String>
     <s:String x:Key="S_Sheet_PingAll">Пинг всех</s:String>
     <s:String x:Key="S_Sheet_DeleteAll">Удалить все подключения</s:String>
     <s:String x:Key="S_VM_ServerRemoved">Подключение удалено</s:String>
