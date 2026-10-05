@@ -11,7 +11,14 @@
 // AmneziaWG for free. A TUN of its own would have needed all of that written again, and would have
 // wanted admin rights on Windows and a second VpnService slot on Android, which there is only one of.
 //
+// Except on an Android phone in TUN mode, where -tunfd hands it the VpnService's own interface and
+// AmneziaWG carries the phone's packets as they are — the way amneziawg-android does. Two TCP
+// stacks in a row (xray's tun inbound, then ours behind SOCKS) cost most of the speed and every
+// UDP flow a speed test opens; a packet tunnel needs neither. The port then only says "up" and
+// reports the counters, see report.
+//
 // Usage: awgproxy -uapi <file> -listen 127.0.0.1:1090 [-mtu 1380] [-dns 8.8.8.8,8.8.4.4]
+//        awgproxy -uapi <file> -listen 127.0.0.1:1090 -tunfd 42
 package main
 
 import (
@@ -32,6 +39,7 @@ import (
 	// newest tag (v1.0.4) predates the protocol entirely.
 	"github.com/amnezia-vpn/amneziawg-go/v3/conn"
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
+	"github.com/amnezia-vpn/amneziawg-go/v3/tun"
 )
 
 const (
@@ -106,12 +114,13 @@ func run(args []string) error {
 	addrs := fs.String("addr", "", "tunnel addresses, comma separated (10.8.1.2/32)")
 	dns := fs.String("dns", "1.1.1.1", "resolvers inside the tunnel, comma separated")
 	mtu := fs.Int("mtu", defaultMtu, "tunnel MTU; "+strconv.Itoa(defaultMtu)+" is both the default and the ceiling")
+	tunfd := fs.Int("tunfd", -1, "an open TUN descriptor to carry instead of serving SOCKS (Android)")
 	verbose := fs.Bool("v", false, "log what the device is doing")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	if *uapiPath == "" || *addrs == "" {
+	if *uapiPath == "" || (*addrs == "" && *tunfd < 0) {
 		return errors.New("-uapi and -addr are both required")
 	}
 
@@ -120,32 +129,37 @@ func run(args []string) error {
 		return fmt.Errorf("cannot read the uapi file: %w", err)
 	}
 
-	localAddrs, err := parseAddrs(*addrs)
-	if err != nil {
-		return err
-	}
-	resolvers, err := parseAddrs(*dns)
-	if err != nil {
-		return err
-	}
-
-	if *mtu <= 0 || *mtu > defaultMtu {
-		*mtu = defaultMtu
-	}
-
-	// A userspace interface: no TUN device, no admin rights, nothing for another VPN to collide
-	// with. tnet is a full TCP/IP stack whose packets go through the tunnel — ours rather than the
-	// one amneziawg-go ships, for the two reasons set out in tunnel.go.
-	tun, tnet, err := createTunnel(localAddrs, resolvers, *mtu)
-	if err != nil {
-		return fmt.Errorf("cannot create the userspace interface: %w", err)
+	var tdev tun.Device
+	var tnet *tunnel // nil in -tunfd mode: no stack of ours, the phone's kernel is the stack
+	if *tunfd >= 0 {
+		if tdev, err = openTunFD(*tunfd); err != nil {
+			return fmt.Errorf("cannot take over the TUN descriptor: %w", err)
+		}
+	} else {
+		localAddrs, err := parseAddrs(*addrs)
+		if err != nil {
+			return err
+		}
+		resolvers, err := parseAddrs(*dns)
+		if err != nil {
+			return err
+		}
+		if *mtu <= 0 || *mtu > defaultMtu {
+			*mtu = defaultMtu
+		}
+		// A userspace interface: no TUN device, no admin rights, nothing for another VPN to collide
+		// with. tnet is a full TCP/IP stack whose packets go through the tunnel — ours rather than
+		// the one amneziawg-go ships, for the two reasons set out in tunnel.go.
+		if tdev, tnet, err = createTunnel(localAddrs, resolvers, *mtu); err != nil {
+			return fmt.Errorf("cannot create the userspace interface: %w", err)
+		}
 	}
 
 	level := device.LogLevelError
 	if *verbose {
 		level = device.LogLevelVerbose
 	}
-	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(level, "awg "))
+	dev := device.NewDevice(tdev, conn.NewDefaultBind(), device.NewLogger(level, "awg "))
 
 	doc, err := resolveEndpoints(string(uapi))
 	if err != nil {
@@ -189,8 +203,45 @@ func run(args []string) error {
 			}
 			continue
 		}
+		if tnet == nil {
+			go report(c, dev)
+			continue
+		}
 		go serve(c, tnet)
 	}
+}
+
+// report answers a knock in -tunfd mode with one line, "rx tx handshake": bytes received and sent
+// through the tunnel, and the unix time of the last handshake (0 if none yet). It is how the app
+// shows the speed and tells a dead link from a quiet one, there being no xray to ask.
+//
+// Only those three numbers ever leave: IpcGet also prints the private key.
+func report(c net.Conn, dev *device.Device) {
+	defer c.Close()
+	if state, err := dev.IpcGet(); err == nil {
+		fmt.Fprintln(c, counters(state))
+	}
+}
+
+// counters sums what IpcGet says about every peer into the line report sends.
+func counters(state string) string {
+	var rx, tx, handshake int64
+	for _, line := range strings.Split(state, "\n") {
+		key, value, _ := strings.Cut(line, "=")
+		n, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			continue
+		}
+		switch key {
+		case "rx_bytes":
+			rx += n
+		case "tx_bytes":
+			tx += n
+		case "last_handshake_time_sec":
+			handshake = max(handshake, n)
+		}
+	}
+	return fmt.Sprintf("%d %d %d", rx, tx, handshake)
 }
 
 // resolveEndpoints turns every `endpoint=host:port` in the UAPI document into an address the

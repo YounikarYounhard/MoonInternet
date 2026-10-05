@@ -53,12 +53,15 @@ function Publish($id, $version, $file, $path, $catalogue) {
 
 # The engine commit awgproxy is built against; see build-awgproxy.ps1 for why it is not a tag.
 $awgVersion = '3.1-b5928ef'
+# The phone build carries our wrapper's revision on top: .2 is the one that takes the VpnService TUN
+# (-tunfd). A new number is what makes refreshCores fetch it on phones that already have the engine.
+$awgAndroidVersion = "$awgVersion.2"
 
 Publish 'awg' $awgVersion 'awg.zip' (Join-Path $root 'cores\awg') 'windows-x64.json'
 
 $androidSo = Join-Path $root 'dist\cores\android\arm64-v8a\libawgproxy.so'
 if (Test-Path $androidSo) {
-    Publish 'awg' $awgVersion 'libawgproxy.so' $androidSo 'android-arm64.json'
+    Publish 'awg' $awgAndroidVersion 'libawgproxy.so' $androidSo 'android-arm64.json'
 } else {
     Write-Host "missing $androidSo - run build\build-awgproxy.ps1 -Android first" -ForegroundColor Yellow
 }

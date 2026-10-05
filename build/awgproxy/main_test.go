@@ -59,3 +59,12 @@ func TestParseDatagram(t *testing.T) {
 		}
 	})
 }
+
+// The private key sits in the same document; only the three numbers may come out.
+func TestCounters(t *testing.T) {
+	state := "private_key=abcd\nlisten_port=5\npublic_key=p1\nrx_bytes=10\ntx_bytes=20\nlast_handshake_time_sec=100\n" +
+		"public_key=p2\nrx_bytes=1\ntx_bytes=2\nlast_handshake_time_sec=300\n"
+	if got := counters(state); got != "11 22 300" {
+		t.Fatalf("got %q", got)
+	}
+}

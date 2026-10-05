@@ -1,9 +1,12 @@
 package cc.moon.internet.vpn
 
 import android.app.Service
-import android.content.Context
 import android.content.Intent
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.Messenger
+import android.os.ParcelFileDescriptor
 import cc.moon.internet.core.CoreLib
 
 /**
@@ -21,52 +24,47 @@ import cc.moon.internet.core.CoreLib
  * separate executables, because then each had a process to itself; moving them in-process to make
  * them downloadable is what introduced it.
  *
- * So the engine gets its own process again. It still talks to xray the way it always has, over a
- * loopback port, and the app still decides it is up by knocking on that port — nothing else about
- * the arrangement changes.
+ * Bound rather than started, for two things a started service could not do:
+ *
+ *  - Carry the VpnService's TUN descriptor. An Intent refuses file descriptors outright; a
+ *    message over a binding takes one.
+ *  - Die with the connection. The process ends the moment the app lets go, so every connect gets a
+ *    fresh one. A Go runtime cannot be started twice in a process and a loaded library is never
+ *    unloaded, so a process that outlived its engine kept running the OLD engine after an update
+ *    — or kept a dead one. A binding also lends this process the app's foreground priority, which
+ *    a started service in the background does not get.
  */
 class CoreService : Service() {
 
     companion object {
-        private const val EXTRA_ID = "id"
-        private const val EXTRA_SO = "so"
-        private const val EXTRA_ARGS = "args"
-        private const val ACTION_STOP = "cc.moon.internet.CORE_STOP"
-
-        fun start(ctx: Context, id: String, soPath: String, args: List<String>) {
-            ctx.startService(Intent(ctx, CoreService::class.java)
-                .putExtra(EXTRA_ID, id)
-                .putExtra(EXTRA_SO, soPath)
-                .putExtra(EXTRA_ARGS, args.toTypedArray()))
-        }
-
-        fun stop(ctx: Context, id: String) {
-            runCatching {
-                ctx.startService(Intent(ctx, CoreService::class.java)
-                    .setAction(ACTION_STOP)
-                    .putExtra(EXTRA_ID, id))
-            }
-        }
+        const val MSG_START = 1
+        const val KEY_ID = "id"
+        const val KEY_SO = "so"
+        const val KEY_ARGS = "args"
+        /** The TUN descriptor, when the engine is to carry the phone's packets itself. */
+        const val KEY_TUN = "tun"
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val id = intent?.getStringExtra(EXTRA_ID) ?: return START_NOT_STICKY
-        if (intent.action == ACTION_STOP) {
-            CoreLib.stop(id)
-            // Nothing left to hold this process up. Ending it is also the only way to unload the
-            // engine: a Go runtime cannot be started twice in one process, so a fresh start after
-            // an engine is replaced has to be a fresh process.
-            stopSelf()
-            return START_NOT_STICKY
+    private val messenger = Messenger(Handler(Looper.getMainLooper()) { msg ->
+        if (msg.what == MSG_START) {
+            val data = msg.data
+            val args = data.getStringArrayList(KEY_ARGS).orEmpty().toMutableList()
+            @Suppress("DEPRECATION")
+            data.getParcelable<ParcelFileDescriptor>(KEY_TUN)?.let {
+                // The engine owns it from here and closes it when it stops.
+                args += "-tunfd"; args += it.detachFd().toString()
+            }
+            CoreLib.start(data.getString(KEY_ID).orEmpty(), data.getString(KEY_SO).orEmpty(), args)
         }
-        val so = intent.getStringExtra(EXTRA_SO) ?: return START_NOT_STICKY
-        val args = intent.getStringArrayExtra(EXTRA_ARGS)?.toList() ?: emptyList()
-        CoreLib.start(id, so, args)
-        // Not sticky: if the system does kill this, the tunnel is gone anyway and the app will say
-        // so. Bringing the engine back on its own, under a tunnel that no longer exists, would be
-        // a port open onto nothing.
-        return START_NOT_STICKY
+        true
+    })
+
+    override fun onBind(intent: Intent?): IBinder = messenger.binder
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        // The app let go: the tunnel is over. Ending the process is what stops the engine and
+        // closes its sockets and its copy of the TUN — and the only way to unload it.
+        android.os.Process.killProcess(android.os.Process.myPid())
+        return false
     }
 }

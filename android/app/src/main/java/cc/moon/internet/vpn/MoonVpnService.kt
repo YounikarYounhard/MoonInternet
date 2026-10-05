@@ -150,7 +150,12 @@ class MoonVpnService : VpnService() {
     @Volatile private var intentionalStop = false
     @Volatile private var reconnecting = false
     private val byedpi by lazy { ByedpiRunner(this) }
-    private val awgRunner by lazy { AwgRunner(this) }
+    // The engine's process ending on its own is a dropped core like any other — see onCoreDropped.
+    private val awgRunner by lazy { AwgRunner(this) { onCoreDropped() } }
+    /** AmneziaWG is carrying the TUN itself: no xray, so ping and counters come from elsewhere. */
+    @Volatile private var awgTun: cc.moon.internet.core.WireGuardConfig? = null
+    @Volatile private var lastRxAt = 0L
+    private var lastRx = -1L
     private val singBox by lazy { SingBoxRunner(this) }
     private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
     private var currentNetwork: android.net.Network? = null
@@ -185,9 +190,9 @@ class MoonVpnService : VpnService() {
 
             ACTION_PING -> {
                 scope.launch {
-                    val ms = runner?.measureDelay()
-                    linkDead.value = ms == null || ms < 0
-                    livePing.value = if (ms == null || ms < 0) "нет ответа" else "$ms ms"
+                    val ms = measureDelay()
+                    if (runner != null) linkDead.value = ms == null
+                    livePing.value = ms?.let { "$it ms" } ?: "нет ответа".takeIf { runner != null }
                     runCatching { updateNotification(_activeProfile.value.orEmpty(), false) }
                 }
             }
@@ -243,11 +248,17 @@ class MoonVpnService : VpnService() {
                     return@launch
                 }
 
+                val wg = awg?.let { cc.moon.internet.core.WireGuardParser.parse(it) }
+                if (awg != null && wg == null) {
+                    lastError.value = "Конфигурация AmneziaWG не читается"
+                    _state.value = State.Disconnected; stopTunnel(); return@launch
+                }
+
                 // Proxy mode runs the core with no TUN: only the local SOCKS/HTTP listeners, and
                 // no VPN interface — the same shape INCY's ProxyOnlyService has, which is an
                 // ordinary foreground service rather than a VpnService.
                 val fd = if (tun) {
-                    establish(profileName, mtu, appMode, apps)
+                    establish(profileName, mtu, appMode, apps, wg)
                         ?: run { askForVpnSlot(); return@launch }
                 } else null
                 tunFd = fd
@@ -261,15 +272,13 @@ class MoonVpnService : VpnService() {
                     }
                 }
 
-                // AmneziaWG: awgproxy carries the tunnel and xray's proxy outbound is a SOCKS dial
-                // into it, so it has to be listening before the core starts — same order as byedpi.
-                if (awg != null) {
-                    val wg = cc.moon.internet.core.WireGuardParser.parse(awg)
-                    if (wg == null) {
-                        lastError.value = "Конфигурация AmneziaWG не читается"
-                        _state.value = State.Disconnected; stopTunnel(); return@launch
-                    }
-                    awgRunner.start(wg)?.let { why ->
+                // AmneziaWG. With a TUN the engine carries the phone's packets itself and xray is
+                // not started at all — the way the Amnezia client works, and the only way to its
+                // speed: xray's tun inbound plus a second TCP stack behind SOCKS cost most of it.
+                // Without one (proxy mode) awgproxy is a SOCKS listener that xray's outbound
+                // dials, so it has to be listening before the core starts — same order as byedpi.
+                if (wg != null) {
+                    awgRunner.start(wg, fd)?.let { why ->
                         lastError.value = why
                         _state.value = State.Disconnected; stopTunnel(); return@launch
                     }
@@ -291,8 +300,12 @@ class MoonVpnService : VpnService() {
                 }
 
                 intentionalStop = false
-                runner = XrayRunner(this@MoonVpnService) { onCoreDropped() }
-                    .also { it.start(config, fd?.fd ?: 0) }
+                awgTun = wg?.takeIf { fd != null }
+                lastRx = -1L; lastRxAt = System.currentTimeMillis()
+                if (awgTun == null) {
+                    runner = XrayRunner(this@MoonVpnService) { onCoreDropped() }
+                        .also { it.start(config, fd?.fd ?: 0) }
+                }
 
                 connectedAt = System.currentTimeMillis()
                 _state.value = State.Connected
@@ -300,9 +313,9 @@ class MoonVpnService : VpnService() {
                 // notification's own button was pressed.
                 scope.launch {
                     runCatching {
-                        val ms = runner?.measureDelay()
-                        if (zapret == null) linkDead.value = ms == null || ms < 0
-                        livePing.value = if (ms == null || ms < 0) null else "$ms ms"
+                        val ms = measureDelay()
+                        if (zapret == null && runner != null) linkDead.value = ms == null
+                        livePing.value = ms?.let { "$it ms" }
                         updateNotification(profileName, connecting = false)
                     }
                 }
@@ -346,13 +359,25 @@ class MoonVpnService : VpnService() {
      */
     private fun establish(
         profileName: String, mtu: Int, appMode: String, apps: List<String>,
+        wg: cc.moon.internet.core.WireGuardConfig? = null,
     ): ParcelFileDescriptor? {
-        val b = Builder()
-            .setSession(profileName.ifBlank { "Moon Internet" })
-            .setMtu(mtu)
-            .addAddress("172.19.0.1", 30)
-            .addDnsServer("1.1.1.1")
-            .addRoute("0.0.0.0", 0)
+        val b = Builder().setSession(profileName.ifBlank { "Moon Internet" })
+        if (wg == null) {
+            b.setMtu(mtu)
+                .addAddress("172.19.0.1", 30)
+                .addDnsServer("1.1.1.1")
+                .addRoute("0.0.0.0", 0)
+        } else {
+            // AmneziaWG carries this interface itself, so it is built from the config, as the
+            // Amnezia client builds it: its addresses, its DNS, its AllowedIPs as the routes.
+            // MTU capped at 1280 for the reason in build/awgproxy/main.go — a bigger one comes
+            // up, handshakes, and then drops every full-sized packet on mobile data.
+            b.setMtu(if (wg.mtu in 576..1280) wg.mtu else 1280)
+            wg.address.forEach { a -> prefix(a)?.let { (ip, len) -> b.addAddress(ip, len) } }
+            wg.dns.ifEmpty { listOf("1.1.1.1") }.forEach { runCatching { b.addDnsServer(it) } }
+            wg.allowedIps.ifEmpty { listOf("0.0.0.0/0") }
+                .forEach { r -> prefix(r)?.let { (ip, len) -> runCatching { b.addRoute(ip, len) } } }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) b.setMetered(false)
 
         // Split tunnelling is per package on Android. Our own package is always excluded so the
@@ -367,6 +392,50 @@ class MoonVpnService : VpnService() {
         return b.establish()
     }
 
+    /** "10.8.1.2/32" → ("10.8.1.2", 32); a bare address is a host route. Null if unreadable. */
+    private fun prefix(cidr: String): Pair<String, Int>? {
+        val ip = cidr.substringBefore('/').trim()
+        if (ip.isEmpty()) return null
+        val len = cidr.substringAfter('/', "").trim().toIntOrNull() ?: if (':' in ip) 128 else 32
+        return ip to len
+    }
+
+    /**
+     * Round trip for the notification, in ms, or null when nothing answered.
+     *
+     * Through xray when it runs. AmneziaWG on a TUN has no xray to ask, and our own sockets are
+     * kept out of the tunnel, so the figure is the server's own round trip — a closed TCP port
+     * answering with a reset, the same probe the server list uses for UDP protocols.
+     */
+    private fun measureDelay(): Long? {
+        runner?.let { r -> return r.measureDelay()?.takeIf { it >= 0 } }
+        val wg = awgTun ?: return null
+        val t0 = System.currentTimeMillis()
+        return try {
+            java.net.Socket().use { it.connect(java.net.InetSocketAddress(wg.endpointHost, wg.endpointPort), 3000) }
+            System.currentTimeMillis() - t0
+        } catch (_: java.net.ConnectException) {
+            System.currentTimeMillis() - t0
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * AmneziaWG on a TUN: (up, down) from the engine, and whether the link has gone dead. Dead is
+     * no handshake for three minutes — with keepalive on, a live tunnel renews one every two —
+     * and nothing received for the last 15 seconds either, so a quiet tunnel without keepalive is
+     * not accused for being quiet. A brand-new tunnel gets 15 seconds for its first handshake.
+     */
+    private fun awgTotals(): Pair<Long, Long>? {
+        val (rx, tx, handshake) = awgRunner.counters() ?: return null
+        val now = System.currentTimeMillis()
+        if (rx != lastRx) { lastRx = rx; lastRxAt = now }
+        val since = if (handshake > 0) handshake * 1000 else connectedAt - 165_000
+        linkDead.value = now - since > 180_000 && now - lastRxAt > 15_000
+        return tx to rx
+    }
+
     private suspend fun pollTraffic() {
         var lastUp = 0L
         var lastDown = 0L
@@ -379,10 +448,10 @@ class MoonVpnService : VpnService() {
             // Not in Zapret: everything there goes through byedpi, and whether one probe URL
             // opens depends on the strategy rather than on the connection being up. That page has
             // its own «Проверить», aimed at a site that is actually blocked.
-            if (tick % 60 == 30 && lastZapret == null) scope.launch {
+            if (tick % 60 == 30 && lastZapret == null && runner != null) scope.launch {
                 runCatching { linkDead.value = (runner?.measureDelay() ?: -1) < 0 }
             }
-            runner?.trafficTotals()?.let { (up, down) ->
+            (runner?.trafficTotals() ?: awgTun?.let { awgTotals() })?.let { (up, down) ->
                 traffic.value = up to down
                 // refresh the notification every other second with the current speed
                 if (tick++ % 2 == 0) {
@@ -483,6 +552,7 @@ class MoonVpnService : VpnService() {
         runCatching { singBox.stop() }
         runCatching { runner?.stop() }
         runner = null
+        awgTun = null
         runCatching { tunFd?.close() }
         tunFd = null
     }

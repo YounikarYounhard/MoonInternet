@@ -745,8 +745,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * carrying hundreds of kilobytes, and a check that says "no reply" over a working connection
      * is worse than no check at all.
      */
-    private fun tunnelPing(): Int =
-        (MoonVpnService.runner?.measureDelay()?.takeIf { it >= 0 } ?: socksCheck())?.toInt() ?: -1
+    private fun tunnelPing(): Int {
+        // AmneziaWG on a TUN runs without xray: no core to ask and no SOCKS port to go through.
+        // The server's own round trip, then — the figure its row shows when not connected.
+        if (MoonVpnService.runner == null) return store.selectedServer()?.let { measurePing(it, "tcp") } ?: -1
+        return (MoonVpnService.runner?.measureDelay()?.takeIf { it >= 0 } ?: socksCheck())?.toInt() ?: -1
+    }
 
     private fun measurePing(s: ServerProfile, method: String): Int {
         val st = store.state.value

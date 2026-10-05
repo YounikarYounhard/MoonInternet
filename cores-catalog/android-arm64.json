@@ -3,10 +3,10 @@
     "cores":  [
                   {
                       "id":  "awg",
-                      "version":  "3.1-b5928ef",
+                      "version":  "3.1-b5928ef.2",
                       "file":  "libawgproxy.so",
-                      "size":  6571336,
-                      "sha256":  "c2c185c27df80fda0eb73dd70ea25cf1b6f04823784db0fb779a8adc43cb3e40",
+                      "size":  6656488,
+                      "sha256":  "fddce8d01a422fd9d7fa29688aad36a73d25ed9f07943047e08b72804e013a14",
                       "url":  "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/cores/libawgproxy.so"
                   }
               ]
