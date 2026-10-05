@@ -1074,8 +1074,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
 
         MoonVpnService.start(
-            // flag + label: the notification headline, same as INCY's
-            getApplication(), config, (flagOf(s) + " " + s.label).trim(),
+            getApplication(), config, s.notificationTitle,
             tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
             // AmneziaWG needs its own engine up before the core; the service starts it.
             awgConfig = if (s.wg?.isAmnezia == true) s.raw else null,

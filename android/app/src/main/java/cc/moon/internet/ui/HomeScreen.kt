@@ -766,9 +766,7 @@ private fun Tag(text: String, fg: Color, bg: Color) {
  * symbol: a column of identical stickers that told you nothing while looking as though it should.
  * Callers check for the empty string rather than laying out room for it.
  */
-fun flagOf(s: ServerProfile): String = s.countryCode?.let { cc ->
-    String(Character.toChars(0x1F1E6 + (cc[0] - 'a'))) + String(Character.toChars(0x1F1E6 + (cc[1] - 'a')))
-} ?: ""
+fun flagOf(s: ServerProfile): String = s.flag
 
 fun pingColorOf(ms: Int) = when {
     ms < 0 -> Moon.Danger

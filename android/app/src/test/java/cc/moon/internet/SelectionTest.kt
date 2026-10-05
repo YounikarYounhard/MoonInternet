@@ -132,6 +132,18 @@ class SelectionTest {
     }
 
     @Test
+    fun theNotificationKeepsTheFlagWhoeverStartedTheTunnel() {
+        // The tile and the reconnect after a reboot passed `label`, which is the name with its
+        // flag cut off; only the app put it back. So the shade showed a flag or not depending on
+        // which of the three had started the tunnel.
+        val fi = server("🇫🇮 Финляндия", "fi.example", 443)
+        assertEquals("Финляндия", fi.label)
+        assertEquals("🇫🇮 Финляндия", fi.notificationTitle)
+        // No flag in the name, no stray space in front of it.
+        assertEquals(chosen.label, chosen.notificationTitle)
+    }
+
+    @Test
     fun hostPortComesOutOfALinkAndOnlyWhenItIsThere() {
         assertEquals("nl.example:8443", hostPortOf("vless://uuid@nl.example:8443?type=grpc"))
         assertEquals("1.2.3.4:443", hostPortOf("awg:pubkey@1.2.3.4:443"))

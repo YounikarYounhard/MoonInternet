@@ -60,6 +60,22 @@ data class ServerProfile(
      * remark was nothing but the flag, produced a blank row you could not tell from the next
      * blank one. The endpoint is always there and is what you would look at anyway.
      */
+    /** The country flag as an emoji, or "" when the country is not known. */
+    val flag: String
+        get() = countryCode?.takeIf { it.length == 2 }?.lowercase()?.let { cc ->
+            String(Character.toChars(0x1F1E6 + (cc[0] - 'a'))) + String(Character.toChars(0x1F1E6 + (cc[1] - 'a')))
+        }.orEmpty()
+
+    /**
+     * What the notification calls this server: flag and name, the way INCY heads it.
+     *
+     * One place on purpose. The app, the quick-settings tile and the reconnect after a reboot each
+     * built the name themselves, and only the app put the flag in — so whether the shade showed a
+     * flag depended on which of the three had started the tunnel. That was "sometimes".
+     */
+    val notificationTitle: String
+        get() = "$flag $label".trim()
+
     val label: String
         get() {
             val bare =

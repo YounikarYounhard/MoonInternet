@@ -107,7 +107,7 @@ class MoonTileService : TileService() {
 
             val finalConfig = if (st.tunMode) config else XrayConfig.buildProxyOnly(config)
             MoonVpnService.start(
-                applicationContext, finalConfig, server.label,
+                applicationContext, finalConfig, server.notificationTitle,
                 tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
                 // Both protocols need their own engine listening before the core, and the tile used
                 // to start neither — from here AmneziaWG and Hysteria2 dialled into an empty port.

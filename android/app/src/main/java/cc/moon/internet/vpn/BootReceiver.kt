@@ -61,7 +61,7 @@ class BootReceiver : BroadcastReceiver() {
                 )   // build() already returns the JSON text
 
                 MoonVpnService.start(
-                    ctx, config, server.label,
+                    ctx, config, server.notificationTitle,
                     tun = st.tunMode, perAppMode = st.perAppMode, perApps = st.perApps,
                     // Same as the tile: these two are carried by their own engine, and reconnecting
                     // after a reboot without starting it dials into an empty port.
