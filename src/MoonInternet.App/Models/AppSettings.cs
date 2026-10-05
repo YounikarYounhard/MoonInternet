@@ -22,6 +22,11 @@ public sealed class AppSettings
     public string? SubscriptionUrl { get; set; }          // legacy single-sub (migrated into SubscriptionUrls)
     public List<string> SubscriptionUrls { get; set; } = new();
     public string? LastServerName { get; set; }
+    /// <summary>
+    /// The group the last server was picked from. A server copied into «Мои подключения» keeps its
+    /// name, so by name alone the restore always found the subscription's copy first.
+    /// </summary>
+    public string? LastServerSub { get; set; }
     public bool TunMode { get; set; } = true;   // legacy two-state switch, migrated into ConnMode
 
     /// <summary>

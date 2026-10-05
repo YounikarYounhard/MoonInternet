@@ -1366,14 +1366,14 @@ public partial class MainViewModel : ObservableObject
             if (favs.Count > 0)
                 return AutoConnectTarget switch
                 {
-                    "favorite-last" => favs.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? favs[0],
+                    "favorite-last" => LastServer(favs) ?? favs[0],
                     "favorite-lowest" => favs.Where(Reachable).OrderBy(s => s.Ping).FirstOrDefault() ?? favs[0],
                     _ => favs[0],
                 };
         }
         return AutoConnectTarget switch
         {
-            "last" => AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? AllServers.FirstOrDefault(),
+            "last" => LastServer(AllServers) ?? AllServers.FirstOrDefault(),
             "lowest" => AllServers.Where(Reachable).OrderBy(s => s.Ping).FirstOrDefault() ?? AllServers.FirstOrDefault(),
             _ => AllServers.FirstOrDefault(),
         };
@@ -1729,11 +1729,11 @@ public partial class MainViewModel : ObservableObject
         {
             // The list was rebuilt (sub reload/sort) and WPF cleared the ListBox selection → don't show
             // "Сервер не выбран" while we're actually connected. Re-pick the same server from the new list, quietly.
-            var restore = AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? AllServers.FirstOrDefault();
+            var restore = LastServer(AllServers) ?? AllServers.FirstOrDefault();
             if (restore is not null) { _restoringServer = true; SelectedServer = restore; _restoringServer = false; }
             return;
         }
-        _settings.LastServerName = value.Label; _settings.Save();   // remember the choice even without connecting
+        _settings.LastServerName = value.Label; _settings.LastServerSub = OwnerOf(value)?.Url; _settings.Save();   // remember the choice even without connecting
 
         // With no profile picked by hand, routing follows the subscription this server came from —
         // so moving between subscriptions moves the rules too. A saved choice is left alone.
@@ -2949,6 +2949,17 @@ public partial class MainViewModel : ObservableObject
 
     private SubscriptionVM? OwnerOf(ServerItem s) => Subscriptions.FirstOrDefault(x => x.Servers.Contains(s));
 
+    /// <summary>
+    /// The server last picked, looked for first in the group it was picked from. A copy in «Мои
+    /// подключения» has the same name as the original, and by name alone the original always won.
+    /// </summary>
+    private ServerItem? LastServer(IEnumerable<ServerItem> pool)
+    {
+        var list = pool as IList<ServerItem> ?? pool.ToList();
+        return list.FirstOrDefault(s => s.Label == _settings.LastServerName && OwnerOf(s)?.Url == _settings.LastServerSub)
+            ?? list.FirstOrDefault(s => s.Label == _settings.LastServerName);
+    }
+
     [RelayCommand] private void OpenServerSheet(ServerItem? s) { if (s is null) return; SheetServer = s; ShowServerSheet = true; }
     [RelayCommand] private void CloseServerSheet() => ShowServerSheet = false;
 
@@ -3126,7 +3137,7 @@ public partial class MainViewModel : ObservableObject
             RefreshHomeSummary();
             NotifyServerListChanged();
             MigrateFavoriteKeys();
-            SelectedServer ??= AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? AllServers.FirstOrDefault();
+            SelectedServer ??= LastServer(AllServers) ?? AllServers.FirstOrDefault();
         }
     }
 
@@ -3285,7 +3296,7 @@ public partial class MainViewModel : ObservableObject
             NotifyServerListChanged();
             RestartAutoUpdateTimer();               // (re)arm periodic auto-refresh now that a subscription exists
             MigrateFavoriteKeys();
-            SelectedServer ??= sub.Servers.FirstOrDefault(s => s.Label == _settings.LastServerName) ?? sub.Servers.FirstOrDefault();
+            SelectedServer ??= LastServer(sub.Servers) ?? sub.Servers.FirstOrDefault();
             // Name the subscription. With several of them "Загружено серверов: 37" left you
             // guessing whether the button you pressed is the one that answered.
             Status = TotalServers > 0
@@ -3396,7 +3407,7 @@ public partial class MainViewModel : ObservableObject
         // not — the list is rebuilt on every refresh, so the instance the selection holds need not
         // be the instance a subscription holds, and Авто quietly fell through to Глобальный.
         var item = SelectedServer
-                   ?? AllServers.FirstOrDefault(s => s.Label == _settings.LastServerName);
+                   ?? LastServer(AllServers);
         if (item is null) return global;
 
         var sub = Subscriptions.FirstOrDefault(s => s.Name == item.SubscriptionName)
@@ -3558,7 +3569,7 @@ public partial class MainViewModel : ObservableObject
             if (ConnectionState != ConnectionState.Connected) { if (Status == $"Подключение к {SelectedServer.Label}…" || Status.StartsWith("Подключение")) Status = Localization.Loc.T("S_VM_232"); return; } // cancelled/aborted
             _connectedAt = DateTime.Now; ResetTraffic();
             ReportConnected();
-            _settings.LastServerName = SelectedServer.Label;
+            _settings.LastServerName = SelectedServer.Label; _settings.LastServerSub = OwnerOf(SelectedServer)?.Url;
             _settings.TunMode = TunMode;
             _settings.Save();
             if (deferRouting) _ = ApplyRoutingWhenReady(routing!);   // finish geo in the background, then re-apply
@@ -3642,7 +3653,7 @@ public partial class MainViewModel : ObservableObject
             if (ConnectionState != ConnectionState.Connected) { Status = Localization.Loc.T("S_VM_229"); return; }
             _connectedAt = DateTime.Now; ResetTraffic();
             ReportConnected();
-            _settings.LastServerName = SelectedServer.Label; _settings.Save();
+            _settings.LastServerName = SelectedServer.Label; _settings.LastServerSub = OwnerOf(SelectedServer)?.Url; _settings.Save();
         }
         catch (Exception ex) { Status = "Не удалось переподключиться: " + ex.Message; }
         finally { _reconnecting = false; ReSleeping = false; }

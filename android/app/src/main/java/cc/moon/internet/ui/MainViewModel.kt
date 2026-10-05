@@ -562,8 +562,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!st.pinActiveSub) return st.subscriptions
         // The server actually selected, not the saved string: when that string names nothing the
         // app falls back to the first server, and sorting by the string then floats nobody.
-        val active = store.selectedServer()?.key ?: return st.subscriptions
-        return st.subscriptions.sortedByDescending { sub -> sub.servers.any { it.key == active } }
+        // By the object, not the key: with a server in two groups, the group to float is the one
+        // it was picked from.
+        val chosen = cc.moon.internet.data.selectedIn(st) ?: return st.subscriptions
+        return st.subscriptions.sortedByDescending { sub -> sub.servers.any { it === chosen } }
     }
 
     /** Sorted servers of one subscription — Home and Servers both go through this. */

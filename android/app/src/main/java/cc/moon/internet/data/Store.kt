@@ -22,6 +22,18 @@ import java.io.File
  * down in its place — which is the app changing servers on its own, at whatever moment the panel
  * happened to touch its config.
  */
+/**
+ * The selected server, looked for first in the group it was picked from.
+ *
+ * Pick the copy in «Мои подключения» and the one in the subscription lit up instead — or both did —
+ * because the key is the same in each. The group settles it; the key alone is the fallback, for a
+ * selection saved before the group was written down.
+ */
+internal fun selectedIn(st: AppState): ServerProfile? =
+    st.subscriptions.firstOrNull { it.url == st.selectedSubUrl }
+        ?.servers?.firstOrNull { it.key == st.selectedServerRaw }
+        ?: matchSelected(st.subscriptions.flatMap { it.servers }, st.selectedServerRaw)
+
 internal fun matchSelected(all: List<ServerProfile>, raw: String?): ServerProfile? {
     if (raw == null) return all.firstOrNull()
     all.firstOrNull { it.key == raw }?.let { return it }
@@ -48,6 +60,12 @@ internal fun hostPortOf(key: String): String? {
 data class AppState(
     val subscriptions: List<Subscription> = emptyList(),
     val selectedServerRaw: String? = null,
+    /**
+     * The group the selection was picked from. A server copied out of a subscription into «Мои
+     * подключения» is the same account on the same machine, so both copies carry one key — and by
+     * key alone the first group always won. This says which copy was meant.
+     */
+    val selectedSubUrl: String? = null,
     val favorites: List<String> = emptyList(),
     val routing: RoutingProfile? = null,
     val useRouting: Boolean = true,
@@ -306,7 +324,7 @@ class Store(private val ctx: Context) {
     val allServers: List<ServerProfile>
         get() = _state.value.subscriptions.flatMap { it.servers }
 
-    fun selectedServer(): ServerProfile? = matchSelected(allServers, _state.value.selectedServerRaw)
+    fun selectedServer(): ServerProfile? = selectedIn(_state.value)
 
     /**
      * Write the fallback down when the saved selection no longer names anything.
@@ -375,10 +393,14 @@ class Store(private val ctx: Context) {
      * that moved on its own can be traced back to whatever moved it instead of being guessed at.
      */
     suspend fun selectServer(s: ServerProfile, why: String = "вручную") {
-        val was = _state.value.selectedServerRaw
-        if (was == s.key) return
+        val st = _state.value
+        // The group is read off the very object that was tapped, not off its key: the key is the
+        // same in both copies of a server, the object is not.
+        val sub = st.subscriptions.firstOrNull { g -> g.servers.any { it === s } }?.url
+            ?: st.subscriptions.firstOrNull { g -> g.servers.any { it.key == s.key } }?.url
+        if (st.selectedServerRaw == s.key && st.selectedSubUrl == sub) return
         DevLog.log("сервер", "$why -> ${s.name}")
-        update { it.copy(selectedServerRaw = s.key) }
+        update { it.copy(selectedServerRaw = s.key, selectedSubUrl = sub) }
     }
 
     suspend fun removeSubscription(url: String) =
@@ -397,11 +419,16 @@ class Store(private val ctx: Context) {
             else sub.copy(servers = sub.servers.filterNot { it.key == server.key })
                 .takeIf { it.servers.isNotEmpty() }
         }
+        // A copy may still be standing in a subscription under the same key. The choice is cleared
+        // only if it was this copy, and the star only if no copy is left to wear it.
+        val pickedThis = st.selectedServerRaw == server.key &&
+            st.subscriptions.any { it.isLoose && it.url == st.selectedSubUrl }
+        val stillHere = subs.any { g -> g.servers.any { it.key == server.key } }
         st.copy(
             subscriptions = subs,
-            // Neither the choice nor a star may point at something that is gone.
-            selectedServerRaw = st.selectedServerRaw.takeIf { it != server.key },
-            favorites = st.favorites - server.key,
+            selectedServerRaw = st.selectedServerRaw.takeUnless { pickedThis },
+            selectedSubUrl = st.selectedSubUrl.takeUnless { pickedThis },
+            favorites = if (stillHere) st.favorites else st.favorites - server.key,
         )
     }
 

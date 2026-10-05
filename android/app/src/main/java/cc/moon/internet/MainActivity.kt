@@ -151,7 +151,7 @@ class MainActivity : ComponentActivity() {
                 // Remembered, not recomputed: a fresh list instance on every recomposition is a
                 // parameter Compose cannot see through, and the whole server list would repaint
                 // for any unrelated state change. Same lesson the favourites reorder taught.
-                val orderedSubs = remember(state.subscriptions, state.pinActiveSub, state.selectedServerRaw) {
+                val orderedSubs = remember(state.subscriptions, state.pinActiveSub, state.selectedServerRaw, state.selectedSubUrl) {
                     vm.orderedSubscriptions(state)
                 }
 
@@ -252,7 +252,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val servers = state.subscriptions.flatMap { it.servers }
-                val selected = servers.firstOrNull { it.key == state.selectedServerRaw } ?: servers.firstOrNull()
+                val selected = cc.moon.internet.data.selectedIn(state) ?: servers.firstOrNull()
                 val collapsed = state.collapsed.toSet()
 
                 // The page background goes behind the insets, not inside them: in landscape the

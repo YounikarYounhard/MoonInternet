@@ -350,7 +350,7 @@ private fun SubGroup(
                             Column(Modifier.animatePlacement()) {
                             ServerRowCompact(
                                 server = s,
-                                selected = s.key == selected?.key,
+                                selected = s === selected,   // the copy that was picked, not every copy with its key
                                 ping = pings[s.pingKey],
                                 pinging = s.pingKey in pinging,
                                 pingDisplay = pingDisplay,

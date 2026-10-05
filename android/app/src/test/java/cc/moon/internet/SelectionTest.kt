@@ -7,6 +7,7 @@ import cc.moon.internet.data.matchSelected
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 /**
@@ -109,6 +110,25 @@ class SelectionTest {
         assertNotEquals(me.key, you.key)
         // ...and one account read twice is still one server: a re-rendered name changes nothing.
         assertEquals(me.key, me.copy(name = "другое имя").key)
+    }
+
+    @Test
+    fun aCopiedServerIsSelectedInTheGroupItWasPickedFrom() {
+        // Copied out of a subscription into «Мои подключения»: the same account on the same
+        // machine, so the same key — but a different row. Picking the copy used to light up the
+        // subscription's one, or both, because the first group with that key always won.
+        val copy = chosen.copy()
+        val st = cc.moon.internet.data.AppState(
+            subscriptions = listOf(
+                cc.moon.internet.core.Subscription(url = "https://panel", name = "BALY", servers = all),
+                cc.moon.internet.core.Subscription(url = "clipboard:local", name = "Мои", servers = listOf(copy)),
+            ),
+            selectedServerRaw = chosen.key,
+            selectedSubUrl = "clipboard:local",
+        )
+        assertSame(copy, cc.moon.internet.data.selectedIn(st))
+        // A selection saved before the group was written down still resolves, by key, as before.
+        assertSame(chosen, cc.moon.internet.data.selectedIn(st.copy(selectedSubUrl = null)))
     }
 
     @Test
