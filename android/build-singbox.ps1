@@ -58,6 +58,33 @@ if (-not (Test-Path $work)) {
     Write-Host "Using the existing checkout of $Tag" -ForegroundColor Cyan
 }
 
+# Android 11+ will not let an app bind() a NETLINK_ROUTE socket, and sing-box opens one for its
+# network monitor whenever it has no platform interface - not only when auto_detect_interface asks
+# for it. The monitor fails to start, sing-box treats that as fatal, and Hysteria2 dies with
+# "start service: permission denied". It never showed on the Android 10 test phone, where the
+# bind is still allowed; it is every phone from Android 11 on.
+# Nothing here needs the monitor: it exists to follow interface changes for auto_detect_interface,
+# which we never set (our own package is excluded from the tunnel, so its sockets bypass it anyway).
+# So it is built only when asked for. A missing monitor is a mode sing-box already runs in - it is
+# what happens on a platform where creating one returns ErrInvalid.
+#
+# An empty branch rather than a narrower condition: the branch's `else` is the platform-interface
+# path, and narrowing the condition sent us into it with no platform interface - a nil dereference
+# at startup. That was the first attempt at this patch, and it never got past box.New.
+$nm = Join-Path $work 'route\network.go'
+$src = [IO.File]::ReadAllText($nm)
+$mark = '// no network monitor unless asked for'
+$was = 'if !usePlatformDefaultInterfaceMonitor {'
+$now = "if !usePlatformDefaultInterfaceMonitor && !enforceInterfaceMonitor {`n`t`t$mark - see android/build-singbox.ps1`n`t} else if !usePlatformDefaultInterfaceMonitor {"
+if ($src.Contains($mark)) {
+    Write-Host 'Network monitor patch already in place' -ForegroundColor Cyan
+} elseif ($src.Contains($was)) {
+    [IO.File]::WriteAllText($nm, $src.Replace($was, $now))
+    Write-Host 'Patched: network monitor only with auto_detect_interface' -ForegroundColor Cyan
+} else {
+    throw 'route/network.go no longer looks as expected - re-check the netlink patch before building'
+}
+
 $env:GOPATH      = Join-Path $tc 'gopath'
 $env:GOOS        = 'linux'
 $env:GOARCH      = 'arm64'
