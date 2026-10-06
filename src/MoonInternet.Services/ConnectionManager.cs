@@ -55,6 +55,9 @@ public sealed class ConnectionManager : IDisposable
     public string AppRouteMode { get; set; } = "off";                                  // per-app split routing (TUN)
     public IReadOnlyList<string> AppRouteApps { get; set; } = Array.Empty<string>();
     public int SocksPort => _runner.SocksPort;
+    /// <summary>True while AmneziaWG carries the traffic on its own adapter. No xray and no sing-box on
+    /// this path: no routing rules to re-apply, and the counters are the adapter's.</summary>
+    public bool AwgDirect { get; private set; }
 
     /// <summary>xray traffic totals (recv=download, sent=upload) for the live counters. Null if xray isn't the active
     /// core or stats are unavailable (e.g. Hysteria2 TUN, which runs a lone sing-box → use <see cref="SingBoxTraffic"/>).</summary>
@@ -211,6 +214,7 @@ public sealed class ConnectionManager : IDisposable
         Disconnect();
         DevLog.Log("подключение", $"{profile.Name} · режим {(mode == TunnelMode.Tun ? "TUN" : "системный прокси")}");
         _userDisconnect = false;      // an intentional connect — drops should auto-reconnect
+        AwgDirect = false;
         _lastMode = mode;
         _lastRouting = routing;
         _cts = new CancellationTokenSource();
@@ -498,6 +502,7 @@ public sealed class ConnectionManager : IDisposable
         }
         _tunActive = true;
         ActiveMode = TunnelMode.Tun;
+        AwgDirect = true;
         RoutingNote = wg.ProtocolLabel;
         _roamingAwg = wg;                          // the endpoint route is pinned to this card's gateway
         _roamIfIndex = Pinger.PhysicalIfIndex();

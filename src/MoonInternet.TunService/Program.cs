@@ -78,7 +78,10 @@ void StopTun()
         // synchronously — it lingers, IP and all, for a second or three. The old blind 500 ms sleep
         // often ended while the ghost was still up, and then the NEXT connect measured the ghost.
         int waited = 0;
-        for (; waited < 40 && TunHasGatewayIp(); waited++) Thread.Sleep(100);
+        // Any adapter of ours, not only the one carrying the sing-box gateway: an AmneziaWG adapter
+        // has the config's address, and the next connect used to come up beside its ghost — two
+        // sets of the same routes, half the packets into a dead adapter, and "no traffic".
+        for (; waited < 40 && (TunHasGatewayIp() || AdapterUp("MoonTun*")); waited++) Thread.Sleep(100);
         // Four seconds and still there means the driver is holding it, which is the state a reboot
         // used to be the only cure for. Say so: without a line here the next report is again
         // "half the protocols stopped working" with nothing to go on.
@@ -107,12 +110,14 @@ bool TunHasGatewayIp(string? ifName = null)
     return false;
 }
 
+// A trailing * matches by prefix: "MoonTun*" is any adapter of ours.
 bool AdapterUp(string ifName)
 {
     try
     {
         foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
-            if (ni.Name == ifName && ni.OperationalStatus == OperationalStatus.Up) return true;
+            if (ni.OperationalStatus == OperationalStatus.Up &&
+                (ifName.EndsWith('*') ? ni.Name.StartsWith(ifName[..^1], StringComparison.Ordinal) : ni.Name == ifName)) return true;
     }
     catch { }
     return false;
@@ -146,8 +151,10 @@ bool InternetThroughTun(string? via = null)
     try
     {
         using var c = new TcpClient();
+        // MapToIPv4: a plain TcpClient is a dual-stack IPv6 socket, so its local address reads
+        // "::ffff:10.8.1.2" — compared as a string, a perfectly working tunnel never passed.
         return c.ConnectAsync("1.1.1.1", 443).Wait(3000) && c.Connected &&
-               (via is null || (c.Client.LocalEndPoint as IPEndPoint)?.Address.ToString() == via);
+               (via is null || (c.Client.LocalEndPoint as IPEndPoint)?.Address.MapToIPv4().ToString() == via);
     }
     catch { return false; }
 }
@@ -339,7 +346,7 @@ string StartAwgTun(WireGuardConfig wg)
             Run("netsh", $"interface ipv4 add route {dst}/{n} \"{ifName}\" 0.0.0.0 metric=1 store=active");
     }
 
-    for (int i = 0; i < 4; i++) { if (InternetThroughTun(addr)) { Log($"AmneziaWG up as {ifName} — internet OK"); return "OK"; } Thread.Sleep(700); }
+    for (int i = 0; i < 6; i++) { if (InternetThroughTun(addr)) { Log($"AmneziaWG up as {ifName} — internet OK"); return "OK"; } Thread.Sleep(700); }
     return "ERR AmneziaWG no traffic";
 }
 
