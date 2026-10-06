@@ -5,6 +5,20 @@ using MoonInternet.Core.Models;
 using MoonInternet.Core.Parsing;
 using MoonInternet.Services;
 
+// Subscription mode: `dotnet run -- subparse <file>` runs a saved subscription body through the very
+// parser the app uses, and prints what came out — or the exception that a refresh would have swallowed.
+if (args.Length >= 2 && args[0] == "subparse")
+{
+    try
+    {
+        var r = SubscriptionParser.ParseFull(File.ReadAllText(args[1]));
+        Console.WriteLine($"servers={r.Servers.Count} routing={r.Routing.Count}");
+        foreach (var g in r.Servers.GroupBy(s => s.Protocol)) Console.WriteLine($"  {g.Key}: {g.Count()}");
+        return 0;
+    }
+    catch (Exception e) { Console.WriteLine(e); return 1; }
+}
+
 // WG-parse mode: `dotnet run -- wgparse <file>` parses a WG/AmneziaWG config (vpn:// or [Interface]) and prints UAPI.
 if (args.Length >= 2 && args[0] == "wgparse")
 {

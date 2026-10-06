@@ -86,7 +86,7 @@ public sealed class AppSettings
     public bool AutoUpdateSubs { get; set; } = true;           // periodic auto-refresh (subscriptions ship an interval)
     public int AutoUpdateSubsMinutes { get; set; }             // 0 = use the subscription's own interval; else 30|60|120|360|720|1440
     public bool NotifyOnUpdate { get; set; }                   // toast after an auto-update
-    public bool UpdateSubsOnStart { get; set; }                // refresh subscriptions on launch
+    public bool UpdateSubsOnStart { get; set; } = true;        // refresh subscriptions on launch — on by default, as on the phone
     public bool PingOnStart { get; set; } = true;              // measure latency on launch
     public bool SendHwid { get; set; } = true;                 // send a device id header with subscription requests
     public bool ShowSubHeader { get; set; } = true;            // show the subscription announcement banner
@@ -137,7 +137,7 @@ public sealed class AppSettings
     /// saved value from the old default wins forever and the change only reaches new installs.
     /// </summary>
     public int SettingsVersion { get; set; }
-    private const int CurrentVersion = 14;
+    private const int CurrentVersion = 15;
 
     private void Migrate()
     {
@@ -194,6 +194,13 @@ public sealed class AppSettings
         if (SettingsVersion < 14)
             InstalledCores = new List<string> { "xray", "singbox", "awg" }
                 .Concat(ConnMode == "zapret" ? new[] { "zapret" } : Array.Empty<string>()).ToList();
+
+        // v15: refresh on launch was off on the desktop and on on the phone. With it off, the only
+        // refresh was the timer, which fires only if the window stays open for a whole interval — a
+        // laptop opened for minutes at a time sat on a week-old subscription, and its AmneziaWG keys,
+        // which the panel had since replaced, connected to nothing. Nobody chose "off": it was the
+        // default, so every existing install gets the phone's behaviour once.
+        if (SettingsVersion < 15) UpdateSubsOnStart = true;
 
         if (SettingsVersion != CurrentVersion) { SettingsVersion = CurrentVersion; Save(); }
     }

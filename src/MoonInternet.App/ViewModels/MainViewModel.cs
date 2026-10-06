@@ -936,7 +936,8 @@ public partial class MainViewModel : ObservableObject
     private async Task Connect2Zapret()
     {
         if (SelectedZapret is null) return;
-        try { await _conn.ConnectZapretAsync(SelectedZapret.Id, ZapretGameFilter); }
+        var (id, filter) = (SelectedZapret.Id, ZapretGameFilter);
+        try { await Task.Run(() => _conn.ConnectZapretAsync(id, filter)); }
         catch (Exception ex) { Status = Localization.Loc.T("S_VM_ZapretFailed") + ": " + ex.Message; }
     }
 
@@ -981,7 +982,8 @@ public partial class MainViewModel : ObservableObject
             {
                 var s = ZapretStrategies[i];
                 ZapretPing = string.Format(Localization.Loc.T("S_Zapret_Trying"), i + 1, ZapretStrategies.Count, s.Name);
-                try { await _conn.ConnectZapretAsync(s.Id, ZapretGameFilter); }
+                var filter = ZapretGameFilter;
+                try { await Task.Run(() => _conn.ConnectZapretAsync(s.Id, filter)); }
                 catch { continue; }                       // this one will not even start — next
                 await Task.Delay(600);                    // let the driver settle before asking
                 var ms = await ZapretCheck.MeasureAsync(ZapretCheckUrl, timeoutMs: 4000);
@@ -1188,12 +1190,10 @@ public partial class MainViewModel : ObservableObject
     private bool _sampling;
     private void ResetTraffic()
     {
-        // Count via xray's own INBOUND stats = exact user payload (like INCY); Hysteria2 TUN → sing-box Clash API.
-        // The TUN/gvisor adapter's Windows counters over-report badly under load, so we don't use them for the numbers.
-        var t = ZapretTraffic() ?? _conn.XrayTraffic() ?? _conn.SingBoxTraffic();
-        _baseRecv = _lastRecv = t?.recv ?? 0;
-        _baseSent = _lastSent = t?.sent ?? 0;
-        _lastSampleAt = DateTime.UtcNow;
+        // No reading here: the first sample after this becomes the baseline (see ApplyBytes). Reading
+        // the counters right here meant an xray subprocess — or, with nothing listening, a two-second
+        // connect to a dead local port — on the window's thread, at the moment of every connect.
+        _baseRecv = -1;
         UploadSpeed = DownloadSpeed = SessionTraffic = "—";
     }
     private void SampleTraffic()
@@ -1202,7 +1202,7 @@ public partial class MainViewModel : ObservableObject
         _sampling = true;
         Task.Run(() =>
         {
-            var b = ZapretTraffic() ?? _conn.XrayTraffic() ?? _conn.SingBoxTraffic();
+            var b = CurrentTraffic();
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 if (b is { } v) ApplyBytes(v.recv, v.sent);   // null (WG, or a transient miss) → keep the last shown value
@@ -1236,10 +1236,24 @@ public partial class MainViewModel : ObservableObject
         catch { return null; }
     }
 
+    /// <summary>
+    /// The live counters, from whatever carries the traffic: the cards in Zapret mode, the adapter for
+    /// AmneziaWG on its own adapter (real packets, so its counters are honest — unlike a gVisor TUN's),
+    /// xray's inbound stats otherwise, sing-box's Clash API for Hysteria2 TUN. Slow — a subprocess or a
+    /// local HTTP call — so only ever off the window's thread.
+    /// </summary>
+    private (long recv, long sent)? CurrentTraffic() =>
+        ZapretTraffic() ?? (_conn.AwgDirect ? TunBytes() : null) ?? _conn.XrayTraffic() ?? _conn.SingBoxTraffic();
+
     private DateTime _lastSampleAt = DateTime.UtcNow;
     private void ApplyBytes(long recv, long sent)
     {
         var now = DateTime.UtcNow;
+        if (_baseRecv < 0)      // the first reading of a session is its zero
+        {
+            _baseRecv = _lastRecv = recv; _baseSent = _lastSent = sent; _lastSampleAt = now;
+            return;
+        }
         double secs = (now - _lastSampleAt).TotalSeconds;   // real interval — the xray stats subprocess isn't exactly 1s
         _lastSampleAt = now;
         long dr = Math.Max(0, recv - _lastRecv), ds = Math.Max(0, sent - _lastSent);
@@ -1714,9 +1728,12 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
         if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
         else _ = CheckConnection();                                   // auto-measure ping the moment we connect
-        PinSelectedServer();
+        // Re-sorting is not free — every row of every subscription is laid out again, most of a
+        // second of frozen window — and the filter does not depend on the connection at all. It is
+        // only owed when the pinned row actually moved.
+        bool moved = PinSelectedServer();
         if (value == ConnectionState.Connected) ReorderSubscriptions();
-        foreach (var sub in Subscriptions) sub.Refresh();
+        if (moved) foreach (var sub in Subscriptions) sub.Refresh();
         OnPropertyChanged(nameof(ElapsedDisplay));
         OnPropertyChanged(nameof(MoonAwake));
         OnPropertyChanged(nameof(TrayToggleText));
@@ -1898,7 +1915,8 @@ public partial class MainViewModel : ObservableObject
         // on every launch whatever the switch said. Auto-connect used to ride along on that refresh,
         // so when the switch is off the cached list has to set it going instead.
         if (UpdateSubsOnStart)
-            foreach (var u in _settings.SubscriptionUrls.ToList()) _ = ImportUrl(u);
+            foreach (var u in _settings.SubscriptionUrls.ToList())
+                _ = ImportUrl(u, dropIfGone: !_settings.CachedSubs.Any(c => c.Url == u));
         else if (Subscriptions.FirstOrDefault() is { } cached)
             _ = MaybeAutoConnect(cached);
         _themeReady = true; // now theme edits (via UI) may apply+save
@@ -2446,8 +2464,14 @@ public partial class MainViewModel : ObservableObject
     /// read it this way. It sorts above the starred ones, because "the one I am using" answers
     /// "which of these matters right now" better than "one I liked once".
     /// </summary>
-    private void PinSelectedServer() =>
-        ServerComparers.ActiveRaw = PinActiveServer ? SelectedServer?.FavKey : null;
+    /// <summary>True when the pinned row actually changed, i.e. the lists need re-sorting.</summary>
+    private bool PinSelectedServer()
+    {
+        var key = PinActiveServer ? SelectedServer?.FavKey : null;
+        if (key == ServerComparers.ActiveRaw) return false;
+        ServerComparers.ActiveRaw = key;
+        return true;
+    }
 
     /// <summary>
     /// Whether the subscription holding the active server floats to the top. Off is the static
@@ -3045,6 +3069,16 @@ public partial class MainViewModel : ObservableObject
     /// always read as a timeout — use ICMP for those and the configured method for everything else.</summary>
     private async Task<int> ProbeAsync(ServerItem s, int? outIf)
     {
+        // The server we are connected through is measured THROUGH the connection, as the phone does
+        // it: a request to the test URL over whatever carries traffic now. A probe of its address
+        // answers "is the machine up", not "does this connection work" — and for AmneziaWG it could
+        // not even resolve the name through a tunnel that carried nothing, so the pill stayed empty
+        // and the row went to "—" instead of saying the connection is dead.
+        if (IsConnected && ReferenceEquals(s.Profile, _conn.Current))
+            return await ThroughConnectionAsync(PingTestUrl,
+                _conn.ActiveMode == TunnelMode.SystemProxy ? _conn.HttpPort : null,
+                Math.Max(PingTimeoutMs, 5000)).ConfigureAwait(false);
+
         // Nothing listens on TCP at the VPN port for these. mKCP and QUIC are UDP transports;
         // Hysteria2 and WireGuard are UDP protocols whatever their transport field says.
         static bool IsUdpOnly(OutboundProfile p) =>
@@ -3079,6 +3113,30 @@ public partial class MainViewModel : ObservableObject
             if (ms >= 0) return ms;
         }
         return -2;
+    }
+
+    /// <summary>
+    /// One HEAD to <paramref name="url"/> through the live connection, in ms, or -1 when nothing
+    /// came back. In TUN mode our own requests go into the tunnel by the routes; in proxy mode they
+    /// are sent to the local proxy explicitly, rather than trusting the system setting to be ours.
+    /// </summary>
+    private static async Task<int> ThroughConnectionAsync(string url, int? proxyPort, int timeoutMs)
+    {
+        using var handler = new System.Net.Http.HttpClientHandler
+        {
+            UseProxy = proxyPort is not null,
+            Proxy = proxyPort is int p ? new System.Net.WebProxy($"http://127.0.0.1:{p}") : null,
+            AllowAutoRedirect = false,
+        };
+        using var http = new System.Net.Http.HttpClient(handler) { Timeout = TimeSpan.FromMilliseconds(timeoutMs) };
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            using var r = await http.SendAsync(new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Head, url),
+                                               System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            return (int)sw.ElapsedMilliseconds;
+        }
+        catch { return -1; }
     }
 
     // ===== per-subscription "⋯" actions =====
@@ -3283,12 +3341,19 @@ public partial class MainViewModel : ObservableObject
     {
         var url = SubscriptionUrl.Trim();
         if (string.IsNullOrWhiteSpace(url)) { Status = Localization.Loc.T("S_VM_218"); return; }
-        await ImportUrl(url);
-        if (!_settings.SubscriptionUrls.Contains(url)) { _settings.SubscriptionUrls.Add(url); _settings.Save(); }
+        // Kept only once it has loaded. Saving it regardless left a link that never worked in the list
+        // for good — no card, so nothing to delete, and retried on every launch.
+        if (await ImportUrl(url) && !_settings.SubscriptionUrls.Contains(url)) { _settings.SubscriptionUrls.Add(url); _settings.Save(); }
         SubscriptionUrl = ""; NewSubName = "";
     }
 
-    private async Task ImportUrl(string url)
+    /// <summary>Fetches one subscription and puts it on screen. True when it loaded.</summary>
+    /// <param name="dropIfGone">
+    /// For a link that has never loaded here — no card, so the user cannot even see it to delete
+    /// it: when the panel says it does not exist (404/410), take it off the list quietly. A network
+    /// failure removes nothing; only "this subscription is gone" does.
+    /// </param>
+    private async Task<bool> ImportUrl(string url, bool dropIfGone = false)
     {
         try
         {
@@ -3310,7 +3375,7 @@ public partial class MainViewModel : ObservableObject
             {
                 MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)}: ответ без серверов — оставляю прежние");
                 ErrorText = Status = Localization.Loc.T("S_VM_SubEmpty");
-                return;
+                return false;
             }
 
             if (sub is null) { sub = new SubscriptionVM(url, name, FilterServer); Subscriptions.Add(sub); }
@@ -3337,9 +3402,27 @@ public partial class MainViewModel : ObservableObject
                     : string.Format(Localization.Loc.T("S_VM_121"), TotalServers))
                   + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
                 : Localization.Loc.T("S_VM_220");
+            MoonInternet.Core.DevLog.Log("подписка", $"обновлена {HostOf(url)}: серверов {sub.Count}");
             await MaybeAutoConnect(sub);
+            return true;
         }
-        catch (Exception ex) { Status = "Ошибка загрузки: " + ex.Message; }
+        catch (System.Net.Http.HttpRequestException ex) when (dropIfGone &&
+            ex.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Gone)
+        {
+            _settings.SubscriptionUrls.Remove(url);
+            _settings.Save();
+            MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)}: ссылка не загружалась ни разу и больше не существует ({(int)ex.StatusCode!}) — убрана из списка");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            // Out loud, and into the log. On Status alone — bound nowhere — a refresh that failed
+            // looked exactly like one that worked: a laptop sat on week-old AmneziaWG keys the panel
+            // no longer accepted, and nothing anywhere said its updates had stopped.
+            MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)} не обновилась: {ex.GetType().Name}: {ex.Message}");
+            ErrorText = Status = "Ошибка загрузки: " + ex.Message;
+            return false;
+        }
     }
 
     private async Task MaybeAutoConnect(SubscriptionVM sub)
@@ -3546,7 +3629,8 @@ public partial class MainViewModel : ObservableObject
             {
                 ErrorText = "";
                 Status = string.Format(Localization.Loc.T("S_VM_ZapretStarting"), SelectedZapret.Name);
-                await _conn.ConnectZapretAsync(SelectedZapret.Id, ZapretGameFilter);
+                var (id, filter) = (SelectedZapret.Id, ZapretGameFilter);
+                await Task.Run(() => _conn.ConnectZapretAsync(id, filter));
                 if (ConnectionState != ConnectionState.Connected) return;
                 _connectedAt = DateTime.Now; ResetTraffic();
                 Status = string.Format(Localization.Loc.T("S_VM_ZapretOn"), SelectedZapret.Name);
@@ -3606,14 +3690,21 @@ public partial class MainViewModel : ObservableObject
             bool deferRouting = routing is not null && !GeoService.IsReady();
             Status = deferRouting || routing is null ? $"Подключение к {SelectedServer.Label}…"
                                                      : $"Подключение к {SelectedServer.Label}… (загрузка geo)";
-            await _conn.ConnectAsync(SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, deferRouting ? null : routing);
+            // Off the window's thread, all of it: ConnectAsync opens with a synchronous teardown and
+            // helper calls that wait for the old adapter to go — seconds of a frozen window, which is
+            // the hitch on every connect. Its events reach the window through the dispatcher already.
+            var (profile, mode, firstRouting) = (SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, deferRouting ? null : routing);
+            await Task.Run(() => _conn.ConnectAsync(profile, mode, firstRouting));
             if (ConnectionState != ConnectionState.Connected) { if (Status == $"Подключение к {SelectedServer.Label}…" || Status.StartsWith("Подключение")) Status = Localization.Loc.T("S_VM_232"); return; } // cancelled/aborted
             _connectedAt = DateTime.Now; ResetTraffic();
             ReportConnected();
             _settings.LastServerName = SelectedServer.Label; _settings.LastServerSub = OwnerOf(SelectedServer)?.Url;
             _settings.TunMode = TunMode;
             _settings.Save();
-            if (deferRouting) _ = ApplyRoutingWhenReady(routing!);   // finish geo in the background, then re-apply
+            // Finish geo in the background, then re-apply — unless this connection has no routing to
+            // apply: AmneziaWG on its own adapter carries everything, and re-applying meant tearing
+            // down a working tunnel a minute after it came up, for nothing.
+            if (deferRouting && !_conn.AwgDirect) _ = ApplyRoutingWhenReady(routing!);
         }
         catch (Exception ex) { ErrorText = Status = "Не удалось подключиться: " + ex.Message; }
     }
@@ -3690,7 +3781,8 @@ public partial class MainViewModel : ObservableObject
 
             var routing = UseRouting ? SelectedRouting : null;
             Status = $"Переподключение к {SelectedServer.Label}…";
-            await _conn.ConnectAsync(SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, routing);
+            var (profile, mode) = (SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy);
+            await Task.Run(() => _conn.ConnectAsync(profile, mode, routing));   // off the window's thread, see Connect
             if (ConnectionState != ConnectionState.Connected) { Status = Localization.Loc.T("S_VM_229"); return; }
             _connectedAt = DateTime.Now; ResetTraffic();
             ReportConnected();
