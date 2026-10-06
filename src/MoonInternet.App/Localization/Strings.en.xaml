@@ -514,6 +514,10 @@
     <s:String x:Key="S_Dev_On">Developer mode is on</s:String>
     <s:String x:Key="S_Cores_Fetching">Downloading…</s:String>
     <s:String x:Key="S_Cores_NoCatalog">Could not fetch the engine list</s:String>
+    <s:String x:Key="S_Cores_NeedTitle">An engine is needed</s:String>
+    <s:String x:Key="S_Cores_NeedBody">{0} needs the «{1}» engine. Install it now?</s:String>
+    <s:String x:Key="S_Cores_Installing">Installing the engine…</s:String>
+    <s:String x:Key="S_Cores_Wait">This takes a few seconds</s:String>
     <s:String x:Key="S_Mode_Proxy">Proxy</s:String>
     <s:String x:Key="S_Mode_Tun">Tunnel</s:String>
     <s:String x:Key="S_Mode_Zapret">Zapret</s:String>

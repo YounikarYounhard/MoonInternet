@@ -1067,6 +1067,37 @@ public partial class MainViewModel : ObservableObject
         RefreshCores();
     }
 
+    // ===== «Нужно ядро» — the phone's CoreNeededDialog, the same question in the same words =====
+    /// <summary>
+    /// A server whose engine this install does not have. Asked before dialling, rather than failing
+    /// inside the connection with "ядро не найдено — переустановите", which was the one thing that
+    /// is never the fix: the engine is a download, not part of the installer.
+    /// </summary>
+    [ObservableProperty] private bool showNeedCore;
+    [ObservableProperty] private string needCoreText = "";
+    /// <summary>The engine is going in: the window blocks itself, as the phone does.</summary>
+    [ObservableProperty] private bool installingCore;
+    [ObservableProperty] private string installingCoreText = "";
+    private MoonCore? _neededCore;
+
+    [RelayCommand] private void CancelNeedCore() => ShowNeedCore = false;
+
+    /// <summary>Fetch the engine and carry on with the connection that wanted it.</summary>
+    [RelayCommand]
+    private async Task InstallNeededCore()
+    {
+        ShowNeedCore = false;
+        if (_neededCore is not { } core) return;
+        InstallingCore = true;
+        InstallingCoreText = Localization.Loc.T("S_Cores_Wait");
+        string? why = await FetchCoreAsync(core);
+        InstallingCore = false;
+        if (why is not null) { ErrorText = Status = why; return; }
+        if (!_settings.InstalledCores.Contains(core.Id)) { _settings.InstalledCores.Add(core.Id); _settings.Save(); }
+        RefreshCores();
+        await Connect();
+    }
+
     /// <summary>Downloads one engine, verifying it against the catalogue. Null when it is in place.</summary>
     private async Task<string?> FetchCoreAsync(MoonCore core)
     {
@@ -1076,6 +1107,7 @@ public partial class MainViewModel : ObservableObject
         var progress = new Progress<int>(p =>
         {
             _coreBusy[core.Id] = $"{p} %";
+            if (InstallingCore) InstallingCoreText = $"{p} %";
             RefreshCores();
         });
         string? why = await CoreStore.InstallAsync(core, rel, progress);
@@ -3541,6 +3573,15 @@ public partial class MainViewModel : ObservableObject
         // did not ask to be — and the red "Выберите сервер" said the same thing a second time.
         if (SelectedServer is null) { AskedWithoutServer = true; return; }
         if (!_conn.CoreAvailable) { ErrorText = Status = Localization.Loc.T("S_VM_231"); return; }
+        // AmneziaWG needs an engine that is downloaded, not installed: ask, then fetch and go on.
+        if (SelectedServer.Profile.Wireguard is { IsAmnezia: true } awgc && MoonCore.ById("awg") is { } awgCore
+            && !awgCore.Present(CoreLocator.CoresDir()))
+        {
+            _neededCore = awgCore;
+            NeedCoreText = string.Format(Localization.Loc.T("S_Cores_NeedBody"), awgc.ProtocolLabel, awgCore.Title);
+            ShowNeedCore = true;
+            return;
+        }
 
         // "The chosen server is silent -> take the fastest live one" only ever applied when
         // auto-connect picked a server at startup. Pressing Connect on a server whose probe had

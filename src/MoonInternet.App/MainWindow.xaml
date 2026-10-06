@@ -424,6 +424,53 @@
             </Border>
         </Border>
 
+        <!-- ===== Нужно ядро (overlay) — the phone's CoreNeededDialog ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="70" Background="#B3060410"
+                Visibility="{Binding ShowNeedCore, Converter={StaticResource BoolVis}}">
+            <Border Width="320" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE950;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource AccentText}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="{DynamicResource S_Cores_NeedTitle}" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding NeedCoreText}" Foreground="{StaticResource TextSecondary}" FontSize="13"
+                               TextWrapping="Wrap" LineHeight="18" Margin="0,12,0,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_019}"
+                                Command="{Binding CancelNeedCoreCommand}" Padding="18,9" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_Cores_Install}"
+                                Command="{Binding InstallNeededCoreCommand}" Padding="18,9"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ===== Ядро ставится: nothing on the window is worth pressing meanwhile ===== -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="95" Background="#E60D0A18"
+                Visibility="{Binding InstallingCore, Converter={StaticResource BoolVis}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <!-- The phone's CircularProgressIndicator: an arc going round. -->
+                <Ellipse Width="40" Height="40" StrokeThickness="3" Stroke="{StaticResource Accent}" StrokeDashArray="12 30"
+                         StrokeDashCap="Round" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Center">
+                    <Ellipse.RenderTransform><RotateTransform/></Ellipse.RenderTransform>
+                    <Ellipse.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                     From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Ellipse.Triggers>
+                </Ellipse>
+                <TextBlock Text="{DynamicResource S_Cores_Installing}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                <TextBlock Text="{Binding InstallingCoreText}" Foreground="{StaticResource TextMuted}" FontSize="12" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
         <!-- ===== QR code dialog (overlay) ===== -->
         <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="70" Background="#B3060410"
                 Visibility="{Binding ShowQrDialog, Converter={StaticResource BoolVis}}">
