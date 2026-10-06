@@ -3,11 +3,12 @@
     "cores":  [
                   {
                       "id":  "awg",
-                      "version":  "3.1-b5928ef",
+                      "version":  "3.1-b5928ef.2",
                       "file":  "awg.zip",
-                      "size":  2505118,
-                      "sha256":  "58338d1e6a6ee9ac51808d68a6ce511db789ece626542914d42b1f61b286cbad",
-                      "url":  "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/cores/awg.zip"
+                      "size":  2519559,
+                      "sha256":  "ddae3ccb06b6ed41a7fb9ee210381a40631eaf36d569564df14c746824160004",
+                      "url":  "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/cores/awg.zip",
+                      "exeSha256":  "aab19ebdc88cf85063715fba4b0ae292b4d77d892899f35756c73aec0e3d6460"
                   }
               ]
 }
