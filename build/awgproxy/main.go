@@ -11,14 +11,15 @@
 // AmneziaWG for free. A TUN of its own would have needed all of that written again, and would have
 // wanted admin rights on Windows and a second VpnService slot on Android, which there is only one of.
 //
-// Except on an Android phone in TUN mode, where -tunfd hands it the VpnService's own interface and
-// AmneziaWG carries the phone's packets as they are — the way amneziawg-android does. Two TCP
-// stacks in a row (xray's tun inbound, then ours behind SOCKS) cost most of the speed and every
-// UDP flow a speed test opens; a packet tunnel needs neither. The port then only says "up" and
-// reports the counters, see report.
+// Except in TUN mode, where it carries real packets the way the Amnezia clients do: on Android
+// -tunfd hands it the VpnService's own interface, on Windows -wintun has it create the adapter
+// (the SYSTEM helper runs it and configures the adapter). Two TCP stacks in a row — the TUN
+// engine's, then ours behind SOCKS — cost most of the speed and every UDP flow a speed test opens;
+// a packet tunnel needs neither. The port then only says "up" and reports the counters, see report.
 //
 // Usage: awgproxy -uapi <file> -listen 127.0.0.1:1090 [-mtu 1380] [-dns 8.8.8.8,8.8.4.4]
 //        awgproxy -uapi <file> -listen 127.0.0.1:1090 -tunfd 42
+//        awgproxy -uapi <file> -listen 127.0.0.1:0 -wintun MoonTun1 [-mtu 1280]
 package main
 
 import (
@@ -115,12 +116,13 @@ func run(args []string) error {
 	dns := fs.String("dns", "1.1.1.1", "resolvers inside the tunnel, comma separated")
 	mtu := fs.Int("mtu", defaultMtu, "tunnel MTU; "+strconv.Itoa(defaultMtu)+" is both the default and the ceiling")
 	tunfd := fs.Int("tunfd", -1, "an open TUN descriptor to carry instead of serving SOCKS (Android)")
+	wintun := fs.String("wintun", "", "create this Windows TUN adapter and carry it instead of serving SOCKS")
 	verbose := fs.Bool("v", false, "log what the device is doing")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	if *uapiPath == "" || (*addrs == "" && *tunfd < 0) {
+	if *uapiPath == "" || (*addrs == "" && *tunfd < 0 && *wintun == "") {
 		return errors.New("-uapi and -addr are both required")
 	}
 
@@ -129,11 +131,19 @@ func run(args []string) error {
 		return fmt.Errorf("cannot read the uapi file: %w", err)
 	}
 
+	if *mtu <= 0 || *mtu > defaultMtu {
+		*mtu = defaultMtu
+	}
+
 	var tdev tun.Device
-	var tnet *tunnel // nil in -tunfd mode: no stack of ours, the phone's kernel is the stack
+	var tnet *tunnel // nil in TUN mode: no stack of ours, the system's own is the stack
 	if *tunfd >= 0 {
 		if tdev, err = openTunFD(*tunfd); err != nil {
 			return fmt.Errorf("cannot take over the TUN descriptor: %w", err)
+		}
+	} else if *wintun != "" {
+		if tdev, err = openWintun(*wintun, *mtu); err != nil {
+			return fmt.Errorf("cannot create the adapter: %w", err)
 		}
 	} else {
 		localAddrs, err := parseAddrs(*addrs)
@@ -143,9 +153,6 @@ func run(args []string) error {
 		resolvers, err := parseAddrs(*dns)
 		if err != nil {
 			return err
-		}
-		if *mtu <= 0 || *mtu > defaultMtu {
-			*mtu = defaultMtu
 		}
 		// A userspace interface: no TUN device, no admin rights, nothing for another VPN to collide
 		// with. tnet is a full TCP/IP stack whose packets go through the tunnel — ours rather than
@@ -211,7 +218,7 @@ func run(args []string) error {
 	}
 }
 
-// report answers a knock in -tunfd mode with one line, "rx tx handshake": bytes received and sent
+// report answers a knock in TUN mode with one line, "rx tx handshake": bytes received and sent
 // through the tunnel, and the unix time of the last handshake (0 if none yet). It is how the app
 // shows the speed and tells a dead link from a quiet one, there being no xray to ask.
 //

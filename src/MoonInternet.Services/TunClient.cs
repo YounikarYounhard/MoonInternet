@@ -18,6 +18,7 @@ public static class TunClient
             using var ns = c.GetStream();
             var b = Encoding.UTF8.GetBytes(cmd);
             ns.Write(b, 0, b.Length);
+            c.Client.Shutdown(SocketShutdown.Send);   // "that is the whole command" — the helper reads to here
             var buf = new byte[256];
             int n = ns.Read(buf, 0, buf.Length);
             return Encoding.UTF8.GetString(buf, 0, n).Trim();
@@ -56,6 +57,14 @@ public static class TunClient
         Send($"ZAPRET {strategyId}\t{gameFilter}", 20000);
 
     public static string StopZapret() => Send("ZAPRETSTOP", 10000);
+
+    /// <summary>AmneziaWG over TUN: the helper runs awgproxy on a wintun adapter of its own. Fields
+    /// included — the obfuscation settings are fields, and without them the tunnel goes out as 2.0.</summary>
+    public static string StartAwg(MoonInternet.Core.Models.WireGuardConfig wg)
+    {
+        string json = System.Text.Json.JsonSerializer.Serialize(wg, new System.Text.Json.JsonSerializerOptions { IncludeFields = true });
+        return Send($"STARTAWG {Convert.ToBase64String(Encoding.UTF8.GetBytes(json))}", 40000);
+    }
 
     // Plain WireGuard through sing-box — same one-process shape, and it gives us real routing.
     public static string StartWgSingBox(MoonInternet.Core.Models.WgSbLaunch launch)

@@ -25,7 +25,10 @@ $root = Split-Path $PSScriptRoot -Parent
 $out = Join-Path $root 'dist\cores'
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
-function Publish($id, $version, $file, $path, $catalogue) {
+# $exe: the program inside the zip whose own digest goes into the catalogue as exeSha256. The SYSTEM
+# helper runs that program in TUN mode and will not take it from the user-writable data folder on the
+# app's word — it checks the file against this, see AwgEngine in MoonInternet.TunService.
+function Publish($id, $version, $file, $path, $catalogue, $exe = $null) {
     $zip = Join-Path $out $file
     if (Test-Path $zip) { Remove-Item $zip -Force }
     if ($path -like '*.so') { Copy-Item $path $zip -Force }        # already one file: ship it as is
@@ -46,6 +49,7 @@ function Publish($id, $version, $file, $path, $catalogue) {
             url     = "https://raw.githubusercontent.com/$Repo/$Branch/$file"
         })
     }
+    if ($exe) { $json.cores[0]['exeSha256'] = (Get-FileHash (Join-Path $path $exe) -Algorithm SHA256).Hash.ToLower() }
     $dest = Join-Path $root "cores-catalog\$catalogue"
     New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
     [IO.File]::WriteAllText($dest, ($json | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding $false))
@@ -53,15 +57,16 @@ function Publish($id, $version, $file, $path, $catalogue) {
 
 # The engine commit awgproxy is built against; see build-awgproxy.ps1 for why it is not a tag.
 $awgVersion = '3.1-b5928ef'
-# The phone build carries our wrapper's revision on top: .2 is the one that takes the VpnService TUN
-# (-tunfd). A new number is what makes refreshCores fetch it on phones that already have the engine.
-$awgAndroidVersion = "$awgVersion.2"
+# Our wrapper's revision on top of the engine commit: .2 is the one that carries a real TUN — the
+# VpnService's on the phone (-tunfd), its own wintun adapter on Windows (-wintun). A new number is
+# what makes the apps fetch it again where the engine is already installed.
+$awgVersion = "$awgVersion.2"
 
-Publish 'awg' $awgVersion 'awg.zip' (Join-Path $root 'cores\awg') 'windows-x64.json'
+Publish 'awg' $awgVersion 'awg.zip' (Join-Path $root 'cores\awg') 'windows-x64.json' 'awgproxy.exe'
 
 $androidSo = Join-Path $root 'dist\cores\android\arm64-v8a\libawgproxy.so'
 if (Test-Path $androidSo) {
-    Publish 'awg' $awgAndroidVersion 'libawgproxy.so' $androidSo 'android-arm64.json'
+    Publish 'awg' $awgVersion 'libawgproxy.so' $androidSo 'android-arm64.json'
 } else {
     Write-Host "missing $androidSo - run build\build-awgproxy.ps1 -Android first" -ForegroundColor Yellow
 }

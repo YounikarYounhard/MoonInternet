@@ -230,6 +230,14 @@ public sealed class ConnectionManager : IDisposable
                 return;
             }
 
+            // AmneziaWG over TUN: the helper runs awgproxy on a wintun adapter of its own and the
+            // packets go straight into the tunnel, as in the Amnezia client — not sing-box → xray →
+            // SOCKS → a second TCP stack. Whatever the helper cannot do (an engine it cannot verify,
+            // an older helper) falls through to that SOCKS path below, which still works, only slower.
+            if (profile.Wireguard is { IsAmnezia: true } awgc && mode == TunnelMode.Tun && _awg.CoreAvailable
+                && TunClient.IsAvailable() && await ConnectAwgTunAsync(profile, awgc, ct))
+                return;
+
             // Hysteria2 over TUN: the helper's OWN sing-box is both the TUN and the Hysteria2 outbound. This is
             // the only reliable shape — the xray-router→sing-box chain loops on Hysteria2's QUIC (the app-side
             // sing-box's UDP to the server gets caught by the TUN even with the server-IP pin; auto_detect_interface
@@ -475,6 +483,29 @@ public sealed class ConnectionManager : IDisposable
         Set(ConnectionState.Connected);
     }
 
+
+    /// <summary>AmneziaWG through the helper's own engine. False when it did not come up — the caller
+    /// then takes the SOCKS path, so a refusal here costs speed, never the connection.</summary>
+    private async Task<bool> ConnectAwgTunAsync(OutboundProfile profile, WireGuardConfig wg, CancellationToken ct)
+    {
+        Report("Поднятие туннеля…");
+        var r = await Task.Run(() => TunClient.StartAwg(wg), ct);
+        ct.ThrowIfCancellationRequested();
+        if (r != "OK")
+        {
+            DevLog.Log("туннель", $"AmneziaWG напрямую не поднялся ({r}) — иду через SOCKS");
+            return false;
+        }
+        _tunActive = true;
+        ActiveMode = TunnelMode.Tun;
+        RoutingNote = wg.ProtocolLabel;
+        _roamingAwg = wg;                          // the endpoint route is pinned to this card's gateway
+        _roamIfIndex = Pinger.PhysicalIfIndex();
+        Current = profile;
+        Set(ConnectionState.Connected);
+        DevLog.Log("туннель", "AmneziaWG поднят напрямую");
+        return true;
+    }
 
     // Hysteria2 over TUN: hand the endpoint to the helper's sing-box (which is both the TUN and the Hysteria2
     // outbound). No xray, no app-side sing-box, no health watchdog — the single sing-box owns the whole path.

@@ -64,7 +64,7 @@ void StopTun()
         // Kill orphaned engines — but ONLY the ones running from OUR cores folder. These binary names are shared
         // with other VPN clients (HAPP also ships sing-box), and killing theirs was breaking them while we ran.
         string coresDir = Path.Combine(baseDir, "cores");
-        foreach (var name in new[] { "sing-box", "tun2socks" })
+        foreach (var name in new[] { "sing-box", "tun2socks", "awgproxy" })
             foreach (var p in Process.GetProcessesByName(name))
             {
                 string? exe = null;
@@ -139,12 +139,15 @@ string? DefaultGateway()
 
 // Does traffic actually flow through the tunnel? A raw TCP connect to a well-known IP (1.1.1.1:443) — NO DNS,
 // hard-bounded — so a dead tunnel can't hang this for the OS DNS timeout (which would brick the whole box).
-bool InternetThroughTun()
+// With `via`, the connection must also have left from that address — i.e. through our adapter. Without
+// it a tunnel whose routes never landed passes: 1.1.1.1 answers over the plain connection just as well.
+bool InternetThroughTun(string? via = null)
 {
     try
     {
         using var c = new TcpClient();
-        return c.ConnectAsync("1.1.1.1", 443).Wait(3000) && c.Connected;
+        return c.ConnectAsync("1.1.1.1", 443).Wait(3000) && c.Connected &&
+               (via is null || (c.Client.LocalEndPoint as IPEndPoint)?.Address.ToString() == via);
     }
     catch { return false; }
 }
@@ -269,6 +272,117 @@ string StartWgSingBox(WgSbLaunch launch)
     return "ERR WireGuard: туннель не поднялся";
 }
 
+
+// AmneziaWG over TUN: awgproxy creates a wintun adapter and carries it itself, the way the Amnezia
+// client does — packets straight into the tunnel instead of sing-box → xray → SOCKS → a second TCP
+// stack, which is where the speed and the UDP went. The adapter is set up here the way tun2socks's
+// is: awgproxy does none of it. No routing rules apply on this path, as in the Amnezia client.
+string StartAwgTun(WireGuardConfig wg)
+{
+    string? exe = AwgEngine(out string why);
+    if (exe is null) return "ERR " + why;
+    string? gw = DefaultGateway();
+    if (gw is null) return "ERR no default gateway";
+
+    // The server by address, pinned before the routes move: a name looked up after that would be
+    // asked through a tunnel that cannot come up without it.
+    string? server = IPAddress.TryParse(wg.EndpointHost, out var lit) ? lit.ToString()
+        : Dns.GetHostAddresses(wg.EndpointHost).FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?.ToString();
+    if (server is null) return "ERR cannot resolve " + wg.EndpointHost;
+    wg.Endpoint = $"{server}:{wg.EndpointPort}";
+
+    var v4 = wg.Address.Select(a => a.Split('/'))
+        .FirstOrDefault(p => IPAddress.TryParse(p[0], out var ip) && ip.AddressFamily == AddressFamily.InterNetwork);
+    if (v4 is null) return "ERR no IPv4 address in the config";
+    string addr = v4[0];
+    int bits = v4.Length > 1 && int.TryParse(v4[1], out var b) ? Math.Clamp(b, 1, 32) : 32;
+    string Mask(int n) => new IPAddress(BitConverter.GetBytes(IPAddress.HostToNetworkOrder(unchecked((int)(0xFFFFFFFFu << (32 - n)))))).ToString();
+    // Capped at 1280 for the reason in build/awgproxy/main.go.
+    int mtu = wg.Mtu is int m and >= 576 and <= 1280 ? m : 1280;
+
+    string ifName = "MoonTun" + (Environment.TickCount64 % 100000);
+    string uapi = Path.Combine(Path.GetDirectoryName(exe)!, "awg.uapi");   // the private key: our folder, not save
+    File.WriteAllText(uapi, WireGuardUapi.Build(wg));
+    try
+    {
+        proc = StartEngine(exe, "-uapi", uapi, "-listen", "127.0.0.1:0", "-wintun", ifName, "-mtu", mtu.ToString());
+        if (proc is null) return "ERR awgproxy start failed";
+        bool up = false;
+        for (int i = 0; i < 30 && !up; i++) { if (proc.HasExited) return "ERR awgproxy exited"; up = AdapterUp(ifName); if (!up) Thread.Sleep(400); }
+        if (!up) return "ERR AmneziaWG adapter not up";
+    }
+    finally { try { File.Delete(uapi); } catch { } }   // read at startup, before the adapter exists
+
+    Run("netsh", $"interface ip set address name=\"{ifName}\" static {addr} {Mask(bits)}");
+    var dns = wg.Dns.Where(d => IPAddress.TryParse(d, out var ip) && ip.AddressFamily == AddressFamily.InterNetwork).DefaultIfEmpty("1.1.1.1").ToList();
+    Run("netsh", $"interface ip set dnsservers name=\"{ifName}\" static {dns[0]} primary");
+    foreach (var d in dns.Skip(1)) Run("netsh", $"interface ip add dnsservers name=\"{ifName}\" {d} index=2");
+    Run("netsh", $"interface ipv4 set subinterface \"{ifName}\" mtu={mtu} store=active");
+    // Lowest metric, so Windows asks this adapter's DNS first rather than the card's.
+    Run("netsh", $"interface ipv4 set interface \"{ifName}\" metric=1");
+
+    Run("route", $"add {server} mask 255.255.255.255 {gw} metric 1");
+    cleanupRoutes.Add($"{server} mask 255.255.255.255");
+    var allowed = wg.AllowedIps.Count > 0 ? wg.AllowedIps : new List<string> { "0.0.0.0/0" };
+    foreach (var a in allowed)
+    {
+        var p = a.Trim().Split('/');
+        if (!IPAddress.TryParse(p[0], out var net) || net.AddressFamily != AddressFamily.InterNetwork) continue;
+        int len = p.Length > 1 && int.TryParse(p[1], out var l) ? l : 32;
+        // The whole internet as two /1 halves: they win over the card's default route without
+        // deleting it, the same trick the tun2socks path uses.
+        var nets = len == 0 ? new[] { ("0.0.0.0", 1), ("128.0.0.0", 1) } : new[] { (net.ToString(), len) };
+        // On-link routes on the adapter itself (next hop 0.0.0.0). route.exe refuses our own /32 address
+        // as a gateway and says so only in its exit code — that is how the first build came up with no
+        // routes at all and measured the bare connection. They go with the adapter; nothing to clean up.
+        foreach (var (dst, n) in nets)
+            Run("netsh", $"interface ipv4 add route {dst}/{n} \"{ifName}\" 0.0.0.0 metric=1 store=active");
+    }
+
+    for (int i = 0; i < 4; i++) { if (InternetThroughTun(addr)) { Log($"AmneziaWG up as {ifName} — internet OK"); return "OK"; } Thread.Sleep(700); }
+    return "ERR AmneziaWG no traffic";
+}
+
+// The engine the app downloaded lives in save\cores, which every user may write to, and this
+// process is SYSTEM: running that file as it stands would hand SYSTEM to anyone who can replace it.
+// So its bytes are checked against the digest the catalogue publishes — fetched here, over HTTPS —
+// and what runs is a copy inside the install folder, which only an administrator can touch. The
+// check costs a download only when the app's copy has changed, i.e. after an update.
+string? AwgEngine(out string why)
+{
+    why = "";
+    string src = Path.Combine(dataDir, "cores", "awg", "awgproxy.exe");
+    string dir = Path.Combine(baseDir, "cores", "awg-tun");
+    string dst = Path.Combine(dir, "awgproxy.exe");
+    if (!File.Exists(src)) { why = "AmneziaWG core is not installed"; return null; }
+    byte[] bytes = File.ReadAllBytes(src);
+    string have = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+    bool current = File.Exists(dst) && File.Exists(Path.Combine(dir, "wintun.dll")) &&
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(dst))).ToLowerInvariant() == have;
+    if (current) return dst;
+
+    string? want = null;
+    try
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        http.DefaultRequestHeaders.Add("User-Agent", "MoonInternet");
+        string body = http.GetStringAsync(MoonInternet.Core.AppPaths.CoresCatalogue).GetAwaiter().GetResult();
+        foreach (var e in JsonDocument.Parse(body).RootElement.GetProperty("cores").EnumerateArray())
+            if (e.GetProperty("id").GetString() == "awg" && e.TryGetProperty("exeSha256", out var h))
+                want = h.GetString()?.ToLowerInvariant();
+    }
+    catch (Exception e) { Log("catalogue: " + e.Message); }
+    if (want is null) { why = "cannot verify the AmneziaWG core: the catalogue is unreachable"; return null; }
+    if (want != have) { why = "the AmneziaWG core does not match the published one"; return null; }
+
+    string? wintun = new[] { "xray", "tun2socks" }.Select(d => Path.Combine(baseDir, "cores", d, "wintun.dll")).FirstOrDefault(File.Exists);
+    if (wintun is null) { why = "wintun.dll is missing"; return null; }
+    Directory.CreateDirectory(dir);
+    File.WriteAllBytes(dst, bytes);   // the bytes that were checked, not the file read a second time
+    File.Copy(wintun, Path.Combine(dir, "wintun.dll"), overwrite: true);
+    Log("AmneziaWG core verified and copied");
+    return dst;
+}
 
 string StartTun(int socksPort, IReadOnlyList<string> serverIps, string appMode, IReadOnlyList<string> apps)
 {
@@ -425,6 +539,24 @@ string Handle(string cmd)
         }
         catch (Exception e) { return "ERR wg-sb: " + e.Message; }
     }
+    if (cmd.StartsWith("STARTAWG ", StringComparison.Ordinal))
+    {
+        // "STARTAWG <base64(JSON WireGuardConfig)>" — fields included: the AmneziaWG knobs are fields.
+        try
+        {
+            var wg = JsonSerializer.Deserialize<WireGuardConfig>(
+                Encoding.UTF8.GetString(Convert.FromBase64String(cmd[9..].Trim())), new JsonSerializerOptions { IncludeFields = true });
+            if (wg is null || !wg.IsValid) return "ERR bad awg launch";
+            lock (gate)
+            {
+                StopTun();
+                var r = StartAwgTun(wg);
+                if (r != "OK") StopTun();   // leave no adapter or route behind for the fallback to trip on
+                return r;
+            }
+        }
+        catch (Exception e) { StopTun(); return "ERR awg: " + e.Message; }
+    }
     if (cmd.StartsWith("START ", StringComparison.Ordinal))
     {
         // "START <port> <ips|-> <appMode> <base64(apps\n…)|->" — server IPs go direct (no loop); per-app split routing optional.
@@ -453,9 +585,15 @@ while (true)
     {
         using var client = listener.AcceptTcpClient();
         using var ns = client.GetStream();
-        var buf = new byte[8192];   // room for the START command's base64 app-route list
-        int n = ns.Read(buf, 0, buf.Length);
-        string cmd = Encoding.UTF8.GetString(buf, 0, n).Trim();
+        // Read to the end: the client closes its side once the command is out. One Read was enough
+        // while commands were short; an AmneziaWG config with its signature packets is not, and a
+        // command cut at a segment boundary is a config with half a key.
+        ns.ReadTimeout = 3000;
+        var got = new MemoryStream();
+        var buf = new byte[16384];
+        try { for (int n; got.Length < 1_000_000 && (n = ns.Read(buf, 0, buf.Length)) > 0;) got.Write(buf, 0, n); }
+        catch (IOException) { /* a client that never closes: take what came */ }
+        string cmd = Encoding.UTF8.GetString(got.ToArray()).Trim();
         var rb = Encoding.UTF8.GetBytes(Handle(cmd) + "\n");
         ns.Write(rb, 0, rb.Length);
     }

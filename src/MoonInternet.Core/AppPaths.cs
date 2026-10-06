@@ -17,6 +17,13 @@ public static class AppPaths
     /// <summary><see cref="DataDir"/> + <paramref name="name"/> (a file or subfolder name).</summary>
     public static string In(string name) => Path.Combine(DataDir, name);
 
+    /// <summary>
+    /// The catalogue of downloadable engines. Here rather than in the app because the SYSTEM helper
+    /// reads it too: it trusts no engine the app hands it until the digest matches this list.
+    /// </summary>
+    public const string CoresCatalogue =
+        "https://raw.githubusercontent.com/YounikarYounhard/MoonInternet/cores/windows-x64.json";
+
     private static string Resolve()
     {
         string exeDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
