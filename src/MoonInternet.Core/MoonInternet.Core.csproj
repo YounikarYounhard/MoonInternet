@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- The ClientHello xray sends per uTLS fingerprint; see ClientHello.cs. -->
+    <EmbeddedResource Include="Resources\client-hellos.txt" LogicalName="MoonInternet.Core.client-hellos.txt" />
+  </ItemGroup>
+
 </Project>

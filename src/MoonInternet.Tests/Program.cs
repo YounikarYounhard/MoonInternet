@@ -5,6 +5,14 @@ using MoonInternet.Core.Models;
 using MoonInternet.Core.Parsing;
 using MoonInternet.Services;
 
+// Hello mode: `dotnet run -- hello <fp> <host> <port> <sni>` sends Moon Ping's ClientHello once.
+if (args.Length >= 5 && args[0] == "hello")
+{
+    var ok = await Pinger.TlsHelloAnsweredAsync(args[2], int.Parse(args[3]), args[4], args[1], 4000, Pinger.PhysicalIfIndex());
+    Console.WriteLine($"{args[1]} {args[2]}:{args[3]} sni={args[4]} -> {(ok is null ? "nothing to send" : ok.Value ? "answered" : "NO ANSWER")}");
+    return 0;
+}
+
 // Subscription mode: `dotnet run -- subparse <file>` runs a saved subscription body through the very
 // parser the app uses, and prints what came out — or the exception that a refresh would have swallowed.
 if (args.Length >= 2 && args[0] == "subparse")
@@ -944,6 +952,23 @@ try
         Check("awg found where it was downloaded", downloaded.CoreAvailable);
 }
 finally { try { System.IO.Directory.Delete(awgHome, true); } catch { } }
+
+// ---- Moon Ping's ClientHello: the bytes xray sends, with this server's SNI ----
+foreach (var fp in MoonInternet.Core.ClientHello.Fingerprints)
+{
+    foreach (var sni in new[] { "a.io", "cdn.stillwaterworks.example.org" })
+    {
+        var h = MoonInternet.Core.ClientHello.For(fp, sni)!;
+        bool lengths = h.Length == 5 + ((h[3] << 8) | h[4]) && ((h[3] << 8) | h[4]) == 4 + ((h[6] << 16) | (h[7] << 8) | h[8]);
+        Check($"hello {fp} -> {sni}: SNI and lengths", MoonInternet.Core.ClientHello.SniOf(h) == sni && lengths);
+    }
+    var a1 = MoonInternet.Core.ClientHello.For(fp, "x.example.com")!;
+    var a2 = MoonInternet.Core.ClientHello.For(fp, "x.example.com")!;
+    Check($"hello {fp}: client random differs per probe", !a1.AsSpan(11, 32).SequenceEqual(a2.AsSpan(11, 32)));
+}
+Check("hello: no SNI for an address", MoonInternet.Core.ClientHello.For("chrome", "1.2.3.4") is null);
+Check("hello: reality without fp is chrome", MoonInternet.Core.ClientHello.Effective("reality", null) == "chrome");
+Check("hello: tls without fp is go", MoonInternet.Core.ClientHello.Effective("tls", "") == "go");
 
 Console.WriteLine($"\n{passed} passed, {failed} failed");
 return failed == 0 ? 0 : 1;

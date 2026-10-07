@@ -188,7 +188,7 @@
     <!-- Settings: ping -->
     <s:String x:Key="S_SettingsView_116">PING TYPE</s:String>
     <s:String x:Key="S_SettingsView_117">Stability</s:String>
-    <s:String x:Key="S_SettingsView_118">Moon Ping, TCP and HTTP answer the question &quot;is something listening on the port&quot;. That is not the same as &quot;the protocol works&quot;: a CDN, your provider's middlebox or a stale key will all complete a handshake, and a dead server will show a cheerful 30 ms.</s:String>
+    <s:String x:Key="S_SettingsView_118">TCP and HTTP answer the question &quot;is something listening on the port&quot;. That is not the same as &quot;the protocol works&quot;: a CDN, your provider's middlebox or a stale key will all complete a handshake, and a dead server will show a cheerful 30 ms.</s:String>
     <s:String x:Key="S_SettingsView_119">Stability is the only method that opens a real connection and makes a request through it. Slower than the rest, and it does not lie: if nothing comes back, no traffic will get through that server either.</s:String>
     <s:String x:Key="S_SettingsView_120">PROBE ORDER</s:String>
     <s:String x:Key="S_SettingsView_121">Probe one at a time</s:String>
@@ -488,7 +488,7 @@
     <s:String x:Key="S_Routing_NewName">New profile</s:String>
     <s:String x:Key="S_Routing_Exported">Profile link copied</s:String>
     <s:String x:Key="S_Routing_ReadOnly">A subscription's profile: the next fetch overwrites it. Duplicate it to make changes.</s:String>
-    <s:String x:Key="S_Ping_Moon">Moon Ping is a latency test in which the TCP connection to the server is established outside the active tunnel, giving the latency to the server itself rather than to the VPN connection.</s:String>
+    <s:String x:Key="S_Ping_Moon">Moon Ping measures the latency to the server itself, outside the tunnel. For TLS and REALITY servers it also sends the same TLS hello the core sends, with the same fingerprint: when the network lets the connection through but cuts the TLS, the server shows ✕ instead of a cheerful 30 ms.</s:String>
     <s:String x:Key="S_Ping_Tcp">TCP ping is a network latency test that measures the time required to establish a full TCP connection with the target server.</s:String>
     <s:String x:Key="S_Ping_HttpGet">HTTP GET is a network latency test in which an HTTP request is sent to the server and the time to the first byte of the response is measured.</s:String>
     <s:String x:Key="S_Ping_HttpHead">HTTP HEAD is a network latency test in which the server is asked for headers only, without a response body, reducing the data transferred for the same measurement.</s:String>

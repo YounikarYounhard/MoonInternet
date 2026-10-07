@@ -3086,7 +3086,17 @@ public partial class MainViewModel : ObservableObject
             || p.Network is "kcp" or "quic";
 
         if (!IsUdpOnly(s.Profile))
-            return await Pinger.MeasureAsync(PingMethod, s.Profile.Address, s.Profile.Port, PingTimeoutMs, outIf);
+        {
+            int ms = await Pinger.MeasureAsync(PingMethod, s.Profile.Address, s.Profile.Port, PingTimeoutMs, outIf);
+            // Moon Ping also asks the question the censor actually answers: does this path take the
+            // ClientHello the core will send? A banned server still completes TCP — 35 ms and a
+            // green dot for something that carries nothing, which is what Moon Ping used to show
+            // while INCY's real ping said ✕. The number stays the TCP round trip.
+            if (ms >= 0 && PingMethod == "moon" && s.Profile.Security is "tls" or "reality"
+                && await HelloAnsweredAsync(s.Profile, outIf).ConfigureAwait(false) == false)
+                return -1;
+            return ms;
+        }
         // UDP-only endpoint: nothing listens on TCP at the VPN port, and the server usually drops
         // ICMP too, so the ordinary handshake can only time out and the row read ✕ for a server
         // that was perfectly alive. Race several probes against the SAME host and take the first
@@ -3113,6 +3123,25 @@ public partial class MainViewModel : ObservableObject
             if (ms >= 0) return ms;
         }
         return -2;
+    }
+
+    /// <summary>
+    /// One ClientHello per address, SNI and fingerprint a minute, however many servers share them.
+    /// A pass over a subscription is dozens of inbounds on three or four machines with a handful of
+    /// SNIs; a hello for each would itself be the "many TLS to one SNI" burst that gets a server
+    /// banned. The ban is on the machine's TLS, not on one inbound, so one answer covers them all.
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime At, Task<bool?> Answer)> _hellos = new();
+
+    private Task<bool?> HelloAnsweredAsync(OutboundProfile p, int? outIf)
+    {
+        string fp = MoonInternet.Core.ClientHello.Effective(p.Security, p.Fingerprint);
+        // What xray puts in serverName: the link's sni, else the host it dials.
+        string sni = !string.IsNullOrWhiteSpace(p.Sni) ? p.Sni! : p.OriginalHost ?? p.Address;
+        var now = DateTime.UtcNow;
+        Task<bool?> Probe() => Pinger.TlsHelloAnsweredAsync(p.Address, p.Port, sni, fp, Math.Min(PingTimeoutMs, 3000), outIf);
+        return _hellos.AddOrUpdate($"{p.Address}|{sni}|{fp}", _ => (now, Probe()),
+            (_, old) => now - old.At < TimeSpan.FromMinutes(1) ? old : (now, Probe())).Answer;
     }
 
     /// <summary>

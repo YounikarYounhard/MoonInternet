@@ -767,8 +767,50 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         return when (method) {
             "stability" -> stabilityPing(s, st.pingTestUrl)
             "httpget", "httphead" -> httpPing(s, timeout, head = method == "httphead")
-            else -> tcpPing(s.address, s.port, timeout)
+            else -> tcpPing(s.address, s.port, timeout).let { ms ->
+                // Moon Ping also asks the question the censor actually answers: does this path take
+                // the ClientHello the core will send? A banned server still completes TCP — a green
+                // number for something that carries nothing, while INCY's real ping said ✕. The
+                // number stays the TCP round trip. See ClientHello.
+                if (ms >= 0 && method == "moon" && s.security in setOf("tls", "reality") &&
+                    helloAnswered(s, timeout) == false) -1 else ms
+            }
         }
+    }
+
+    /**
+     * One ClientHello per address, SNI and fingerprint a minute, however many servers share them.
+     * A pass is dozens of inbounds on three or four machines; a hello for each would itself be the
+     * "many TLS to one SNI" burst that gets a server banned, and the ban is on the machine's TLS,
+     * not one inbound — so one answer covers them all. The first caller sends it, the rest wait.
+     */
+    private val hellos = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, java.util.concurrent.FutureTask<Boolean?>>>()
+
+    private fun helloAnswered(s: ServerProfile, timeout: Int): Boolean? {
+        val app = getApplication<android.app.Application>()
+        val fp = cc.moon.internet.core.ClientHello.effective(app, s.security, s.fingerprint)
+        val sni = s.sni?.takeIf { it.isNotBlank() } ?: s.address   // what xray puts in serverName
+        val now = System.currentTimeMillis()
+        val task = hellos.compute("${s.address}|$sni|$fp") { _, old ->
+            if (old != null && now - old.first < 60_000) old
+            else now to java.util.concurrent.FutureTask { sendHello(s.address, s.port, sni, fp, minOf(timeout, 3000)) }
+        }!!.second
+        task.run()   // no-op unless this caller is the first
+        return runCatching { task.get() }.getOrNull()
+    }
+
+    /** True on any TLS record back (a ServerHello, or an alert), false on silence, close or reset. */
+    private fun sendHello(host: String, port: Int, sni: String, fp: String, timeout: Int): Boolean? {
+        val hello = cc.moon.internet.core.ClientHello.forServer(getApplication(), fp, sni) ?: return null
+        return try {
+            Socket().use {
+                MoonVpnService.protectSocket(it)     // out of our own tunnel, as tcpPing
+                it.connect(InetSocketAddress(host, port), timeout)
+                it.soTimeout = timeout
+                it.getOutputStream().apply { write(hello); flush() }
+                it.getInputStream().read() in setOf(0x15, 0x16)
+            }
+        } catch (_: Exception) { false }
     }
 
     /**

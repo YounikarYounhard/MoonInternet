@@ -99,6 +99,39 @@ public static class Pinger
         catch { return -1; }
     }
 
+    /// <summary>
+    /// Does this path answer the ClientHello the core would send? True on any TLS record back
+    /// (a ServerHello, or even an alert — the server is there and talking), false when the hello
+    /// is met with silence, a close or a reset. Null when there is nothing to send (no hostname
+    /// SNI, unknown fingerprint), which is not evidence either way.
+    ///
+    /// This is the half of Moon Ping a plain TCP connect cannot do. The box that bans a server
+    /// lets the TCP handshake through and blackholes the TLS one — measured on the home line in
+    /// the middle of a ban: TCP to all three foreign servers in 35–87 ms, not one ClientHello
+    /// answered, while the same hello to a Russian server, Cloudflare and Google came back in
+    /// 30–66 ms. So the hello is the one with this server's SNI and the link's own fingerprint.
+    /// </summary>
+    public static async Task<bool?> TlsHelloAnsweredAsync(string host, int port, string sni, string fingerprint,
+                                                         int timeoutMs = 3000, int? outIfIndex = null)
+    {
+        var hello = MoonInternet.Core.ClientHello.For(fingerprint, sni);
+        if (hello is null) return null;
+        try
+        {
+            using var client = new TcpClient(AddressFamily.InterNetwork);
+            if (outIfIndex is int idx)
+                client.Client.SetSocketOption(SocketOptionLevel.IP, IP_UNICAST_IF, IPAddress.HostToNetworkOrder(idx));
+            using var cts = new CancellationTokenSource(timeoutMs);
+            await client.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
+            var stream = client.GetStream();
+            await stream.WriteAsync(hello, cts.Token).ConfigureAwait(false);
+            var first = new byte[1];
+            int n = await stream.ReadAsync(first, cts.Token).ConfigureAwait(false);
+            return n == 1 && first[0] is 0x15 or 0x16;   // alert or handshake: a TLS server answered
+        }
+        catch { return false; }
+    }
+
     /// <summary>Dispatch a latency probe by method. "moon" = TCP handshake out the physical NIC (our default, accurate
     /// channel latency to the VPN server); "tcp" = plain TCP on the current route; "httpget"/"httphead" = HTTP TTFB.</summary>
     public static Task<int> MeasureAsync(string method, string host, int port, int timeoutMs, int? outIfIndex) => method switch
