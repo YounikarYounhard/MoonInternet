@@ -970,5 +970,28 @@ Check("hello: no SNI for an address", MoonInternet.Core.ClientHello.For("chrome"
 Check("hello: reality without fp is chrome", MoonInternet.Core.ClientHello.Effective("reality", null) == "chrome");
 Check("hello: tls without fp is go", MoonInternet.Core.ClientHello.Effective("tls", "") == "go");
 
+// The probe itself, against two local servers: one that takes the TCP connection and then says
+// nothing — exactly what a banned server looks like from here — and one that answers TLS.
+{
+    async Task<bool?> Against(bool answer)
+    {
+        var l = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        l.Start();
+        int port = ((System.Net.IPEndPoint)l.LocalEndpoint).Port;
+        var serve = Task.Run(async () =>
+        {
+            using var c = await l.AcceptTcpClientAsync();
+            var buf = new byte[4096];
+            await c.GetStream().ReadAsync(buf);
+            if (answer) await c.GetStream().WriteAsync(new byte[] { 0x16, 0x03, 0x03, 0x00, 0x00 });
+            await Task.Delay(2500);
+        });
+        try { return await Pinger.TlsHelloAnsweredAsync("127.0.0.1", port, "probe.example.com", "firefox", 1500); }
+        finally { l.Stop(); }
+    }
+    Check("hello probe: silent server after TCP is NOT answered", await Against(false) == false);
+    Check("hello probe: a TLS record back counts as answered", await Against(true) == true);
+}
+
 Console.WriteLine($"\n{passed} passed, {failed} failed");
 return failed == 0 ? 0 : 1;
