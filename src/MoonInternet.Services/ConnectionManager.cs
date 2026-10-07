@@ -289,7 +289,7 @@ public sealed class ConnectionManager : IDisposable
                     throw new InvalidOperationException("Ядро AmneziaWG не найдено — переустановите приложение");
                 _awg.Start(profile.Wireguard!);
                 if (!await WaitPortAsync(_awg.SocksPort, ct))
-                    throw new InvalidOperationException("AmneziaWG не поднялся — проверьте конфигурацию");
+                    throw new InvalidOperationException("ядро AmneziaWG не запустилось");
                 _awg.DropSecrets();   // the core has read it; the private key need not stay on disk
                 RoutingNote = profile.Wireguard!.ProtocolLabel;   // the one place these are named
                 _roamingAwg = profile.Wireguard;                  // rebuild it when the network moves
@@ -495,6 +495,19 @@ public sealed class ConnectionManager : IDisposable
         Report("Поднятие туннеля…");
         var r = await Task.Run(() => TunClient.StartAwg(wg), ct);
         ct.ThrowIfCancellationRequested();
+        if (r == "ERR AmneziaWG no traffic")
+        {
+            // The engine ran and the adapter came up; for twenty seconds nothing came back. That is
+            // the server not answering — switched off, unpaid, blocked — and the SOCKS path would come
+            // up just as dead, only slower, and then say "не поднялся — проверьте конфигурацию" about
+            // a config that is fine. Say what it is: the server, or the network under us.
+            try { TunClient.StopTun(); } catch { }
+            bool online = await Pinger.TcpLatencyAsync("1.1.1.1", 443, 3000, Pinger.PhysicalIfIndex()) >= 0;
+            DevLog.Log("туннель", online ? "AmneziaWG: сервер не отвечает" : "AmneziaWG: нет интернета");
+            throw new InvalidOperationException(online
+                ? "сервер AmneziaWG не отвечает — он выключен или недоступен"
+                : "нет интернета");
+        }
         if (r != "OK")
         {
             DevLog.Log("туннель", $"AmneziaWG напрямую не поднялся ({r}) — иду через SOCKS");
