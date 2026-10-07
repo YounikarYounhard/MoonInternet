@@ -43,6 +43,8 @@ open class CoreService : Service() {
         const val KEY_ARGS = "args"
         /** The TUN descriptor, when the engine is to carry the phone's packets itself. */
         const val KEY_TUN = "tun"
+        /** A file for the engine's own output (its stderr). */
+        const val KEY_LOG = "log"
     }
 
     private val messenger = Messenger(Handler(Looper.getMainLooper()) { msg ->
@@ -53,6 +55,16 @@ open class CoreService : Service() {
             data.getParcelable<ParcelFileDescriptor>(KEY_TUN)?.let {
                 // The engine owns it from here and closes it when it stops.
                 args += "-tunfd"; args += it.detachFd().toString()
+            }
+            // The engine writes its log to stdout/stderr, and in an app process that goes nowhere — a
+            // handshake that never completed left no trace at all. Point the process's stderr at a
+            // file: this process holds one engine and dies with it, so nothing else shares it.
+            data.getString(KEY_LOG)?.let { path ->
+                runCatching {
+                    val out = java.io.FileOutputStream(path, false)
+                    android.system.Os.dup2(out.fd, 2)
+                    android.system.Os.dup2(out.fd, 1)   // wireguard-go's logger writes to stdout
+                }
             }
             CoreLib.start(data.getString(KEY_ID).orEmpty(), data.getString(KEY_SO).orEmpty(), args)
         }

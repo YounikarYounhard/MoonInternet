@@ -65,7 +65,7 @@ class AwgRunner(
         val uapi = File(ctx.filesDir, "$tag.uapi")
         return try {
             uapi.writeText(WireGuardUapi.build(wg))
-            val args = arrayListOf("-uapi", uapi.absolutePath, "-listen", "127.0.0.1:$port")
+            val args = arrayListOf("-v", "-uapi", uapi.absolutePath, "-listen", "127.0.0.1:$port")
             if (tun == null) {
                 args += "-addr"; args += wg.address.joinToString(",")
                 if (wg.dns.isNotEmpty()) { args += "-dns"; args += wg.dns.joinToString(",") }
@@ -78,6 +78,9 @@ class AwgRunner(
                     putString(CoreService.KEY_ID, MoonCore.Amnezia.id)
                     putString(CoreService.KEY_SO, so.absolutePath)
                     putStringArrayList(CoreService.KEY_ARGS, args)
+                    // Its own log beside the app's, readable off a cable like singbox.log.
+                    putString(CoreService.KEY_LOG,
+                        File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "$tag.log").absolutePath)
                     if (tun != null) putParcelable(CoreService.KEY_TUN, tun)
                 }
             })
