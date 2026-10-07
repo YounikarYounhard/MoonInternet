@@ -29,11 +29,34 @@ class CoreLogicTest {
         network = network, security = security,
     )
 
+    /** Rule 0 is the DNS hijack; the first rule that decides where traffic goes is the next one. */
+    private fun firstTrafficRule(cfg: JSONObject): JSONObject {
+        val rules = cfg.getJSONObject("routing").getJSONArray("rules")
+        return (0 until rules.length()).map(rules::getJSONObject).first { it.optString("outboundTag") != "dns-out" }
+    }
+
+    // ---- DNS: one handshake per lookup is what got the foreign servers banned -----------
+    @Test
+    fun `the phone's dns is answered by xray, not sent on as traffic`() {
+        val cfg = JSONObject(XrayConfig.build(server()))
+        val first = cfg.getJSONObject("routing").getJSONArray("rules").getJSONObject(0)
+        assertEquals("dns-out", first.getString("outboundTag"))
+        assertEquals("53", first.getString("port"))
+        // Only what comes in through the tunnel; xray's own upstream queries must not loop.
+        assertEquals("tun-in", first.getJSONArray("inboundTag").getString(0))
+        val outbounds = cfg.getJSONArray("outbounds")
+        assertTrue((0 until outbounds.length()).any {
+            outbounds.getJSONObject(it).let { o -> o.getString("tag") == "dns-out" && o.getString("protocol") == "dns" }
+        })
+        // and the proxy is still the first outbound, i.e. the default route
+        assertEquals("proxy", outbounds.getJSONObject(0).getString("tag"))
+    }
+
     // ---- the loop that killed every connection in the first build ------------
     @Test
     fun `traffic to the proxy server never goes through the proxy`() {
         val cfg = JSONObject(XrayConfig.build(server(address = "1.2.3.4")))
-        val first = cfg.getJSONObject("routing").getJSONArray("rules").getJSONObject(0)
+        val first = firstTrafficRule(cfg)
         assertEquals("direct", first.getString("outboundTag"))
         assertEquals("1.2.3.4", first.getJSONArray("ip").getString(0))
     }
@@ -41,7 +64,7 @@ class CoreLogicTest {
     @Test
     fun `a hostname server is bypassed by domain, not by ip`() {
         val cfg = JSONObject(XrayConfig.build(server(address = "vpn.example.com")))
-        val first = cfg.getJSONObject("routing").getJSONArray("rules").getJSONObject(0)
+        val first = firstTrafficRule(cfg)
         assertEquals("full:vpn.example.com", first.getJSONArray("domain").getString(0))
     }
 
@@ -188,7 +211,7 @@ class CoreLogicTest {
     @Test
     fun `block udp inserts a reject rule before everything else`() {
         val cfg = JSONObject(XrayConfig.build(server(), blockUdp = true))
-        val first = cfg.getJSONObject("routing").getJSONArray("rules").getJSONObject(0)
+        val first = firstTrafficRule(cfg)
         assertEquals("block", first.getString("outboundTag"))
         assertEquals("udp", first.getString("network"))
     }

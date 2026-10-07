@@ -227,6 +227,9 @@ object XrayConfig {
             .put(JSONObject().put("tag", "direct").put("protocol", "freedom")
                 .put("settings", JSONObject().put("domainStrategy", domainStrategy)))
             .put(JSONObject().put("tag", "block").put("protocol", "blackhole"))
+            // Answers the DNS the routing hands it (rule 0): A/AAAA from xray's resolver, any other
+            // query type an empty reply on the spot — nothing leaves as a flow of its own.
+            .put(JSONObject().put("tag", "dns-out").put("protocol", "dns"))
         if (tlsFragment) {
             // the proxy dials through this one, which chops the TLS ClientHello into pieces
             outbounds.put(JSONObject().put("tag", "fragment").put("protocol", "freedom")
@@ -393,7 +396,8 @@ object XrayConfig {
             // ...or the version the dropped transport was, when it was migrated above.
             if (!tls.has("alpn")) migratedAlpn?.let { tls.put("alpn", JSONArray().put(it)) }
             if (security != "reality") {
-                tls.put("allowInsecure", s.allowInsecure)
+                // No allowInsecure: xray 26 removed it and fails the whole config on `true`, so
+                // an allowInsecure=1 link did not connect at all. See the desktop builder.
                 if (!tls.has("serverName")) tls.put("serverName", s.address)
                 st.put("tlsSettings", tls)
             } else {
@@ -552,6 +556,18 @@ object XrayConfig {
         serverIps: List<String> = emptyList(),
     ): JSONObject {
         val rules = JSONArray()
+        // 0. The phone's own DNS is answered here, by xray's resolver, never sent on as traffic.
+        //
+        // Without this every lookup any app made left as a UDP flow of its own, and VLESS without
+        // mux carries each flow over its own connection: a fresh TCP + TLS handshake to the server
+        // per DNS query, held for the five-minute idle timeout. With the screen off, when apps sync
+        // in bursts, that measured 64–120 new handshakes a minute to one server — the "many TLS to
+        // one SNI" pattern ТСПУ answers by blackholing TLS to the user's foreign servers for minutes.
+        // xray's resolver has a cache and keeps one link per upstream instead. The desktop has
+        // always done this (sing-box hijacks DNS there), and so does INCY (captureSystemDns).
+        // Only from the tunnel: xray's own queries to 1.1.1.1 must not be caught by it.
+        rules.put(JSONObject().put("type", "field").put("inboundTag", JSONArray().put("tun-in"))
+            .put("port", "53").put("outboundTag", "dns-out"))
         // QUIC and torrents out of the way before anything else looks at the traffic
         if (blockUdp) {
             rules.put(JSONObject().put("type", "field").put("outboundTag", "block")
