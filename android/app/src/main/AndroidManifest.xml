@@ -120,6 +120,11 @@
             android:name=".vpn.CoreService"
             android:exported="false"
             android:process=":core"/>
+        <!-- The same, for the stability probe's engine: it may run beside the connection's. -->
+        <service
+            android:name=".vpn.ProbeCoreService"
+            android:exported="false"
+            android:process=":probe"/>
 
         <!-- Quick Settings tile: connect straight from the notification shade -->
 

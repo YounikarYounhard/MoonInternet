@@ -97,6 +97,9 @@ class MainActivity : ComponentActivity() {
         if (r.resultCode == RESULT_OK) vm.connect() else vm.reportPermissionDenied()
     }
 
+    override fun onStart() { super.onStart(); vm.onForeground(true) }
+    override fun onStop() { super.onStop(); vm.onForeground(false) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Edge to edge. The phone's own bars stay on screen — the app just paints underneath

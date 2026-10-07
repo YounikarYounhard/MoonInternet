@@ -22,7 +22,8 @@ import java.io.File
  * the VPN in every mode, and a child shares our uid — so it dials the server directly instead of
  * looping back through us.
  */
-class SingBoxRunner(private val ctx: Context) {
+/** [port] and [tag] (its files) differ for a second engine — the stability probe. */
+class SingBoxRunner(private val ctx: Context, private val port: Int = PORT, private val tag: String = "hy2") {
 
     companion object {
         /** Fixed, and free by the time we bind: the service tears the old core down first. */
@@ -39,9 +40,9 @@ class SingBoxRunner(private val ctx: Context) {
 
         // The config carries the server password, so it goes to the app's own files — unreadable
         // by other apps — and is deleted as soon as the core has read it.
-        val cfg = File(ctx.filesDir, "hy2.json")
+        val cfg = File(ctx.filesDir, "$tag.json")
         return try {
-            cfg.writeText(SingBoxHy2Config.build(s, PORT))
+            cfg.writeText(SingBoxHy2Config.build(s, port))
             proc = ProcessBuilder(exe.absolutePath, "run", "-c", cfg.absolutePath)
                 .redirectErrorStream(true)
                 .apply {
@@ -73,7 +74,7 @@ class SingBoxRunner(private val ctx: Context) {
     private fun drainToLog() {
         val p = proc ?: return
         val dir = ctx.getExternalFilesDir(null) ?: ctx.filesDir
-        val log = File(dir, "singbox.log")
+        val log = File(dir, logName)
         Thread {
             runCatching {
                 log.writeText("")
@@ -90,11 +91,11 @@ class SingBoxRunner(private val ctx: Context) {
             if (proc?.isAlive == false) {
                 // From the file, not the pipe: the draining thread owns that stream now.
                 val dir = ctx.getExternalFilesDir(null) ?: ctx.filesDir
-                val tail = runCatching { File(dir, "singbox.log").readLines().lastOrNull() }.getOrNull()
+                val tail = runCatching { File(dir, logName).readLines().lastOrNull() }.getOrNull()
                 return "Hysteria не поднялась" + (tail?.takeIf { t -> t.isNotBlank() }?.let { t -> ": $t" } ?: "")
             }
             runCatching {
-                java.net.Socket().use { it.connect(java.net.InetSocketAddress("127.0.0.1", PORT), 300) }
+                java.net.Socket().use { it.connect(java.net.InetSocketAddress("127.0.0.1", port), 300) }
                 return null
             }
             Thread.sleep(100)
@@ -105,6 +106,9 @@ class SingBoxRunner(private val ctx: Context) {
     fun stop() {
         runCatching { proc?.destroy() }
         proc = null
-        runCatching { File(ctx.filesDir, "hy2.json").delete() }
+        runCatching { File(ctx.filesDir, "$tag.json").delete() }
     }
+
+    /** The connection's engine keeps the log you can read; a probe's goes to a scratch one. */
+    private val logName get() = if (tag == "hy2") "singbox.log" else "singbox-probe.log"
 }

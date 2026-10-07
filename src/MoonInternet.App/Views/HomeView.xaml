@@ -228,11 +228,31 @@
                                 <TextBlock Text="{DynamicResource S_HomeView_002}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <!-- Green with a number, red for «нет ответа», grey while it checks. It used
+                             to be green whatever it said, so a failed check looked like a good one. -->
                         <Border Visibility="{Binding HasCheckPing, Converter={StaticResource BoolVis}}" VerticalAlignment="Center"
-                                Margin="8,0,0,0" CornerRadius="9" Background="#2534D399" Padding="10,6">
+                                Margin="8,0,0,0" CornerRadius="9" Padding="10,6">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#2534D399"/>
+                                    <Setter Property="TextElement.Foreground" Value="{StaticResource Green}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CheckPingFailed}" Value="True">
+                                            <Setter Property="Background" Value="#25FF6B8A"/>
+                                            <Setter Property="TextElement.Foreground" Value="{StaticResource Danger}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CheckPinging}" Value="True">
+                                            <Setter Property="Background" Value="#256E6790"/>
+                                            <Setter Property="TextElement.Foreground" Value="{StaticResource TextMuted}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="8" Height="8" Fill="{StaticResource Green}" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding CheckPingText}" Foreground="{StaticResource Green}" FontSize="12.5" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                                <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                         Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Border}}"/>
+                                <TextBlock Text="{Binding CheckPingText}" FontSize="12.5" FontWeight="SemiBold" Margin="6,0,0,0"
+                                           Foreground="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Border}}"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

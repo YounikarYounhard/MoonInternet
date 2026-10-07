@@ -35,11 +35,20 @@ import java.util.concurrent.TimeUnit
  * looks exactly like one that is serving, and always did. In TUN mode the port also answers with
  * the counters — see [counters].
  */
-class AwgRunner(private val ctx: Context, private val onDropped: () -> Unit = {}) {
+class AwgRunner(
+    private val ctx: Context,
+    /** The stability probe runs a second engine: its own port, its own process, its own key file. */
+    private val port: Int = PORT,
+    private val service: Class<out android.app.Service> = CoreService::class.java,
+    private val tag: String = "awg",
+    private val onDropped: () -> Unit = {},
+) {
 
     companion object {
         /** Fixed, and free by the time we bind: the service tears the old core down first. */
         const val PORT = 1091
+        /** The stability probe's engine — see [StabilityProbe]. */
+        const val PROBE_PORT = 1093
     }
 
     @Volatile private var connection: ServiceConnection? = null
@@ -53,10 +62,10 @@ class AwgRunner(private val ctx: Context, private val onDropped: () -> Unit = {}
 
         // The document holds the private key, so it goes to the app's own files — unreadable by
         // other apps — and is deleted the moment the core has read it. It is read only at startup.
-        val uapi = File(ctx.filesDir, "awg.uapi")
+        val uapi = File(ctx.filesDir, "$tag.uapi")
         return try {
             uapi.writeText(WireGuardUapi.build(wg))
-            val args = arrayListOf("-uapi", uapi.absolutePath, "-listen", "127.0.0.1:$PORT")
+            val args = arrayListOf("-uapi", uapi.absolutePath, "-listen", "127.0.0.1:$port")
             if (tun == null) {
                 args += "-addr"; args += wg.address.joinToString(",")
                 if (wg.dns.isNotEmpty()) { args += "-dns"; args += wg.dns.joinToString(",") }
@@ -90,7 +99,7 @@ class AwgRunner(private val ctx: Context, private val onDropped: () -> Unit = {}
             override fun onServiceDisconnected(name: ComponentName?) {}
         }
         val flags = Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT
-        if (!ctx.bindService(Intent(ctx, CoreService::class.java), c, flags)) return null
+        if (!ctx.bindService(Intent(ctx, service), c, flags)) return null
         connection = c
         val binder = ready.poll(5, TimeUnit.SECONDS) ?: return null
         val latch = CountDownLatch(1)
@@ -109,7 +118,7 @@ class AwgRunner(private val ctx: Context, private val onDropped: () -> Unit = {}
     private fun awaitPort(): String? {
         repeat(30) {
             runCatching {
-                java.net.Socket().use { it.connect(java.net.InetSocketAddress("127.0.0.1", PORT), 300) }
+                java.net.Socket().use { it.connect(java.net.InetSocketAddress("127.0.0.1", port), 300) }
                 return null
             }
             Thread.sleep(100)
@@ -123,7 +132,7 @@ class AwgRunner(private val ctx: Context, private val onDropped: () -> Unit = {}
      */
     fun counters(): Triple<Long, Long, Long>? = runCatching {
         java.net.Socket().use { s ->
-            s.connect(java.net.InetSocketAddress("127.0.0.1", PORT), 300)
+            s.connect(java.net.InetSocketAddress("127.0.0.1", port), 300)
             s.soTimeout = 500
             val (rx, tx, hs) = s.getInputStream().bufferedReader().readLine().trim().split(' ').map { it.toLong() }
             Triple(rx, tx, hs)

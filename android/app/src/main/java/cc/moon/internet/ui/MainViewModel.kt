@@ -20,6 +20,22 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.UUID
 
+/**
+ * What belongs to the app's run rather than to one screen. The view model dies with the activity —
+ * leave with Back, come back two minutes later, and a new one starts — while the process, and the
+ * tunnel in it, carry on. Kept on the view model, every return was a "launch": subscriptions
+ * refetched, every server pinged again, the numbers gone, the interval timer back at zero.
+ */
+private object UiSession {
+    /** Startup work (refresh, ping, auto-connect) is due once per process, not per screen. */
+    val firstLaunch = java.util.concurrent.atomic.AtomicBoolean(true)
+    /** When the last full ping pass began — the interval counts from here, by the clock. */
+    @Volatile var lastPass = 0L
+    val pings = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val checkPing = MutableStateFlow("")
+    @Volatile var lastState: MoonVpnService.Companion.State? = null
+}
+
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
@@ -51,7 +67,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val busy = _busy.asStateFlow()
 
     /** raw share link → ping in ms (-1 failed, -2 unknown/not measured). */
-    private val _pings = MutableStateFlow<Map<String, Int>>(emptyMap())
+    private val _pings = UiSession.pings
     val pings = _pings.asStateFlow()
 
     /** Share links currently being measured — those rows show a spinner instead of a number. */
@@ -67,8 +83,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val refreshing = _refreshing.asStateFlow()
 
     /** result of "Проверить соединение" — shown next to the button while connected. */
-    private val _checkPing = MutableStateFlow("")
+    private val _checkPing = UiSession.checkPing
     val checkPing = _checkPing.asStateFlow()
+    /** One check at a time — see checkConnection. Up here: init may call it before the rest is built. */
+    private val checking = java.util.concurrent.atomic.AtomicBoolean(false)
+    /** The activity is on screen — see autoPingIfDue. */
+    @Volatile private var foreground = false
 
     val vpnState = MoonVpnService.state
     val traffic = MoonVpnService.traffic
@@ -223,11 +243,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // Awaited, both of them. refreshAll ends with a ping of its own, and this used to
             // fire a second pass on top of it because _pings was still empty when the check ran —
             // two passes measuring the same servers at once, trampling the same maps.
-            if (store.state.value.updateOnStart) refreshAll(silent = true).join()
-            if (store.state.value.pingOnStart && _pings.value.isEmpty())
-                viewModelScope.launch { pingServers(store.allServers, auto = true) }.join()
+            // Once per process. A screen coming back is not a launch — see UiSession.
+            if (UiSession.firstLaunch.compareAndSet(true, false)) {
+                UiSession.lastPass = System.currentTimeMillis()   // the interval counts from launch
+                if (store.state.value.updateOnStart) refreshAll(silent = true).join()
+                if (store.state.value.pingOnStart)
+                    viewModelScope.launch { pingServers(store.allServers, auto = true) }.join()
+                requestAutoConnect()
+            }
             announceIfUpdated()
-            requestAutoConnect()
             // Last, and quietly: an engine the user already has, missing or older than the
             // catalogue says, comes back on its own. This is what an app update looks like from
             // the engines' side — they outlive it, and only a newer one has to be fetched.
@@ -240,13 +264,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { watchTraffic() }
         viewModelScope.launch {
             vpnState.collect { s ->
+                // A screen coming back sees the state it left, not a change: it used to post
+                // «Подключено»/«Отключено» and re-run the check every time the app was reopened.
+                val prev = UiSession.lastState.also { UiSession.lastState = s }
+                val changed = prev != null && prev != s
                 if (s == MoonVpnService.Companion.State.Connected) {
-                    notifyConnection(s(R.string.homescreen_003))
+                    if (changed) notifyConnection(s(R.string.homescreen_003))
                     // the desktop measures the tunnel as soon as it is up; do the same here
-                    checkConnection()
+                    if (_checkPing.value.isEmpty()) checkConnection(afterConnect = changed)
                 }
-                if (s == MoonVpnService.Companion.State.Disconnected ||
-                    s == MoonVpnService.Companion.State.Paused) {
+                // A server switch passes through Connecting: the old figure is not this server's.
+                if (s == MoonVpnService.Companion.State.Connecting) _checkPing.value = ""
+                if (s == MoonVpnService.Companion.State.Disconnected && !changed) _checkPing.value = ""
+                if (changed && (s == MoonVpnService.Companion.State.Disconnected ||
+                    s == MoonVpnService.Companion.State.Paused)) {
                     _speed.value = "—" to "—"; _sessionTraffic.value = "—"; _elapsed.value = "—"
                     _checkPing.value = ""
                     lastUp = 0; lastDown = 0
@@ -298,7 +329,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 sub.fetchedAt <= 0 || now - sub.fetchedAt >= every * 60_000L
             }
+            if (due.isEmpty()) continue
             due.forEach { refreshSubscription(it.url, silent = true).join() }
+            // Only what has no number yet — servers the refresh brought in. Re-pinging the whole
+            // list after every hourly fetch was a volley of handshakes at the same few machines,
+            // the burst the censor's box answers by cutting their TLS for minutes.
+            val now2 = store.state.value
+            if (now2.pingOnStart || now2.pingEveryMinutes > 0) {
+                val unmeasured = store.allServers.filter { it.pingKey !in _pings.value }
+                if (unmeasured.isNotEmpty()) pingServers(unmeasured, auto = true)
+            }
         }
     }
 
@@ -313,17 +353,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * keep the radio busy in a pocket.
      */
     private suspend fun autoPingLoop() {
-        var sinceLastRun = 0
         while (true) {
-            kotlinx.coroutines.delay(60_000)
-            val every = store.state.value.pingEveryMinutes
-            if (every <= 0) { sinceLastRun = 0; continue }
-            sinceLastRun++
-            if (sinceLastRun < every) continue
-            sinceLastRun = 0
-            val servers = store.state.value.subscriptions.flatMap { it.servers }
-            if (servers.isNotEmpty()) pingServers(servers, auto = true)
+            kotlinx.coroutines.delay(30_000)
+            autoPingIfDue()
         }
+    }
+
+    /**
+     * By the clock, not by counting this view model's minutes: those started from zero every time
+     * the screen was rebuilt, so the interval you set was not the interval you got. And only while
+     * the app is on screen — the numbers are for looking at, a pass in a pocket is handshakes for
+     * nobody. Coming back after the interval has run out measures at once; before that, nothing.
+     */
+    private suspend fun autoPingIfDue() {
+        val every = store.state.value.pingEveryMinutes
+        if (every <= 0 || !foreground || UiSession.firstLaunch.get()) return
+        if (System.currentTimeMillis() - UiSession.lastPass < every * 60_000L) return
+        val servers = store.allServers
+        if (servers.isNotEmpty()) pingServers(servers, auto = true)
+    }
+
+    /** From the activity's onStart/onStop. */
+    fun onForeground(on: Boolean) {
+        foreground = on
+        if (on) viewModelScope.launch { autoPingIfDue() }
     }
 
     // ---- subscriptions ---------------------------------------------------
@@ -402,7 +455,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _refreshing.update { it + urls }
         urls.forEach { refreshOne(it); _refreshing.update { s -> s - it } }
         _busy.value = false
-        pingServers(store.allServers, auto = true)
+        // The button: you asked, here are fresh numbers. The launch refresh (silent) leaves the
+        // ping to the launch itself, which asks pingOnStart first — this used to ping regardless.
+        if (!silent) pingServers(store.allServers, auto = true)
     }
 
     /** [silent]: the background refresh says nothing — a snackbar every hour is not news. */
@@ -592,12 +647,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (_pingingAll.value) return@launch
         _pinging.update { it + s.pingKey }
         _status.value = this@MainViewModel.s(R.string.vm_stability_checking, s.label)
-        val ms = withContext(Dispatchers.IO) { stabilityPing(s, store.state.value.pingTestUrl) }
+        // The server we are connected through is measured through the tunnel, never with a second
+        // session of its own: for AmneziaWG a second session on the same keys knocks the live one
+        // off the server (the peer moves to whichever address spoke last).
+        val live = vpnState.value == MoonVpnService.Companion.State.Connected &&
+            s.pingKey == store.selectedServer()?.key
+        var ms = -2
+        if (live) ms = withContext(Dispatchers.IO) { tunnelPing() }
+        else cc.moon.internet.vpn.StabilityProbe(getApplication())
+            .measure(listOf(s), store.state.value.pingTestUrl, store.state.value.pingTimeoutMs) { _, r -> ms = r }
         _pings.update { it + (s.pingKey to ms) }
         _pinging.update { it - s.pingKey }
         _status.value =
             if (ms >= 0) this@MainViewModel.s(R.string.vm_stability_ok, s.label, ms)
-            else this@MainViewModel.s(R.string.vm_stability_dead, s.label)
+            else if (ms == -1) this@MainViewModel.s(R.string.vm_stability_dead, s.label)
+            else ""
     }
 
     /**
@@ -652,6 +716,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // sockets. One pass at a time, and the button says so.
         if (_pingingAll.value) return
         _pingingAll.value = true
+        if (targets.size > 1) UiSession.lastPass = System.currentTimeMillis()
         val st = store.state.value
         _status.value = s(R.string.vm_pinging, targets.size)
 
@@ -665,12 +730,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // Automatic passes therefore use the cheap probe; Стабильность stays for when you press it.
         val method = if (auto && st.pingMethod == "stability") "moon" else st.pingMethod
 
-        // Стабильность starts a core per server, so one at a time — six at once would be six
-        // cores and the phone would feel it.
-        val parallel = if (method == "stability") 1 else PING_PARALLEL
-        val gate = kotlinx.coroutines.sync.Semaphore(parallel)
+        val gate = kotlinx.coroutines.sync.Semaphore(PING_PARALLEL)
         try {
-            kotlinx.coroutines.coroutineScope {
+            if (method == "stability") {
+                // Its own engine and its own pacing — see StabilityProbe. The server we are
+                // connected through goes through the tunnel, as below.
+                val active = store.selectedServer()?.key
+                val connected = vpnState.value == MoonVpnService.Companion.State.Connected
+                fun put(s: ServerProfile, ms: Int) {
+                    _pings.update { it + (s.pingKey to ms) }
+                    _pinging.update { it - s.pingKey }
+                    if (s.pingKey == active && connected) _checkPing.value = if (ms >= 0) "$ms ms" else s(R.string.vm_no_reply)
+                }
+                val live = targets.filter { connected && it.pingKey == active }
+                live.forEach { put(it, withContext(Dispatchers.IO) { tunnelPing() }) }
+                cc.moon.internet.vpn.StabilityProbe(getApplication())
+                    .measure(targets - live.toSet(), st.pingTestUrl, st.pingTimeoutMs, ::put)
+            } else kotlinx.coroutines.coroutineScope {
                 targets.mapIndexed { i, s ->
                     async(Dispatchers.IO) {
                         // Optional stagger: thirty handshakes in one instant look like a port
@@ -734,7 +810,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      *  moon / tcp          — TCP handshake straight to the server. Channel latency, and all it
      *                        proves is that something is listening on the port.
      *  httpget / httphead  — an HTTP request to the server itself, time to first byte.
-     *  stability           — a real connection through the protocol; see [XrayRunner.measureOutbound].
+     *  stability           — a real request through the protocol; see [cc.moon.internet.vpn.StabilityProbe].
      *
      * httpget/httphead used to request the *test URL* instead of the server, which measured the
      * path to gstatic and handed every server the same number no matter what — that is the
@@ -751,8 +827,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun tunnelPing(): Int {
         // AmneziaWG on a TUN runs without xray: no core to ask and no SOCKS port to go through.
-        // The server's own round trip, then — the figure its row shows when not connected.
-        if (MoonVpnService.runner == null) return store.selectedServer()?.let { measurePing(it, "tcp") } ?: -1
+        // Alive is the engine's own word — a handshake in the last three minutes (it renews one
+        // every two); up to five seconds for the first after connecting. Then the server's own
+        // round trip for the figure. Pinging the address alone said "45 ms" over a dead tunnel:
+        // a switched-off AmneziaWG server still has a host that answers.
+        if (MoonVpnService.runner == null) {
+            repeat(10) {
+                val hs = MoonVpnService.awgHandshake.value
+                if (hs > 0 && System.currentTimeMillis() / 1000 - hs < 180)
+                    return store.selectedServer()?.let { measurePing(it, "tcp") } ?: -1
+                Thread.sleep(500)
+            }
+            return -1
+        }
         return (MoonVpnService.runner?.measureDelay()?.takeIf { it >= 0 } ?: socksCheck())?.toInt() ?: -1
     }
 
@@ -763,9 +850,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // too. Everything else here is a TCP probe, and there is nothing on TCP to probe: mKCP and
         // QUIC are UDP transports, Hysteria2 and WireGuard are UDP protocols. Those rows showed ✕
         // for servers that were perfectly alive.
-        if (method != "stability" && s.udpOnly) return udpEndpointPing(s, timeout)
+        if (s.udpOnly) return udpEndpointPing(s, timeout)
         return when (method) {
-            "stability" -> stabilityPing(s, st.pingTestUrl)
             "httpget", "httphead" -> httpPing(s, timeout, head = method == "httphead")
             else -> tcpPing(s.address, s.port, timeout).let { ms ->
                 // Moon Ping also asks the question the censor actually answers: does this path take
@@ -779,10 +865,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * One ClientHello per address, SNI and fingerprint a minute, however many servers share them.
-     * A pass is dozens of inbounds on three or four machines; a hello for each would itself be the
-     * "many TLS to one SNI" burst that gets a server banned, and the ban is on the machine's TLS,
-     * not one inbound — so one answer covers them all. The first caller sends it, the rest wait.
+     * One ClientHello per machine every two minutes while it answers. A pass is dozens of inbounds
+     * on three or four machines; a hello for each would itself be the "many TLS to one server"
+     * burst that gets a server banned, and the ban is on the machine's TLS — so a yes covers every
+     * inbound on it. A no is checked on this inbound's own port before it counts: one inbound with
+     * a slow or broken dest put ✕ on every inbound of its machine. The first caller sends, the
+     * rest wait.
      */
     private val hellos = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, java.util.concurrent.FutureTask<Boolean?>>>()
 
@@ -791,12 +879,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val fp = cc.moon.internet.core.ClientHello.effective(app, s.security, s.fingerprint)
         val sni = s.sni?.takeIf { it.isNotBlank() } ?: s.address   // what xray puts in serverName
         val now = System.currentTimeMillis()
-        val task = hellos.compute("${s.address}|$sni|$fp") { _, old ->
-            if (old != null && now - old.first < 60_000) old
-            else now to java.util.concurrent.FutureTask { sendHello(s.address, s.port, sni, fp, minOf(timeout, 3000)) }
-        }!!.second
-        task.run()   // no-op unless this caller is the first
-        return runCatching { task.get() }.getOrNull()
+        fun cached(key: String): Boolean? {
+            val task = hellos.compute(key) { _, old ->
+                if (old != null && now - old.first < 120_000) old
+                else now to java.util.concurrent.FutureTask { sendHello(s.address, s.port, sni, fp, minOf(timeout, 3000)) }
+            }!!.second
+            task.run()   // no-op unless this caller is the first
+            return runCatching { task.get() }.getOrNull()
+        }
+        val machine = cached(s.address)
+        return if (machine == false) cached("${s.address}:${s.port}") else machine
     }
 
     /** True on any TLS record back (a ServerHello, or an alert), false on silence, close or reset. */
@@ -873,42 +965,35 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     } catch (_: Exception) { -1 }
 
     /**
-     * Raises a real connection through this server and fetches the test URL over it. Slower than
-     * a handshake, and the only method here that can tell a working protocol from an open port.
-     */
-    private fun stabilityPing(s: ServerProfile, url: String): Int {
-        if (!XrayConfig.supports(s.protocol)) return -2   // unknown, not down
-        // Deliberately the same probe whether or not our tunnel is up. Falling back to a plain
-        // handshake while connected handed a number to every server with an open port, including
-        // the protocols that do not actually carry traffic — the probe is the only thing here
-        // that can tell those apart. The probe instance binds no inbound, so it does not collide
-        // with the running core, and pingServers already runs stability one server at a time.
-        val cfg = runCatching {
-            XrayConfig.buildProxyOnly(
-                XrayConfig.build(server = s, routing = null, hasGeoFiles = false, logLevel = "none")
-            )
-        }.getOrNull() ?: return -1
-        return cc.moon.internet.vpn.XrayRunner.measureOutbound(cfg, url)
-    }
-
-    /**
      * Real end-to-end check. The core measures it itself: our own process is excluded from the
      * tunnel, so an HTTP call from here would not go through the proxy at all and would report
      * a meaningless number.
      */
-    fun checkConnection() = viewModelScope.launch(Dispatchers.IO) {
-        _checkPing.value = "…"
-        // The core's own measureDelay is tried first, but it is not the last word: it came back
-        // empty on a tunnel that was demonstrably carrying hundreds of kilobytes, and a check that
-        // says "нет ответа" over a working connection is worse than no check at all. Falling back
-        // to a real request through our own SOCKS listener measures the same path the apps use.
-        val ms = tunnelPing()
-        _checkPing.value = if (ms < 0) s(R.string.vm_no_reply) else "$ms ms"
-        // The same number goes into the row, so the pill by the button and the list cannot show
-        // two different figures for one server.
-        if (ms != null && ms >= 0) store.selectedServer()?.let { sel ->
-            _pings.update { it + (sel.pingKey to ms.toInt()) }
-        }
+    fun checkConnection(afterConnect: Boolean = false) = viewModelScope.launch(Dispatchers.IO) {
+        // One at a time: the connect hook and a tap landing together ran two checks that wrote
+        // the pill in whatever order they finished.
+        if (!checking.compareAndSet(false, true)) return@launch
+        try {
+            _checkPing.value = "…"
+            // Right after connecting the first request pays for the core's own setup — it came
+            // back as 700+ ms where every later one said 150. A moment, and one not counted.
+            if (afterConnect) { kotlinx.coroutines.delay(1500); tunnelPing() }
+            // The core's own measureDelay is tried first, but it is not the last word: it came
+            // back empty on a tunnel demonstrably carrying hundreds of kilobytes. Falling back to a
+            // real request through our own SOCKS listener measures the same path the apps use.
+            var ms = tunnelPing()
+            // And once more before "нет ответа": one request lost in transit, or refused while the
+            // censor's box held this server on a short ban for NEW TLS (the open connections carry
+            // on fine), read as a dead tunnel.
+            if (ms < 0 && vpnState.value == MoonVpnService.Companion.State.Connected) {
+                kotlinx.coroutines.delay(1000); ms = tunnelPing()
+            }
+            if (vpnState.value != MoonVpnService.Companion.State.Connected) return@launch
+            _checkPing.value = if (ms < 0) s(R.string.vm_no_reply) else "$ms ms"
+            // The same verdict goes into the row, failure included, so the pill by the button and
+            // the list cannot show two different answers for one server.
+            store.selectedServer()?.let { sel -> _pings.update { it + (sel.pingKey to ms) } }
+        } finally { checking.set(false) }
     }
 
     /**

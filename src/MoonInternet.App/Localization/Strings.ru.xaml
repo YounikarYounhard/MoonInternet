@@ -484,6 +484,7 @@
     <s:String x:Key="S_Dev_On">Режим разработчика включён</s:String>
     <s:String x:Key="S_Cores_Fetching">Качаю…</s:String>
     <s:String x:Key="S_Cores_NoCatalog">Не удалось получить список ядер</s:String>
+    <s:String x:Key="S_VM_NoReply">нет ответа</s:String>
     <s:String x:Key="S_Cores_NeedTitle">Нужно ядро</s:String>
     <s:String x:Key="S_Cores_NeedBody">Для протокола {0} требуется ядро «{1}». Установить его сейчас?</s:String>
     <s:String x:Key="S_Cores_Installing">Устанавливаю ядро…</s:String>

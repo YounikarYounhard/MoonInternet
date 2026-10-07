@@ -1727,7 +1727,7 @@ public partial class MainViewModel : ObservableObject
         if (value != ConnectionState.Connected) _pillPingMs = -2;   // a reading belongs to one session
         OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
         if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
-        else _ = CheckConnection();                                   // auto-measure ping the moment we connect
+        else _ = CheckConnectionCore(afterConnect: true);             // auto-measure ping the moment we connect
         // Re-sorting is not free — every row of every subscription is laid out again, most of a
         // second of frozen window — and the filter does not depend on the connection at all. It is
         // only owed when the pinned row actually moved.
@@ -2534,20 +2534,39 @@ public partial class MainViewModel : ObservableObject
         _autoPingTimer = null;
         if (PingEveryMinutes <= 0) return;
 
-        var t = new System.Windows.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromMinutes(PingEveryMinutes),
-        };
-        // Skip a round rather than queue up: with "стабильность" a pass can outlast the interval,
-        // and stacking them would leave several cores running at once.
-        // Not in Zapret: there are no servers on screen to fill in, and measuring them anyway is
-        // a volley at somebody's provider every quarter of an hour for a list nobody is looking at.
-        t.Tick += async (_, _) => { if (!_autoPingBusy && !IsZapretMode) { _autoPingBusy = true; try { await PingAll(auto: true); } finally { _autoPingBusy = false; } } };
+        // Polled, by the clock: the interval counts from the last pass, not from when the timer
+        // happened to be (re)made.
+        var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        t.Tick += async (_, _) => await AutoPingIfDue();
         t.Start();
         _autoPingTimer = new TimerHandle(t);
     }
 
     private bool _autoPingBusy;
+    /// <summary>When the last full pass began. Launch counts as one: the start-up ping has its own switch.</summary>
+    private DateTime _lastPass = DateTime.UtcNow;
+    private bool _windowVisible = true;
+
+    /// <summary>From the window: hidden in the tray, shown again.</summary>
+    public void OnWindowVisible(bool visible)
+    {
+        _windowVisible = visible;
+        if (visible) _ = AutoPingIfDue();
+    }
+
+    /// <summary>
+    /// Only while the window is open: the numbers are for looking at, and a pass behind the tray
+    /// icon every quarter of an hour is handshakes at the servers for nobody. Opening the window
+    /// after the interval has run out measures at once; before that, nothing.
+    /// Skips a round rather than queueing one, and never in Zapret — there is no list on screen.
+    /// </summary>
+    private async Task AutoPingIfDue()
+    {
+        if (PingEveryMinutes <= 0 || !_windowVisible || _autoPingBusy || IsZapretMode) return;
+        if (DateTime.UtcNow - _lastPass < TimeSpan.FromMinutes(PingEveryMinutes)) return;
+        _autoPingBusy = true;
+        try { await PingAll(auto: true); } finally { _autoPingBusy = false; }
+    }
 
     private sealed class TimerHandle(System.Windows.Threading.DispatcherTimer t) : IDisposable
     {
@@ -2728,7 +2747,7 @@ public partial class MainViewModel : ObservableObject
         _autoUpdateTimer.Tick -= AutoUpdateTick; _autoUpdateTimer.Tick += AutoUpdateTick;
         _autoUpdateTimer.Start();
     }
-    private async void AutoUpdateTick(object? s, EventArgs e) { await RefreshAll(); if (NotifyOnUpdate) Status = Localization.Loc.T("S_VM_209"); }
+    private async void AutoUpdateTick(object? s, EventArgs e) { await RefreshAllCore(quiet: true); if (NotifyOnUpdate) Status = Localization.Loc.T("S_VM_209"); }
 
     private void ApplyHwid()
     {
@@ -3126,22 +3145,25 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// One ClientHello per address, SNI and fingerprint a minute, however many servers share them.
-    /// A pass over a subscription is dozens of inbounds on three or four machines with a handful of
-    /// SNIs; a hello for each would itself be the "many TLS to one SNI" burst that gets a server
-    /// banned. The ban is on the machine's TLS, not on one inbound, so one answer covers them all.
+    /// One ClientHello per machine every two minutes while it answers. A pass over a subscription
+    /// is dozens of inbounds on three or four machines; a hello for each would itself be the "many
+    /// TLS to one server" burst that gets a server banned, and the ban is on the machine's TLS — so
+    /// a yes covers every inbound on it. A no is checked on this inbound's own port before it
+    /// counts: one inbound with a slow or broken dest put ✕ on every inbound of its machine.
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime At, Task<bool?> Answer)> _hellos = new();
 
-    private Task<bool?> HelloAnsweredAsync(OutboundProfile p, int? outIf)
+    private async Task<bool?> HelloAnsweredAsync(OutboundProfile p, int? outIf)
     {
         string fp = MoonInternet.Core.ClientHello.Effective(p.Security, p.Fingerprint);
         // What xray puts in serverName: the link's sni, else the host it dials.
         string sni = !string.IsNullOrWhiteSpace(p.Sni) ? p.Sni! : p.OriginalHost ?? p.Address;
         var now = DateTime.UtcNow;
         Task<bool?> Probe() => Pinger.TlsHelloAnsweredAsync(p.Address, p.Port, sni, fp, Math.Min(PingTimeoutMs, 3000), outIf);
-        return _hellos.AddOrUpdate($"{p.Address}|{sni}|{fp}", _ => (now, Probe()),
-            (_, old) => now - old.At < TimeSpan.FromMinutes(1) ? old : (now, Probe())).Answer;
+        Task<bool?> Cached(string key) => _hellos.AddOrUpdate(key, _ => (now, Probe()),
+            (_, old) => now - old.At < TimeSpan.FromMinutes(2) ? old : (now, Probe())).Answer;
+        var machine = await Cached(p.Address).ConfigureAwait(false);
+        return machine == false ? await Cached($"{p.Address}:{p.Port}").ConfigureAwait(false) : machine;
     }
 
     /// <summary>
@@ -3358,11 +3380,18 @@ public partial class MainViewModel : ObservableObject
     /// message once an hour. The phone already filtered this.
     /// </summary>
     [RelayCommand]
-    private async Task RefreshAll()
+    private Task RefreshAll() => RefreshAllCore(quiet: false);
+
+    /// <param name="quiet">
+    /// The hourly refresh: no ping pass afterwards. Pinging every server after every refresh was a
+    /// volley of handshakes to the same few machines once an hour, on its own — the "many TLS to one
+    /// server" burst the censor's box answers by cutting new TLS to them for minutes.
+    /// </param>
+    private async Task RefreshAllCore(bool quiet)
     {
         NewSubName = "";
         foreach (var s in Subscriptions.ToList())
-            if (s.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) await ImportUrl(s.Url);
+            if (s.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) await ImportUrl(s.Url, quiet: quiet);
     }
 
     [RelayCommand]
@@ -3382,7 +3411,7 @@ public partial class MainViewModel : ObservableObject
     /// it: when the panel says it does not exist (404/410), take it off the list quietly. A network
     /// failure removes nothing; only "this subscription is gone" does.
     /// </param>
-    private async Task<bool> ImportUrl(string url, bool dropIfGone = false)
+    private async Task<bool> ImportUrl(string url, bool dropIfGone = false, bool quiet = false)
     {
         try
         {
@@ -3432,7 +3461,7 @@ public partial class MainViewModel : ObservableObject
                   + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
                 : Localization.Loc.T("S_VM_220");
             MoonInternet.Core.DevLog.Log("подписка", $"обновлена {HostOf(url)}: серверов {sub.Count}");
-            await MaybeAutoConnect(sub);
+            await MaybeAutoConnect(sub, ping: !quiet);
             return true;
         }
         catch (System.Net.Http.HttpRequestException ex) when (dropIfGone &&
@@ -3454,7 +3483,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private async Task MaybeAutoConnect(SubscriptionVM sub)
+    private async Task MaybeAutoConnect(SubscriptionVM sub, bool ping = true)
     {
         // Auto-connect once, after the first subscription loads (ping first so "lowest ping" has data).
         if (AutoConnectOnStart && !_autoConnectTried && ConnectionState == ConnectionState.Disconnected && sub.Servers.Count > 0)
@@ -3464,7 +3493,10 @@ public partial class MainViewModel : ObservableObject
             if (PickAutoServer() is { } target) { SelectedServer = target; await Connect(); }
             else Status = Localization.Loc.T("S_VM_221");
         }
-        else if (PingOnStart) _ = PingSub(sub, auto: true);
+        else if (PingOnStart && ping) _ = PingSub(sub, auto: true);
+        // The hourly refresh measures only what it brought in — new servers with no number yet —
+        // so nothing is left blank and nothing already measured is hit again.
+        else if (!ping && (PingOnStart || PingEveryMinutes > 0)) _ = PingSub(sub, auto: true, onlyUnmeasured: true);
     }
 
     [RelayCommand]
@@ -3824,6 +3856,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task PingAll(bool auto = false)
     {
+        _lastPass = DateTime.UtcNow;
         // Subscriptions holding a favourite go first, and inside each one the favourites lead
         // (see PingSub). Sorting only within a subscription still made a favourite in the second
         // one wait out every server in the first.
@@ -3854,18 +3887,32 @@ public partial class MainViewModel : ObservableObject
 
     public string CheckPingText => ConnectionState != ConnectionState.Connected ? ""
         : CheckPinging ? "…"
-        : _pillPingMs != -2 ? (_pillPingMs >= 0 ? $"{_pillPingMs} ms" : "✕")
-        : SelectedServer is { } s2 && s2.Ping != -2 ? (s2.Ping >= 0 ? $"{s2.Ping} ms" : "✕")
+        : _pillPingMs != -2 ? (_pillPingMs >= 0 ? $"{_pillPingMs} ms" : Localization.Loc.T("S_VM_NoReply"))
+        : SelectedServer is { } s2 && s2.Ping != -2 ? (s2.Ping >= 0 ? $"{s2.Ping} ms" : Localization.Loc.T("S_VM_NoReply"))
         : "";
+    /// <summary>The pill turns red for «нет ответа» — it was green whatever it said, ✕ included.</summary>
+    public bool CheckPingFailed => !CheckPinging && ConnectionState == ConnectionState.Connected
+        && (_pillPingMs != -2 ? _pillPingMs < 0 : SelectedServer is { Ping: < 0 and not -2 });
     public bool HasCheckPing => !string.IsNullOrEmpty(CheckPingText);
     /// <summary>Tray label for the connection check — carries the measured ping once we have it.</summary>
     public string CheckPingTrayText => string.IsNullOrEmpty(CheckPingText) ? Localization.Loc.T("S_VM_110") : string.Format(Localization.Loc.T("S_VM_111"), CheckPingText);
     [RelayCommand]
-    private async Task CheckConnection()
+    private Task CheckConnection() => CheckConnectionCore(afterConnect: false);
+
+    /// <summary>
+    /// The pill by the button. One check at a time; a failure is tried once more before the pill
+    /// says «нет ответа» — a single request lost in transit, or turned away while the censor's box
+    /// had this server on a short ban for new TLS (the connections already open carry on fine),
+    /// made a working tunnel read as dead. Right after connecting the tunnel gets a moment and one
+    /// request to warm up first: the very first one through a fresh core pays for its own setup and
+    /// came back as 700+ ms where every later one said 150.
+    /// </summary>
+    private async Task CheckConnectionCore(bool afterConnect)
     {
         if (SelectedServer is null || CheckPinging) return;
         var server = SelectedServer;
         CheckPinging = true;
+        OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing)); OnPropertyChanged(nameof(CheckPingFailed));
         try
         {
             // Off the dispatcher, all of it. PhysicalIfIndex walks every adapter, which is slow
@@ -3874,15 +3921,31 @@ public partial class MainViewModel : ObservableObject
             int ms = await Task.Run(async () =>
             {
                 int? outIf = Pinger.PhysicalIfIndex();
-                return await ProbeAsync(server, outIf).ConfigureAwait(false);
+                if (afterConnect)
+                {
+                    await Task.Delay(1500).ConfigureAwait(false);
+                    await ProbeAsync(server, outIf).ConfigureAwait(false);   // warm-up, not counted
+                }
+                int r = await ProbeAsync(server, outIf).ConfigureAwait(false);
+                if (r < 0 && ConnectionState == ConnectionState.Connected)
+                {
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    r = await ProbeAsync(server, outIf).ConfigureAwait(false);
+                }
+                return r;
             }).ConfigureAwait(true);
+            if (ConnectionState != ConnectionState.Connected || !ReferenceEquals(server, SelectedServer)) return;
             server.Ping = ms;
             _pillPingMs = ms;               // what the pill shows until the next deliberate check
             _lastCheckPingMs = ms;          // the learner pairs this with the next speed sample
             OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
             OnPropertyChanged(nameof(CheckPingTrayText));
         }
-        finally { CheckPinging = false; }
+        finally
+        {
+            CheckPinging = false;
+            OnPropertyChanged(nameof(CheckPingFailed));
+        }
     }
 
     /// <param name="auto">
@@ -3891,7 +3954,7 @@ public partial class MainViewModel : ObservableObject
     /// across a whole subscription is dozens of real sessions on the provider's machine, over and
     /// over. Automatic passes take the cheap handshake; стабильность stays for a deliberate press.
     /// </param>
-    private async Task PingSub(SubscriptionVM sub, bool auto = false)
+    private async Task PingSub(SubscriptionVM sub, bool auto = false, bool onlyUnmeasured = false)
     {
         sub.Pinging = true;
         try
@@ -3901,7 +3964,9 @@ public partial class MainViewModel : ObservableObject
             // Favourites first. They sit at the top of the list, so waiting out thirty other
             // servers before the one you actually use gets a number is the whole complaint — and
             // the stagger below is indexed off this order, so first here also means first out.
-            var servers = sub.Servers.OrderByDescending(s => s.IsFavorite).ToList();
+            var servers = sub.Servers.Where(s => !onlyUnmeasured || s.Ping == -2)
+                                     .OrderByDescending(s => s.IsFavorite).ToList();
+            if (servers.Count == 0) return;
             foreach (var s in servers) s.Pinging = true;
 
             // The whole batch runs off the UI thread. Enumerating the NICs alone takes long enough
@@ -3941,44 +4006,11 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// The "стабильность" method: one core, a real outbound per server, a real request through
-    /// each. Slower than a handshake and the only one that can tell a working protocol from a
-    /// port that merely accepts connections.
+    /// The "стабильность" method: the real engine for every server, a real request through each —
+    /// see <see cref="StabilityPinger"/>. Rows fill in as they are measured.
     /// </summary>
-    private async Task StabilitySub(SubscriptionVM sub)
-    {
-        var servers = sub.Servers.OrderByDescending(s => s.IsFavorite).ToList();   // see PingSub
-        if (servers.Count == 0) return;
-
-        foreach (var s in servers) s.Pinging = true;
-        try
-        {
-            var pinger = new StabilityPinger(CoreLocator.CoresDir());
-            if (!pinger.CoreAvailable) { Status = Localization.Loc.T("S_VM_235"); return; }
-
-            var results = await pinger.MeasureAsync(
-                servers.Select(s => (s.Profile.Name ?? "", s.Profile)).ToList(),
-                probeUrl: PingTestUrl,
-                attempts: 3,
-                timeoutMs: PingTimeoutMs,
-                progress: new Progress<string>(m => Status = m));
-
-            var byKey = results.ToDictionary(r => r.Key, r => r);
-            foreach (var s in servers)
-            {
-                if (!byKey.TryGetValue(s.Profile.Name ?? "", out var r)) continue;
-                // -2 keeps its "unknown" meaning: a protocol this core cannot carry was never
-                // measured, and marking it down would be a claim we did not make.
-                s.Ping = r.NotMeasured ? -2 : r.Ms;
-            }
-            Status = "";
-        }
-        finally
-        {
-            foreach (var s in servers) s.Pinging = false;
-            Application.Current?.Dispatcher.Invoke(() => { sub.Refresh(); RefreshReachability(); });
-        }
-    }
+    private Task StabilitySub(SubscriptionVM sub) =>
+        StabilityRun(sub.Servers.OrderByDescending(s => s.IsFavorite).ToList(), sub);   // see PingSub
 
     /// <summary>
     /// «Стабильность» for one server, on demand, whatever the configured ping method is.
@@ -3991,26 +4023,53 @@ public partial class MainViewModel : ObservableObject
     private async Task StabilityServer(ServerItem? s)
     {
         if (s is null || s.Pinging) return;
-        s.Pinging = true;
+        await StabilityRun(new List<ServerItem> { s }, null);
+        Status = s.Ping >= 0
+            ? string.Format(Localization.Loc.T("S_VM_StabilityOk"), s.Label, s.Ping)
+            : s.Ping == -1 ? string.Format(Localization.Loc.T("S_VM_StabilityDead"), s.Label) : "";
+    }
+
+    private async Task StabilityRun(List<ServerItem> servers, SubscriptionVM? sub)
+    {
+        if (servers.Count == 0) return;
+        var pinger = new StabilityPinger(CoreLocator.CoresDir());
+        if (!pinger.CoreAvailable) { ErrorText = Status = Localization.Loc.T("S_VM_235"); return; }
+
+        foreach (var s in servers) s.Pinging = true;
+        var ui = Application.Current.Dispatcher;
+        void Put(ServerItem s, int ms)
+        {
+            ui.Invoke(() =>
+            {
+                s.Ping = ms; s.Pinging = false;
+                if (ReferenceEquals(s, SelectedServer)) _pillPingMs = ms;
+            });
+        }
         try
         {
-            var pinger = new StabilityPinger(CoreLocator.CoresDir());
-            if (!pinger.CoreAvailable) { ErrorText = Status = Localization.Loc.T("S_VM_235"); return; }
-            var results = await pinger.MeasureAsync(
-                new List<(string, OutboundProfile)> { (s.Profile.Name ?? "", s.Profile) },
-                probeUrl: PingTestUrl, attempts: 3, timeoutMs: PingTimeoutMs,
-                progress: new Progress<string>(m => Status = m));
-            var r = results.FirstOrDefault();
-            s.Ping = r is null ? -2 : r.NotMeasured ? -2 : r.Ms;
-            Status = s.Ping >= 0
-                ? string.Format(Localization.Loc.T("S_VM_StabilityOk"), s.Label, s.Ping)
-                : string.Format(Localization.Loc.T("S_VM_StabilityDead"), s.Label);
+            // The server we are connected through goes through the live tunnel, as the ordinary
+            // pass does — never a second session of its own: for AmneziaWG that would move the
+            // peer on the server and knock the live tunnel off.
+            var live = servers.FirstOrDefault(s => IsConnected && ReferenceEquals(s.Profile, _conn.Current));
+            var others = servers.Where(s => !ReferenceEquals(s, live)).ToList();
+            var liveTask = live is null ? Task.CompletedTask
+                : Task.Run(async () => Put(live, await ProbeAsync(live, Pinger.PhysicalIfIndex()).ConfigureAwait(false)));
+            await Task.Run(() => pinger.MeasureAsync(
+                others.Select(s => s.Profile).ToList(),
+                probeUrl: PingTestUrl,
+                timeoutMs: PingTimeoutMs,
+                onResult: (i, ms) => Put(others[i], ms),
+                progress: new Progress<string>(m => Status = m)));
+            await liveTask;
+            Status = "";
         }
         finally
         {
-            s.Pinging = false;
-            OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
+            foreach (var s in servers) s.Pinging = false;
+            sub?.Refresh();
             RefreshReachability();
+            OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
+            OnPropertyChanged(nameof(CheckPingFailed)); OnPropertyChanged(nameof(CheckPingTrayText));
         }
     }
 

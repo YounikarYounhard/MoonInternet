@@ -244,14 +244,21 @@ fun HomeScreen(
                     }
                     if (checkPing.isNotBlank()) {
                         Spacer(Modifier.width(8.dp))
-                        Surface(shape = RoundedCornerShape(9.dp), color = Moon.Green.copy(alpha = 0.15f)) {
+                        // Grey while it checks, green with a number, red for «нет ответа». It was
+                        // green whatever it said, so a failed check looked like a good one.
+                        val tone = when {
+                            checkPing == "…" -> Moon.TextMuted
+                            checkPing.endsWith(" ms") -> Moon.Green
+                            else -> Moon.Danger
+                        }
+                        Surface(shape = RoundedCornerShape(9.dp), color = tone.copy(alpha = 0.15f)) {
                             Row(
                                 Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Box(Modifier.size(8.dp).clip(CircleShape).background(Moon.Green))
+                                Box(Modifier.size(8.dp).clip(CircleShape).background(tone))
                                 Spacer(Modifier.width(6.dp))
-                                Text(checkPing, color = Moon.Green, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                                Text(checkPing, color = tone, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }

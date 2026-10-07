@@ -22,10 +22,11 @@ public sealed class SingBoxProxyRunner : IProxyRunner
     public bool CoreAvailable => File.Exists(_exePath);
     public event Action? ProcessExited;
 
-    public SingBoxProxyRunner(string coresDir)
+    /// <param name="configName">A file of its own for a second engine (the stability probe).</param>
+    public SingBoxProxyRunner(string coresDir, string configName = "moon_sbproxy.json")
     {
         _exePath = Path.Combine(coresDir, "singbox", "sing-box.exe");
-        _configPath = Path.Combine(Path.GetTempPath(), "moon_sbproxy.json");
+        _configPath = Path.Combine(Path.GetTempPath(), configName);
     }
 
     public void Start(OutboundProfile profile, RoutingProfile? routing, string? geoAssetDir)
@@ -62,6 +63,8 @@ public sealed class SingBoxProxyRunner : IProxyRunner
         }
         _proc?.Dispose();
         _proc = null;
+        // The config carries the server's password; it has been read at startup.
+        if (Path.GetFileName(_configPath).StartsWith("moon_probe_")) try { File.Delete(_configPath); } catch { }
     }
 
     public void Dispose() => Stop();

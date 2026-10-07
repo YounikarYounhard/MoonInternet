@@ -383,6 +383,8 @@
     <string name="notif_total">"Всего: ↑ %1$s ↓ %2$s"</string>
     <string name="notif_time">"Время: %1$s"</string>
     <string name="notif_ping">"Пинг: %1$s"</string>
+    <string name="notif_no_network">"Нет интернета"</string>
+    <string name="notif_no_network_long">"Сеть телефона сейчас не пропускает интернет — дело не в сервере. Подключение заработает само, когда интернет появится."</string>
     <string name="notif_not_working">"Подключение не работает"</string>
     <string name="notif_not_working_long">"Туннель поднят, но трафик через него не идёт. Смените сервер или переподключитесь."</string>
     <string name="notif_start">"Запустить"</string>

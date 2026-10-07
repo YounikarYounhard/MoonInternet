@@ -514,6 +514,7 @@
     <s:String x:Key="S_Dev_On">Developer mode is on</s:String>
     <s:String x:Key="S_Cores_Fetching">Downloading…</s:String>
     <s:String x:Key="S_Cores_NoCatalog">Could not fetch the engine list</s:String>
+    <s:String x:Key="S_VM_NoReply">no reply</s:String>
     <s:String x:Key="S_Cores_NeedTitle">An engine is needed</s:String>
     <s:String x:Key="S_Cores_NeedBody">{0} needs the «{1}» engine. Install it now?</s:String>
     <s:String x:Key="S_Cores_Installing">Installing the engine…</s:String>

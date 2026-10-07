@@ -23,17 +23,25 @@ class XrayRunner(private val ctx: Context, private val onStopped: () -> Unit) {
         fun version(): String = runCatching { Libv2ray.checkVersionX() }.getOrDefault("—")
 
         /**
-         * Delay through a real connection, in ms, or -1 if it never completed.
-         *
-         * The core builds the outbound from [configJson], dials it and fetches [url] over it, so
-         * a number coming back means this server actually carried the request. A TCP handshake
-         * cannot tell that: a CDN, a middlebox or a stale key all complete one, and the row then
-         * shows a healthy figure for a server nothing can pass through.
+         * startLoop hands the TUN descriptor to xray through a process-wide environment variable,
+         * so two cores starting at once — the tunnel and a stability probe — could swap them.
          */
-        fun measureOutbound(configJson: String, url: String): Int =
-            runCatching { Libv2ray.measureOutboundDelay(configJson, url).toInt() }
-                .getOrDefault(-1)
-                .let { if (it <= 0) -1 else it }
+        private val startLock = Any()
+
+        /**
+         * A second, short-lived core for [StabilityProbe]: SOCKS inbounds only, no TUN. Null if it
+         * would not start. The caller stops it.
+         */
+        fun startProbe(ctx: Context, configJson: String): CoreController? {
+            Libv2ray.initCoreEnv(File(ctx.filesDir, "assets").apply { mkdirs() }.absolutePath, "")
+            val c = Libv2ray.newCoreController(object : CoreCallbackHandler {
+                override fun startup(): Long = 0
+                override fun shutdown(): Long = 0
+                override fun onEmitStatus(code: Long, message: String?): Long = 0
+            })
+            return runCatching { synchronized(startLock) { c.startLoop(configJson, 0) }; c }
+                .getOrElse { runCatching { c.stopLoop() }; null }
+        }
     }
 
     private var core: CoreController? = null
@@ -61,7 +69,7 @@ class XrayRunner(private val ctx: Context, private val onStopped: () -> Unit) {
         // nothing to call, so a failed connect leaked the local proxy port and the next
         // attempt died on "address already in use" against ourselves.
         core = c
-        runCatching { c.startLoop(configJson, tunFd) }.onFailure {
+        runCatching { synchronized(startLock) { c.startLoop(configJson, tunFd) } }.onFailure {
             runCatching { c.stopLoop() }
             core = null
             throw it

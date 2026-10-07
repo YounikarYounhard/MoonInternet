@@ -19,6 +19,7 @@ public partial class MainWindow : Window
         Loaded += (_, _) => ThemeService.ApplyToWindow(this, App.ActiveTheme);
         WatchStatus();
         ((MainViewModel)DataContext).ScrollToTopRequested += ScrollActivePageToTop;
+        IsVisibleChanged += (_, _) => ((MainViewModel)DataContext).OnWindowVisible(IsVisible);
         if (((MainViewModel)DataContext).StartMinimized)
         {
             // Render the window once (invisibly) BEFORE hiding, else WPF composites nothing and it comes back

@@ -69,7 +69,7 @@ public static class SingBoxTunConfig
             "final": "{{finalOut}}",
             "rules": [
               { "action": "sniff" },
-              {{serverRule}}{ "process_name": ["xray.exe", "sing-box.exe"], "outbound": "direct" },
+              {{serverRule}}{ "process_name": ["xray.exe", "sing-box.exe", "awgproxy.exe"], "outbound": "direct" },
               { "protocol": "dns", "action": "hijack-dns" },
               {{appRule}}{ "ip_is_private": true, "outbound": "direct" }
             ]

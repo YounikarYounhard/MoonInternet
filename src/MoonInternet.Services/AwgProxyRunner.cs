@@ -24,7 +24,15 @@ public sealed class AwgProxyRunner : IDisposable
     public bool CoreAvailable => File.Exists(_exePath);
     public event Action? ProcessExited;
 
-    public AwgProxyRunner(string coresDir) => _coresDir = coresDir;
+    private readonly string _uapiName;
+
+    /// <param name="uapiName">A name of its own for a second engine (the stability probe), so it
+    /// never writes over the connection's key file or deletes it.</param>
+    public AwgProxyRunner(string coresDir, string uapiName = "awg")
+    {
+        _coresDir = coresDir;
+        _uapiName = uapiName;
+    }
 
     /// <summary>
     /// Two places, in this order.
@@ -57,7 +65,7 @@ public sealed class AwgProxyRunner : IDisposable
 
         // The UAPI document holds the private key, so it is written where the app's own data lives
         // rather than the shared temp folder, and deleted the moment the core has read it.
-        _uapiPath = Path.Combine(MoonInternet.Core.AppPaths.DataDir, "awg.uapi");
+        _uapiPath = Path.Combine(MoonInternet.Core.AppPaths.DataDir, _uapiName + ".uapi");
         File.WriteAllText(_uapiPath, WireGuardUapi.Build(wg));
 
         var psi = new ProcessStartInfo

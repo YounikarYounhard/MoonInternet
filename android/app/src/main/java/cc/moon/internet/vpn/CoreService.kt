@@ -34,7 +34,7 @@ import cc.moon.internet.core.CoreLib
  *    — or kept a dead one. A binding also lends this process the app's foreground priority, which
  *    a started service in the background does not get.
  */
-class CoreService : Service() {
+open class CoreService : Service() {
 
     companion object {
         const val MSG_START = 1

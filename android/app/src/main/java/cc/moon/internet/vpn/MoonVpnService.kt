@@ -78,6 +78,10 @@ class MoonVpnService : VpnService() {
          * speed. False until something actually fails, so it never accuses a fresh connection.
          */
         val linkDead = MutableStateFlow(false)
+        /** The phone itself is offline — not the tunnel's fault, and the shade says which. */
+        val noNetwork = MutableStateFlow(false)
+        /** AmneziaWG on a TUN: unix second of the engine's last handshake, 0 before the first. */
+        val awgHandshake = MutableStateFlow(0L)
 
         private val _activeProfile = MutableStateFlow<String?>(null)
         val activeProfile = _activeProfile.asStateFlow()
@@ -190,9 +194,8 @@ class MoonVpnService : VpnService() {
 
             ACTION_PING -> {
                 scope.launch {
-                    val ms = measureDelay()
-                    if (runner != null) linkDead.value = ms == null
-                    livePing.value = ms?.let { "$it ms" } ?: "нет ответа".takeIf { runner != null }
+                    val ms = judgeLink()
+                    livePing.value = ms?.let { "$it ms" } ?: getString(R.string.vm_no_reply).takeIf { runner != null }
                     runCatching { updateNotification(_activeProfile.value.orEmpty(), false) }
                 }
             }
@@ -223,6 +226,8 @@ class MoonVpnService : VpnService() {
         _activeProfile.value = profileName
         lastError.value = null
         linkDead.value = false
+        noNetwork.value = false
+        awgHandshake.value = 0
         lastConfig = config; lastProfile = profileName; lastMtu = mtu
         lastTun = tun; lastAppMode = appMode; lastApps = apps; lastZapret = zapret; lastAwg = awg
         startForeground(NOTIFICATION_ID, notification(profileName, connecting = true))
@@ -313,8 +318,7 @@ class MoonVpnService : VpnService() {
                 // notification's own button was pressed.
                 scope.launch {
                     runCatching {
-                        val ms = measureDelay()
-                        if (zapret == null && runner != null) linkDead.value = ms == null
+                        val ms = if (zapret == null && runner != null) judgeLink() else measureDelay()
                         livePing.value = ms?.let { "$it ms" }
                         updateNotification(profileName, connecting = false)
                     }
@@ -429,12 +433,51 @@ class MoonVpnService : VpnService() {
      */
     private fun awgTotals(): Pair<Long, Long>? {
         val (rx, tx, handshake) = awgRunner.counters() ?: return null
+        awgHandshake.value = handshake
         val now = System.currentTimeMillis()
         if (rx != lastRx) { lastRx = rx; lastRxAt = now }
         val since = if (handshake > 0) handshake * 1000 else connectedAt - 165_000
-        linkDead.value = now - since > 180_000 && now - lastRxAt > 15_000
+        val dead = now - since > 180_000 && now - lastRxAt > 15_000
+        val offline = dead && !underlyingOnline()
+        noNetwork.value = offline
+        linkDead.value = dead && !offline
         return tx to rx
     }
+
+    /**
+     * The verdict behind the shade's warning, and the only place it is reached. The tunnel's own
+     * ping, and once more two seconds later before calling it dead — and never while bytes are
+     * coming in: a tunnel delivering traffic is working whatever one probe said. A single failed
+     * 204 used to be enough, so the shade said «Подключение не работает» over a link that the
+     * Пинг button then found perfectly fine. When it really is dead, whose fault: the phone with
+     * no internet at all says so instead of telling you to change servers.
+     *
+     * @return the round trip in ms, or null.
+     */
+    private suspend fun judgeLink(): Long? {
+        val ms = measureDelay() ?: run { delay(2000); measureDelay() }
+        if (ms != null || System.currentTimeMillis() - lastRxAt < 20_000) {
+            linkDead.value = false; noNetwork.value = false
+            return ms
+        }
+        val offline = !underlyingOnline()
+        noNetwork.value = offline
+        linkDead.value = !offline
+        return null
+    }
+
+    /** A real network under the VPN that Android itself has checked reaches the internet. */
+    private fun underlyingOnline(): Boolean = runCatching {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java)
+        @Suppress("DEPRECATION")
+        cm.allNetworks.any { n ->
+            cm.getNetworkCapabilities(n)?.let { c ->
+                c.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN) &&
+                    c.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    c.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            } == true
+        }
+    }.getOrDefault(true)   // cannot tell → do not blame the network
 
     private suspend fun pollTraffic() {
         var lastUp = 0L
@@ -448,11 +491,18 @@ class MoonVpnService : VpnService() {
             // Not in Zapret: everything there goes through byedpi, and whether one probe URL
             // opens depends on the strategy rather than on the connection being up. That page has
             // its own «Проверить», aimed at a site that is actually blocked.
-            if (tick % 60 == 30 && lastZapret == null && runner != null) scope.launch {
-                runCatching { linkDead.value = (runner?.measureDelay() ?: -1) < 0 }
+            // Skipped while traffic is arriving: that already proves the link, and a probe then is
+            // a handshake to the server for nothing.
+            if (tick % 60 == 30 && lastZapret == null && runner != null &&
+                System.currentTimeMillis() - lastRxAt > 20_000) scope.launch {
+                runCatching { judgeLink() }
             }
             (runner?.trafficTotals() ?: awgTun?.let { awgTotals() })?.let { (up, down) ->
                 traffic.value = up to down
+                if (runner != null && down != lastDown) {
+                    lastRxAt = System.currentTimeMillis()
+                    if (linkDead.value || noNetwork.value) { linkDead.value = false; noNetwork.value = false }
+                }
                 // refresh the notification every other second with the current speed
                 if (tick++ % 2 == 0) {
                     val dUp = ((up - lastUp) / 2).coerceAtLeast(0)
@@ -696,6 +746,9 @@ class MoonVpnService : VpnService() {
         // own theme, and it draws real action buttons with the labels spelled out.
         if (paused || connecting) {
             b.setContentText(state)
+        } else if (noNetwork.value) {
+            b.setContentText(getString(R.string.notif_no_network))
+                .setStyle(NotificationCompat.BigTextStyle().bigText(getString(R.string.notif_no_network_long)))
         } else if (linkDead.value) {
             // Say it. "Connected" with a speed of zero reads as "working, quiet"; it is not.
             b.setContentText(getString(R.string.notif_not_working))
