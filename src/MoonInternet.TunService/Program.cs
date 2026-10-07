@@ -298,10 +298,13 @@ string StartAwgTun(WireGuardConfig wg)
     if (server is null) return "ERR cannot resolve " + wg.EndpointHost;
     wg.Endpoint = $"{server}:{wg.EndpointPort}";
 
+    // Everything that reaches a netsh or route command line below is an address we parsed and
+    // printed ourselves, never the string the config came with: this is SYSTEM, and the config is
+    // whatever a local process chose to send.
     var v4 = wg.Address.Select(a => a.Split('/'))
         .FirstOrDefault(p => IPAddress.TryParse(p[0], out var ip) && ip.AddressFamily == AddressFamily.InterNetwork);
     if (v4 is null) return "ERR no IPv4 address in the config";
-    string addr = v4[0];
+    string addr = IPAddress.Parse(v4[0]).ToString();
     int bits = v4.Length > 1 && int.TryParse(v4[1], out var b) ? Math.Clamp(b, 1, 32) : 32;
     string Mask(int n) => new IPAddress(BitConverter.GetBytes(IPAddress.HostToNetworkOrder(unchecked((int)(0xFFFFFFFFu << (32 - n)))))).ToString();
     // Capped at 1280 for the reason in build/awgproxy/main.go.
@@ -321,7 +324,8 @@ string StartAwgTun(WireGuardConfig wg)
     finally { try { File.Delete(uapi); } catch { } }   // read at startup, before the adapter exists
 
     Run("netsh", $"interface ip set address name=\"{ifName}\" static {addr} {Mask(bits)}");
-    var dns = wg.Dns.Where(d => IPAddress.TryParse(d, out var ip) && ip.AddressFamily == AddressFamily.InterNetwork).DefaultIfEmpty("1.1.1.1").ToList();
+    var dns = wg.Dns.Select(d => IPAddress.TryParse(d, out var ip) && ip.AddressFamily == AddressFamily.InterNetwork ? ip.ToString() : null)
+        .OfType<string>().DefaultIfEmpty("1.1.1.1").ToList();
     Run("netsh", $"interface ip set dnsservers name=\"{ifName}\" static {dns[0]} primary");
     foreach (var d in dns.Skip(1)) Run("netsh", $"interface ip add dnsservers name=\"{ifName}\" {d} index=2");
     Run("netsh", $"interface ipv4 set subinterface \"{ifName}\" mtu={mtu} store=active");

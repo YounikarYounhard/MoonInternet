@@ -492,6 +492,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // back to, so the saved value and the highlighted row stay the same server.
             store.healSelection()
             store.migrateFavorites()
+        }.onFailure {
+            // A background refresh says nothing on screen, so the log is the only trace. Without it
+            // a subscription that had quietly stopped updating looked exactly like a current one.
+            cc.moon.internet.data.DevLog.log("подписка", "${hostOf(u)} не обновилась: ${it.message ?: it.javaClass.simpleName}")
         }.isSuccess
 
     /**
