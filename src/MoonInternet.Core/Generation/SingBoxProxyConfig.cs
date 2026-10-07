@@ -13,6 +13,31 @@ public static class SingBoxProxyConfig
 {
     public static string Build(OutboundProfile p, int port)
     {
+        var cfg = new Dictionary<string, object?>
+        {
+            ["log"] = new Dictionary<string, object?> { ["level"] = "warn" },
+            ["inbounds"] = new object[]
+            {
+                new Dictionary<string, object?>
+                {
+                    ["type"] = "mixed", ["tag"] = "in", ["listen"] = "127.0.0.1", ["listen_port"] = port,
+                }
+            },
+            ["outbounds"] = new object[] { Outbound(p), new Dictionary<string, object?> { ["type"] = "direct", ["tag"] = "direct" } },
+            ["route"] = new Dictionary<string, object?> { ["final"] = "proxy" },
+        };
+        return JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>
+    /// What «⋯ → Конфигурация» shows for a Hysteria2 server: the outbound sing-box really runs.
+    /// The xray outbound is only a SOCKS dial into it on loopback and said nothing about the server.
+    /// </summary>
+    public static string OutboundJson(OutboundProfile p) =>
+        JsonSerializer.Serialize(Outbound(p), new JsonSerializerOptions { WriteIndented = true });
+
+    private static Dictionary<string, object?> Outbound(OutboundProfile p)
+    {
         var tls = new Dictionary<string, object?>
         {
             ["enabled"] = true,
@@ -36,21 +61,7 @@ public static class SingBoxProxyConfig
         // Bandwidth hints drive Hysteria's congestion control — set them if the link/sub provided them (better video).
         if (TryMbps(p, "up", "upmbps", out var up)) outbound["up_mbps"] = up;
         if (TryMbps(p, "down", "downmbps", out var down)) outbound["down_mbps"] = down;
-
-        var cfg = new Dictionary<string, object?>
-        {
-            ["log"] = new Dictionary<string, object?> { ["level"] = "warn" },
-            ["inbounds"] = new object[]
-            {
-                new Dictionary<string, object?>
-                {
-                    ["type"] = "mixed", ["tag"] = "in", ["listen"] = "127.0.0.1", ["listen_port"] = port,
-                }
-            },
-            ["outbounds"] = new object[] { outbound, new Dictionary<string, object?> { ["type"] = "direct", ["tag"] = "direct" } },
-            ["route"] = new Dictionary<string, object?> { ["final"] = "proxy" },
-        };
-        return JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true });
+        return outbound;
     }
 
     private static bool TryMbps(OutboundProfile p, string k1, string k2, out int mbps)

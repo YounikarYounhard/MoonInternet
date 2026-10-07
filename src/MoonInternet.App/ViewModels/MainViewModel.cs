@@ -84,9 +84,12 @@ public partial class ServerItem : ObservableObject
     // into the tunnel on loopback, so the dialog used to answer "what is my server?" with
     // 127.0.0.1:1091, which tells you nothing at all. The config is what the official client shows
     // and what you would compare against.
+    // Hysteria2 likewise: the outbound sing-box runs, not a summary of the link's fields.
     public string ConfigJson =>
         (Profile.Protocol == ProtocolType.Wireguard && Profile.Raw is not null
             ? MoonInternet.Core.Parsing.WireGuardParser.ConfigText(Profile.Raw) : null)
+        ?? (Profile.Protocol == ProtocolType.Hysteria2
+            ? MoonInternet.Core.Generation.SingBoxProxyConfig.OutboundJson(Profile) : null)
         ?? MoonInternet.Core.Generation.XrayConfigBuilder.OutboundJson(Profile);
 
     [ObservableProperty] private int ping = -2; // -2 unknown, -1 timeout, >=0 ms

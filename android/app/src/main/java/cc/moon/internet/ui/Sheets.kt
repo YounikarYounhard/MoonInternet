@@ -133,6 +133,9 @@ fun JsonDialog(server: ServerProfile, onCopy: (String) -> Unit, onDismiss: () ->
     val json = remember(server, errFmt) {
         server.raw?.takeIf { server.protocol == cc.moon.internet.core.Protocol.WIREGUARD }
             ?.let { cc.moon.internet.core.WireGuardParser.configText(it) }
+            // Hysteria2 likewise: the outbound sing-box runs, not xray's SOCKS dial into it.
+            ?: server.takeIf { it.protocol == cc.moon.internet.core.Protocol.HYSTERIA2 }
+                ?.let { cc.moon.internet.core.SingBoxHy2Config.outbound(it).toString(2) }
             ?: runCatching { XrayConfig.buildOutbound(server).toString(2) }.getOrElse { errFmt.format(it.message) }
     }
     AlertDialog(

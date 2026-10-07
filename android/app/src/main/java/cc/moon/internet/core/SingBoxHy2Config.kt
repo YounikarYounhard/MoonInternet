@@ -17,7 +17,11 @@ import org.json.JSONObject
  */
 object SingBoxHy2Config {
 
-    fun build(s: ServerProfile, port: Int): String {
+    /**
+     * The Hysteria2 outbound sing-box runs — also what «⋯ → Конфигурация» shows, since the xray
+     * outbound is only a SOCKS dial into it on loopback and says nothing about the server.
+     */
+    fun outbound(s: ServerProfile): JSONObject {
         val tls = JSONObject()
             .put("enabled", true)
             .put("server_name", s.sni?.takeIf { it.isNotBlank() } ?: s.address)
@@ -44,6 +48,11 @@ object SingBoxHy2Config {
         // having. xray's implementation has nowhere to put them, so on the phone they were dropped.
         mbps(s, "up", "upmbps")?.let { proxy.put("up_mbps", it) }
         mbps(s, "down", "downmbps")?.let { proxy.put("down_mbps", it) }
+        return proxy
+    }
+
+    fun build(s: ServerProfile, port: Int): String {
+        val proxy = outbound(s)
 
         // Android has no /etc/resolv.conf, so sing-box falls back to asking localhost and every
         // lookup comes back "connection refused" — the tunnel comes up and carries nothing. Name
