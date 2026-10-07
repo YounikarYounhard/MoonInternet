@@ -279,7 +279,10 @@ public static class XrayConfigBuilder
                 tls["alpn"] = new[] { migratedAlpn };   // the version the dropped transport was
             if (security == "tls")
             {
-                tls["allowInsecure"] = p.AllowInsecure;
+                // No allowInsecure, whatever the link says: xray 26 removed it and fails the WHOLE
+                // config on `true` ("migrated to pinnedPeerCertSha256"), so an `allowInsecure=1`
+                // link did not connect at all. Panels set it by habit on perfectly valid
+                // certificates, and those now just verify as they should.
                 s["tlsSettings"] = tls;
             }
             else
