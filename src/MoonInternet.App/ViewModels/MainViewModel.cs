@@ -2142,9 +2142,8 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Opens the download in the browser rather than fetching it ourselves: the installer has to
-    /// replace the running app, and handing that to the browser and the user avoids us babysitting
-    /// a download, verifying it and relaunching.
+    /// Downloads the installer from the release and runs it, then gets out of its way — it has to
+    /// replace files this process holds open. A release without an installer opens its page.
     /// </summary>
     [RelayCommand]
     private async Task DownloadUpdate()

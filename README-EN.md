@@ -4,7 +4,7 @@
 
 # Moon Internet
 
-A client for VLESS, VMess, Trojan, Shadowsocks, Hysteria2 and WireGuard.
+A client for VLESS, VMess, Trojan, Shadowsocks, Hysteria2, WireGuard and AmneziaWG.
 Windows and Android.
 
 [![Release](https://img.shields.io/github/v/release/YounikarYounhard/MoonInternet?include_prereleases&label=release&color=9D7BFF)](../../releases/latest)
@@ -22,7 +22,7 @@ Windows and Android.
 An ordinary client: paste a subscription link, get a server list, tap the moon.
 No accounts, no sign-up, and no servers of ours — they are yours.
 
-Version **0.9.5 beta**. Usable every day, with rough edges left.
+Version **0.9.6 beta**. Usable every day, with rough edges left.
 The interface is in Russian and English and switches on the fly.
 
 | | | |
@@ -43,12 +43,17 @@ tunnelling: chosen apps around the VPN, or only those through it.
 
 The ping is honest. The usual methods answer one question — is someone listening on the port —
 and that is not the same as "the protocol works": a CDN, your ISP's middlebox or an expired key
-will finish the handshake too, and a dead server will report a healthy 30 ms. So there is a
-Stability method that brings up a real connection and makes a request through it. Slower than the
-rest, and it does not lie.
+will finish the handshake too, and a dead server will report a healthy 30 ms. Moon Ping also sends
+the server the same TLS hello the core will, so a server whose TLS your ISP cuts shows ✕. And the
+Stability method brings up a real connection with the core that carries the protocol and makes a
+request through it: slower, and it does not lie.
 
 Updates come from GitHub. The download button does not hand you to a browser: it fetches the
-installer and runs it, and the file is deleted at the next start.
+installer and runs it, and the file is deleted at the next start. The update window shows only
+what changed on your platform.
+
+Cores are kept on shelves: xray and sing-box ship with the app, AmneziaWG is downloaded from the
+Cores page — or offered when a server needs it. A downloaded core survives an app update.
 
 ## Installing
 
@@ -90,7 +95,7 @@ none), then `gradlew assembleRelease`; you will need the Android SDK, NDK and JD
 
 We do not reimplement protocols. C# and Kotlin do the orchestration — parsing links and
 subscriptions, generating configs, routing, the interface — and proven cores move the traffic:
-xray-core, sing-box and tun2socks. Happ, Nekoray and v2rayN are built the same way.
+xray-core, sing-box, tun2socks and amneziawg-go. Happ, Nekoray and v2rayN are built the same way.
 
 ```
 src/MoonInternet.App          WPF interface
@@ -116,8 +121,8 @@ xray's built-in TUN inbound.
 
 No accounts, no telemetry, no calls home. Subscriptions, servers and keys stay on the device: in the
 `save\` folder next to the app on Windows, in the app's own storage on Android. The app reaches
-exactly two kinds of address — your subscription links, and the geo-rule sources on GitHub, and the
-second only when routing is on. Logs are local.
+your subscription links, GitHub — to check for an update and to download a core when you install
+one — and the geo-rule sources when routing is on. Logs are local.
 
 ## Licences
 
