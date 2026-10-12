@@ -26,16 +26,17 @@ jobs:
           go-version: stable
 
       # libv2ray.aar is xray-core wrapped for Android. It is not in the repo (19 MB of built
-      # third-party code), so CI builds it the same way android/build-xray.ps1 does — and caches
-      # it against the upstream commit, because that build is the slow part of this job.
+      # third-party code), so CI builds it the same way android/build-xray.ps1 does, at the tag
+      # pinned there — HEAD once dropped an API the app calls and broke the release build — and
+      # caches it against that tag, because this build is the slow part of the job.
       - id: upstream
-        run: echo "sha=$(git ls-remote https://github.com/2dust/AndroidLibXrayLite HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+        run: echo "tag=$(grep -oP "Tag = '\K[^']+" android/build-xray.ps1)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v4
         id: aar
         with:
           path: android/app/libs/libv2ray.aar
-          key: libv2ray-${{ steps.upstream.outputs.sha }}
+          key: libv2ray-${{ steps.upstream.outputs.tag }}
 
       - name: Build libv2ray.aar
         if: steps.aar.outputs.cache-hit != 'true'
@@ -45,7 +46,8 @@ jobs:
           set -e
           go install golang.org/x/mobile/cmd/gomobile@latest
           go install golang.org/x/mobile/cmd/gobind@latest
-          git clone --depth 1 https://github.com/2dust/AndroidLibXrayLite.git "$RUNNER_TEMP/xray"
+          test -n "${{ steps.upstream.outputs.tag }}" || { echo "::error::no tag in android/build-xray.ps1"; exit 1; }
+          git clone --depth 1 --branch "${{ steps.upstream.outputs.tag }}" https://github.com/2dust/AndroidLibXrayLite.git "$RUNNER_TEMP/xray"
           cd "$RUNNER_TEMP/xray"
           go get golang.org/x/mobile/bind
           go mod tidy

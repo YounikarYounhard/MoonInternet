@@ -9,8 +9,12 @@
 
     Same traps as build-libbox.ps1 — space-free path, javac on PATH, arm64 only.
 
-    Usage:  powershell -ExecutionPolicy Bypass -File android\build-xray.ps1
+    Usage:  powershell -ExecutionPolicy Bypass -File android\build-xray.ps1 [-Tag v26.10.10]
 #>
+#   Pinned, not HEAD. Upstream changes its API between releases — QueryStats went away in 26.9 and
+#   the release build on GitHub broke on it — so the phone gets the version that was tested on a
+#   phone. CI reads the tag from this line; raise it here, build, test, then commit.
+param([string]$Tag = 'v26.10.10')
 
 $ErrorActionPreference = 'Stop'
 $proj = Split-Path $PSScriptRoot -Parent
@@ -20,7 +24,7 @@ $sdk = Join-Path $tc "android-sdk"
 $ndk = (Get-ChildItem (Join-Path $sdk "ndk") -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
 $jdk = (Get-ChildItem $tc -Directory -Filter "jdk-17*" | Select-Object -First 1).FullName
 $gopath = Join-Path $tc "gopath"
-$work = Join-Path $tc "xray-src"
+$work = Join-Path $tc "xray-src-$($Tag.TrimStart('v'))"
 
 # AndroidLibXrayLite's go.mod requires a newer toolchain than the one libbox needed.
 $goRoot = Join-Path $tc "go126"
@@ -45,7 +49,7 @@ $env:CGO_ENABLED      = "1"
 $env:PATH             = "$goRoot\bin;$gopath\bin;$jdk\bin;$env:PATH"
 
 if (-not (Test-Path $work)) {
-    git clone --depth 1 https://github.com/2dust/AndroidLibXrayLite.git $work
+    git clone --depth 1 --branch $Tag https://github.com/2dust/AndroidLibXrayLite.git $work
     if ($LASTEXITCODE -ne 0) { throw "git clone failed" }
 }
 

@@ -19,6 +19,19 @@ import java.io.File
 class XrayRunner(private val ctx: Context, private val onStopped: () -> Unit) {
 
     companion object {
+        /** (uplink, downlink) of the "proxy" outbound in one stats line; anything unreadable is 0. */
+        fun proxyDelta(line: String): Pair<Long, Long> {
+            var up = 0L
+            var down = 0L
+            for (entry in line.split(';')) {
+                val f = entry.split(',')
+                if (f.size != 3 || f[0] != "proxy") continue
+                val v = f[2].toLongOrNull() ?: continue
+                when (f[1]) { "uplink" -> up += v; "downlink" -> down += v }
+            }
+            return up to down
+        }
+
         /** Core version string, for the About page. */
         fun version(): String = runCatching { Libv2ray.checkVersionX() }.getOrDefault("—")
 
@@ -83,13 +96,17 @@ class XrayRunner(private val ctx: Context, private val onStopped: () -> Unit) {
     }
 
     /**
-     * Cumulative (up, down) in bytes. QueryStats zeroes the counter it returns, so each read is a
+     * Cumulative (up, down) in bytes. The core zeroes the counters it returns, so each read is a
      * delta that has to be summed — reporting it raw would make the speed read as the total.
+     *
+     * Read as one line, `tag,direction,value;…` for every outbound: the per-counter QueryStats is
+     * gone from the library since 26.9. Only "proxy" counts — direct traffic never touched a server.
      */
     fun trafficTotals(): Pair<Long, Long>? {
         val c = core ?: return null
-        upTotal += runCatching { c.queryStats("proxy", "uplink") }.getOrDefault(0)
-        downTotal += runCatching { c.queryStats("proxy", "downlink") }.getOrDefault(0)
+        val line = runCatching { c.queryAllOutboundTrafficStats() }.getOrDefault("")
+        val (up, down) = proxyDelta(line)
+        upTotal += up; downTotal += down
         return upTotal to downTotal
     }
 
