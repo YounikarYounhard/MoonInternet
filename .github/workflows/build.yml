@@ -61,8 +61,8 @@ jobs:
       # The signing key never lives in the repo. Without the secret the job still runs and
       # produces an unsigned APK — useful for a PR check, useless for installing over an
       # existing copy, so the step says so out loud.
-      # Same script, arm64 output. It lands in jniLibs as libawgproxy.so — an executable wearing a
-      # library's name, because Android only makes files under jniLibs runnable.
+      # Same script, arm64 output: a real shared library the phone downloads after install (see
+      # build/pack-cores.ps1), not part of the APK. Built here so a change that breaks it shows up.
       - name: Build libawgproxy.so
         shell: pwsh
         run: pwsh -File build/build-awgproxy.ps1 -Android -Sync

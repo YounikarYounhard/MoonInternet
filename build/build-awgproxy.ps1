@@ -69,14 +69,20 @@ try {
         # directory — the one place Android will not exec a file from since Android 10. It will
         # map one executable and load it, which is what a .so is for. c-shared needs cgo, hence
         # the NDK compiler: this is the one build of ours that cannot have CGO_ENABLED=0.
+        # The NDK's compiler sits under a folder named for the machine doing the building, and on
+        # Windows it is a .cmd wrapper. CI builds the phone's half on Linux — hard-coding the
+        # Windows path is what broke it there.
         $sdk = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { 'C:\moonbuild\android-sdk' }
-        $ndk = (Get-ChildItem (Join-Path $sdk 'ndk') -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
-        $cc = Join-Path $ndk 'toolchains\llvm\prebuilt\windows-x86_64\bin\aarch64-linux-android24-clang.cmd'
+        $ndk = if ($env:ANDROID_NDK_LATEST_HOME) { $env:ANDROID_NDK_LATEST_HOME }
+               else { (Get-ChildItem (Join-Path $sdk 'ndk') -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName }
+        $hostTag = if ($IsLinux) { 'linux-x86_64' } elseif ($IsMacOS) { 'darwin-x86_64' } else { 'windows-x86_64' }
+        $clang = if ($hostTag -eq 'windows-x86_64') { 'aarch64-linux-android24-clang.cmd' } else { 'aarch64-linux-android24-clang' }
+        $cc = [IO.Path]::Combine($ndk, 'toolchains', 'llvm', 'prebuilt', $hostTag, 'bin', $clang)
         if (-not (Test-Path $cc)) { throw "NDK clang not found: $cc" }
         $env:CGO_ENABLED = '1'
         $env:CC = $cc
 
-        $dest = Join-Path (Split-Path $here -Parent) 'dist\cores\android\arm64-v8a'
+        $dest = [IO.Path]::Combine((Split-Path $here -Parent), 'dist', 'cores', 'android', 'arm64-v8a')
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         $out = Join-Path $dest 'libawgproxy.so'
         & $go build -tags moonlib -buildmode=c-shared -trimpath -ldflags '-s -w' -o $out .
