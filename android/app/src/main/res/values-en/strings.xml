@@ -512,7 +512,7 @@
     <string name="page_dev">"Debug"</string>
     <string name="page_dev_sub">"What the app did, and why"</string>
     <string name="dev_unlocked">"Developer mode on"</string>
-    <string name="dev_section">"Developer"</string>
+    <string name="dev_section">"DEVELOPER"</string>
     <string name="dev_open">"Event log"</string>
     <string name="dev_copy">"Copy"</string>
     <string name="dev_clear">"Clear"</string>

@@ -107,14 +107,14 @@ fun HomeScreen(
         // ---- режим, с плиткой обновления слева -----------------------------
         // Two, not the desktop's three: a proxy-only mode is not a thing on Android — HAPP, INCY
         // and v2RayTun do not offer one either. Запрет is the mode the row was left open for, and
-        // until it is installed there is only one mode — so the row goes and the moon moves up.
-        // Without the row the moon sat straight under the status bar. A little air in its place —
-        // not the whole band the row used to take.
-        if (!showModes) item { Spacer(Modifier.height(26.dp)) }
-        if (showModes) item {
+        // until it is installed there is only one mode — so the switch goes.
+        // The row itself stays: the update button lives in it, and taking the row away with the
+        // modes took away the only way to the update dialog — and the red dot that says a new
+        // version is out — on every phone without Запрет.
+        item {
             Spacer(Modifier.height(12.dp))
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Surface(
+            Box(Modifier.fillMaxWidth().heightIn(min = 38.dp), contentAlignment = Alignment.Center) {
+                if (showModes) Surface(
                     shape = RoundedCornerShape(13.dp),
                     color = Color(0xFF160A34),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C2150)),

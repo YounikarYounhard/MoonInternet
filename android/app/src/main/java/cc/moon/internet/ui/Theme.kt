@@ -81,16 +81,23 @@ private fun comic(weight: Int) = Font(
 
 val MoonFont = FontFamily(comic(400), comic(500), comic(600), comic(700))
 
-private val MoonTypography = Typography(
-    headlineMedium = TextStyle(fontFamily = MoonFont, fontSize = 26.sp, fontWeight = FontWeight.Bold),
-    titleLarge     = TextStyle(fontFamily = MoonFont, fontSize = 20.sp, fontWeight = FontWeight.Bold),
-    titleMedium    = TextStyle(fontFamily = MoonFont, fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
-    bodyLarge      = TextStyle(fontFamily = MoonFont, fontSize = 15.sp),
-    bodyMedium     = TextStyle(fontFamily = MoonFont, fontSize = 14.sp),
-    bodySmall      = TextStyle(fontFamily = MoonFont, fontSize = 12.sp),
-    labelLarge     = TextStyle(fontFamily = MoonFont, fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-    labelMedium    = TextStyle(fontFamily = MoonFont, fontSize = 12.sp),
-    labelSmall     = TextStyle(fontFamily = MoonFont, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold),
+/**
+ * Every style in the chosen family. The dialogs title themselves with headlineSmall, which was
+ * missing here, so every dialog title fell back to the system face — and with «системный»
+ * picked, the styles that were here stayed in ours.
+ */
+private fun moonTypography(family: FontFamily) = Typography(
+    headlineMedium = TextStyle(fontFamily = family, fontSize = 26.sp, fontWeight = FontWeight.Bold),
+    headlineSmall  = TextStyle(fontFamily = family, fontSize = 22.sp, fontWeight = FontWeight.Bold),
+    titleLarge     = TextStyle(fontFamily = family, fontSize = 20.sp, fontWeight = FontWeight.Bold),
+    titleMedium    = TextStyle(fontFamily = family, fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+    titleSmall     = TextStyle(fontFamily = family, fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+    bodyLarge      = TextStyle(fontFamily = family, fontSize = 15.sp),
+    bodyMedium     = TextStyle(fontFamily = family, fontSize = 14.sp),
+    bodySmall      = TextStyle(fontFamily = family, fontSize = 12.sp),
+    labelLarge     = TextStyle(fontFamily = family, fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+    labelMedium    = TextStyle(fontFamily = family, fontSize = 12.sp),
+    labelSmall     = TextStyle(fontFamily = family, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold),
 )
 
 /** Applies the palette the user picked; called once from the activity as state loads. */
@@ -107,7 +114,7 @@ fun MoonTheme(fontName: String = "comic", content: @Composable () -> Unit) {
     @Suppress("UNUSED_EXPRESSION") isSystemInDarkTheme()
     MaterialTheme(
         colorScheme = MoonColors.copy(primary = Moon.Accent, background = Moon.WinBg),
-        typography = MoonTypography,
+        typography = moonTypography(family),
     ) {
         androidx.compose.runtime.CompositionLocalProvider(
             LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = family),

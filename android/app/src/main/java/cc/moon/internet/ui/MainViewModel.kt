@@ -243,6 +243,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val st = store.state.value
         if (_updateAvailable.value && st.notificationsEnabled && st.notifyAppUpdate)
             postNotice(s(R.string.vm_update_available, r.version), NOTICE_UPDATE)
+        // Nothing newer any more — installed meanwhile, or the release was pulled: the notice that
+        // said otherwise goes, instead of sitting in the shade announcing what you already have.
+        if (!_updateAvailable.value)
+            androidx.core.app.NotificationManagerCompat.from(getApplication<Application>()).cancel(NOTICE_UPDATE)
         return true
     }
 
