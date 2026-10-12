@@ -320,9 +320,9 @@
     <s:String x:Key="S_MainWindow_034">Close</s:String>
     <s:String x:Key="S_MainWindow_035">Update</s:String>
     <s:String x:Key="S_MainWindow_036">Installed</s:String>
-    <s:String x:Key="S_MainWindow_037">On GitHub</s:String>
+    <s:String x:Key="S_MainWindow_037">Latest</s:String>
     <s:String x:Key="S_MainWindow_038">Check</s:String>
-    <s:String x:Key="S_MainWindow_039">Download</s:String>
+    <s:String x:Key="S_MainWindow_039">Download and install</s:String>
     <s:String x:Key="S_MainWindow_040">Close</s:String>
     <s:String x:Key="S_Page_Notify">Notifications</s:String>
     <s:String x:Key="S_Notify_Hub_Sub">Tray, pop-ups</s:String>
@@ -474,8 +474,10 @@
     <s:String x:Key="S_Pin_Active_Sub">While connected, keep that server at the top of the list</s:String>
     <s:String x:Key="S_Notify_After">What's new in this version</s:String>
     <s:String x:Key="S_Notify_After_Sub">After an update installs, say once what changed</s:String>
-    <s:String x:Key="S_Upd_Installed">Updated to {0}. {1}</s:String>
-    <s:String x:Key="S_Upd_WhatsNew">A new Zapret mode gets past blocking with no server at all. Trojan over gRPC no longer buries a server in connections.</s:String>
+    <s:String x:Key="S_Upd_NotesFor">What's new in {0}</s:String>
+    <s:String x:Key="S_Upd_Available">Available</s:String>
+    <s:String x:Key="S_Upd_Ok">Got it</s:String>
+    <s:String x:Key="S_Upd_Installed">Moon Internet was updated to {0}</s:String>
     <s:String x:Key="S_Routing_Profiles">PROFILES</s:String>
     <s:String x:Key="S_Routing_New">New</s:String>
     <s:String x:Key="S_Routing_Builtin">Built-in</s:String>

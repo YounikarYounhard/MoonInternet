@@ -289,9 +289,9 @@
     <s:String x:Key="S_MainWindow_034">Закрыть</s:String>
     <s:String x:Key="S_MainWindow_035">Обновление</s:String>
     <s:String x:Key="S_MainWindow_036">Установлена</s:String>
-    <s:String x:Key="S_MainWindow_037">На GitHub</s:String>
+    <s:String x:Key="S_MainWindow_037">Последняя</s:String>
     <s:String x:Key="S_MainWindow_038">Проверить</s:String>
-    <s:String x:Key="S_MainWindow_039">Скачать</s:String>
+    <s:String x:Key="S_MainWindow_039">Скачать и установить</s:String>
     <s:String x:Key="S_MainWindow_040">Закрыть</s:String>
     <s:String x:Key="S_Page_Notify">Уведомления</s:String>
     <s:String x:Key="S_Notify_Hub_Sub">Трей, всплывающие подсказки</s:String>
@@ -443,9 +443,11 @@
     <s:String x:Key="S_Pin_Active_Sub">Пока подключены — поднимать этот сервер в начало списка</s:String>
     <s:String x:Key="S_Notify_After">Что нового в версии</s:String>
     <s:String x:Key="S_Notify_After_Sub">После установки обновления один раз показать, что изменилось</s:String>
-    <s:String x:Key="S_Upd_Installed">Обновлено до {0}. {1}</s:String>
+    <s:String x:Key="S_Upd_NotesFor">Что нового в {0}</s:String>
+    <s:String x:Key="S_Upd_Available">Доступна</s:String>
+    <s:String x:Key="S_Upd_Ok">Понятно</s:String>
+    <s:String x:Key="S_Upd_Installed">Moon Internet обновлён до {0}</s:String>
     <!-- Что нового. Правится вместе с <Version> в MoonInternet.App.csproj, каждый выпуск. -->
-    <s:String x:Key="S_Upd_WhatsNew">Появился режим Zapret — обход блокировок без сервера. Trojan через gRPC больше не заваливает сервер соединениями.</s:String>
     <s:String x:Key="S_Routing_Profiles">ПРОФИЛИ</s:String>
     <s:String x:Key="S_Routing_New">Новый</s:String>
     <s:String x:Key="S_Routing_Builtin">Встроенный</s:String>

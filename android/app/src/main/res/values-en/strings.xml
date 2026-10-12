@@ -259,8 +259,8 @@
     <string name="sheets_010">"Could not build the QR code"</string>
     <string name="sheets_011">"Update"</string>
     <string name="sheets_012">"Installed"</string>
-    <string name="sheets_013">"On GitHub"</string>
-    <string name="sheets_014">"Download"</string>
+    <string name="sheets_013">"Latest"</string>
+    <string name="sheets_014">"Download and install"</string>
     <string name="sheets_015">"Check"</string>
     <string name="sheets_016">"No logs yet."</string>
     <string name="routingscreen_001">"Back"</string>
@@ -415,8 +415,10 @@
     <string name="pin_active_subscription_sub">"The subscription you are connected through moves to the top of the list"</string>
     <string name="notify_after">"What's new in this version"</string>
     <string name="notify_after_sub">"After an update installs, say once what changed"</string>
-    <string name="upd_installed">"Updated to %1$s. %2$s"</string>
-    <string name="upd_whats_new">"A new Zapret mode gets past blocking with no server at all. Trojan over gRPC no longer buries a server in connections."</string>
+    <string name="upd_notes_for">"What\'s new in %1$s"</string>
+    <string name="upd_available">"Available"</string>
+    <string name="upd_ok">"Got it"</string>
+    <string name="upd_installed">"Moon Internet was updated to %1$s"</string>
     <string name="routing_title">"Routing"</string>
     <string name="routing_subtitle">"Profiles: what goes through the VPN and what goes around it"</string>
     <string name="routing_add">"New profile"</string>

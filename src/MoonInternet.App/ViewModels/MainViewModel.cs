@@ -1830,6 +1830,7 @@ public partial class MainViewModel : ObservableObject
         ConnMode = _settings.ConnMode;
         ZapretGameFilter = _settings.ZapretGameFilter;
         DevMode = _settings.DevMode;
+        UpdateService.PreviewFile = DevMode ? MoonInternet.Core.AppPaths.In("update-preview.json") : null;
         LoadZapretStrategies();
         RefreshCores();
         // A mode whose engine is not installed is a mode with no way back to it once the button is
@@ -2040,20 +2041,44 @@ public partial class MainViewModel : ObservableObject
 
     // ===== Обновления =====
     // The badge on Home is driven by UpdateAvailable; the dialog reads the rest.
-    [ObservableProperty][NotifyPropertyChangedFor(nameof(UpdateButtonHint))] private bool updateAvailable;
-    [ObservableProperty] private bool showUpdateDialog;
-    [ObservableProperty] private string latestVersion = "—";
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UpdateNoteLines))]
+    [NotifyPropertyChangedFor(nameof(UpdateButtonHint), nameof(HasUpdateNotes), nameof(LatestVersionLabel), nameof(ShowDownloadButton))]
+    private bool updateAvailable;
+    [ObservableProperty] private bool showUpdateDialog;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(UpdateNotesTitle))] private string latestVersion = "—";
+    /// <summary>GitHub's latest is the version installed here — its notes are "what's new" for you.</summary>
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasUpdateNotes))] private bool latestIsInstalled;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateNoteLines), nameof(HasUpdateNotes))]
     private string updateNotes = "";
 
     /// <summary>
-    /// The release notes laid out rather than dumped. GitHub sends Markdown and we were putting the
-    /// literal ## and ** on screen, which reads far worse here than the same text does on the
-    /// release page.
+    /// The dialog opened by itself on the first run after an update: the notes of the version you
+    /// now have and a single button. It replaced a line hard-coded in the strings, which nobody
+    /// rewrote for three releases — every update greeted you with the news about Zapret.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateDialogTitle), nameof(UpdateDialogGlyph), nameof(ShowUpdateVersions), nameof(ShowDownloadButton))]
+    private bool whatsNewMode;
+    private bool _greet;
+
+    /// <summary>
+    /// The release notes laid out rather than dumped, and only the desktop's part of them: one
+    /// release ships both apps, and the phone's news is not news here.
     /// </summary>
     public IReadOnlyList<NoteLine> UpdateNoteLines =>
-        MoonInternet.Core.Parsing.ReleaseNotes.Parse(UpdateNotes).Select(NoteLine.From).ToList();
+        MoonInternet.Core.Parsing.ReleaseNotes.ForPlatform(UpdateNotes, MoonInternet.Core.Parsing.NotePlatform.Pc)
+            .Select(NoteLine.From).ToList();
+    /// <summary>Notes for a version you can get or the one you have — never for an older one.</summary>
+    public bool HasUpdateNotes => !string.IsNullOrWhiteSpace(UpdateNotes) && (UpdateAvailable || LatestIsInstalled);
+    public string UpdateNotesTitle => string.Format(Localization.Loc.T("S_Upd_NotesFor"), LatestVersion);
+    public string UpdateDialogTitle => WhatsNewMode
+        ? string.Format(Localization.Loc.T("S_Upd_NotesFor"), AppVersion) : Localization.Loc.T("S_MainWindow_035");
+    public string LatestVersionLabel => Localization.Loc.T(UpdateAvailable ? "S_Upd_Available" : "S_MainWindow_037");
+    /// <summary>A star for what's new, the download arrow for the update itself.</summary>
+    public string UpdateDialogGlyph => WhatsNewMode ? "" : "";
+    public bool ShowUpdateVersions => !WhatsNewMode;
+    public bool ShowDownloadButton => UpdateAvailable && !WhatsNewMode;
     [ObservableProperty] private string updateStatus = "";
     [ObservableProperty] private bool updateChecking;
 
@@ -2061,8 +2086,8 @@ public partial class MainViewModel : ObservableObject
 
     public string UpdateButtonHint => UpdateAvailable ? Localization.Loc.T("S_VM_070") : Localization.Loc.T("S_VM_071");
 
-    [RelayCommand] private void OpenUpdateDialog() { ShowUpdateDialog = true; if (LatestVersion == "—") _ = CheckUpdate(); }
-    [RelayCommand] private void CloseUpdateDialog() => ShowUpdateDialog = false;
+    [RelayCommand] private void OpenUpdateDialog() { WhatsNewMode = false; ShowUpdateDialog = true; if (LatestVersion == "—") _ = CheckUpdate(); }
+    [RelayCommand] private void CloseUpdateDialog() { ShowUpdateDialog = false; WhatsNewMode = false; }
 
     /// <summary>
     /// Keep asking GitHub.
@@ -2099,9 +2124,16 @@ public partial class MainViewModel : ObservableObject
             _releasePage = rel.PageUrl;
             _assetUrl = rel.AssetUrl;
             UpdateAvailable = UpdateService.IsNewer(rel.Version, AppVersion);
-            UpdateStatus = UpdateAvailable
-                ? string.Format(Localization.Loc.T("S_VM_074"), rel.Version)
-                : Localization.Loc.T("S_VM_075");
+            LatestIsInstalled = !UpdateAvailable && !UpdateService.IsNewer(AppVersion, rel.Version);
+            // First run after an update, and GitHub has the notes of what was just installed.
+            if (_greet && LatestIsInstalled && UpdateNoteLines.Count > 0)
+            {
+                _greet = false;
+                WhatsNewMode = true;
+                ShowUpdateDialog = true;
+            }
+            // When there is one, the plate says so in green; the line under it is for everything else.
+            UpdateStatus = UpdateAvailable ? "" : Localization.Loc.T("S_VM_075");
             // The badge on Home is easy to miss when the window starts minimised to the tray.
             if (UpdateAvailable) Notifier.AppUpdate("Moon Internet", string.Format(Localization.Loc.T("S_VM_074"), rel.Version));
             return true;
@@ -2289,6 +2321,7 @@ public partial class MainViewModel : ObservableObject
         DevMode = true;
         _settings.DevMode = true;
         _settings.Save();
+        UpdateService.PreviewFile = MoonInternet.Core.AppPaths.In("update-preview.json");
         Status = Localization.Loc.T("S_Dev_On");
     }
 
@@ -2690,11 +2723,10 @@ public partial class MainViewModel : ObservableObject
         _settings.LastSeenVersion = AppVersion; _settings.Save();
         if (firstEver || !NotifyAfterUpdate) return;
 
-        // S_Upd_WhatsNew is the one-line changelog; it lives beside the version check so it
-        // gets rewritten whenever the version does.
-        UpdateStatus = string.Format(Localization.Loc.T("S_Upd_Installed"), AppVersion,
-                                     Localization.Loc.T("S_Upd_WhatsNew"));
-        Notifier.Show("Moon Internet", UpdateStatus);
+        // What changed comes from the release itself, once the update check has fetched it — see
+        // WhatsNewMode. The balloon only says that it happened.
+        _greet = true;
+        Notifier.Show("Moon Internet", string.Format(Localization.Loc.T("S_Upd_Installed"), AppVersion));
     }
 
     [ObservableProperty] private bool updateSubsOnStart;

@@ -13,6 +13,9 @@ public enum NoteKind
 
 public sealed record NoteBlock(NoteKind Kind, string Text);
 
+/// <summary>Which app is reading the notes.</summary>
+public enum NotePlatform { Pc, Phone }
+
 /// <summary>
 /// Turns a GitHub release body into something worth looking at.
 ///
@@ -59,6 +62,40 @@ public static class ReleaseNotes
             blocks.Add(new NoteBlock(NoteKind.Paragraph, Clean(line)));
         }
         return blocks;
+    }
+
+    /// <summary>
+    /// The part of the notes meant for this app. One release ships both apps, and the notes are
+    /// written as a section per platform — <c>## ПК</c> and <c>## Телефон</c> — so the desktop shows
+    /// what changed on the desktop and the phone what changed on the phone. Kept: the introduction
+    /// (everything before the first heading) and this platform's own section, without its heading;
+    /// the dialog already says which app it is. Notes written without platform sections — every
+    /// release before 0.9.6 — come back whole.
+    /// </summary>
+    public static IReadOnlyList<NoteBlock> ForPlatform(string? markdown, NotePlatform platform)
+    {
+        var all = Parse(markdown);
+        if (!all.Any(b => b.Kind == NoteKind.Heading && PlatformOf(b.Text) is not null)) return all;
+        var mine = new List<NoteBlock>();
+        bool intro = true, ours = false;
+        foreach (var b in all)
+        {
+            if (b.Kind == NoteKind.Heading) { intro = false; ours = PlatformOf(b.Text) == platform; continue; }
+            if (intro || ours) mine.Add(b);
+        }
+        return mine;
+    }
+
+    private static readonly string[] PcWords = { "пк", "компьютер", "компьютера", "windows", "pc", "desktop" };
+    private static readonly string[] PhoneWords = { "телефон", "телефона", "смартфон", "android", "phone" };
+
+    /// <summary>The platform a heading names, by whole word — "ПК", "💻 Компьютер", "Android".</summary>
+    private static NotePlatform? PlatformOf(string heading)
+    {
+        var words = System.Text.RegularExpressions.Regex.Split(heading.ToLowerInvariant(), @"[^\p{L}]+").Where(w => w.Length > 0).ToList();
+        if (words.Any(w => PcWords.Contains(w))) return NotePlatform.Pc;
+        if (words.Any(w => PhoneWords.Contains(w))) return NotePlatform.Phone;
+        return null;
     }
 
     /// <summary>Drops the emphasis markers. We carry the emphasis in the block's kind instead, so

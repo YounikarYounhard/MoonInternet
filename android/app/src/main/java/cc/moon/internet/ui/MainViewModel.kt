@@ -116,6 +116,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _updateStatus = MutableStateFlow("")
     val updateStatus = _updateStatus.asStateFlow()
 
+    /** GitHub's latest is the version installed here — its notes are "what's new" for you. */
+    private val _latestIsInstalled = MutableStateFlow(false)
+    val latestIsInstalled = _latestIsInstalled.asStateFlow()
+
+    /**
+     * The update dialog opened by itself on the first run after an update, showing the notes of
+     * the version you now have. It replaced a line hard-coded in the strings, which nobody rewrote
+     * for three releases — every update greeted you with the news about Zapret.
+     */
+    private val _whatsNew = MutableStateFlow(false)
+    val whatsNew = _whatsNew.asStateFlow()
+    @Volatile private var greet = false
+    fun dismissWhatsNew() { _whatsNew.value = false }
+
+    /** Opens what's-new once the installed version's notes are in hand, whichever comes first. */
+    private fun maybeGreet() {
+        val r = _release.value ?: return
+        if (greet && _latestIsInstalled.value &&
+            cc.moon.internet.core.ReleaseNotes.forPlatform(r.notes, phone = true).isNotEmpty()) {
+            greet = false
+            _whatsNew.value = true
+        }
+    }
+
     val appVersion: String = cc.moon.internet.BuildConfig.VERSION_NAME
 
     /**
@@ -191,10 +215,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val firstEver = st.lastSeenVersion.isEmpty()
         store.update { it.copy(lastSeenVersion = appVersion) }
         if (firstEver || !st.notifyAfterUpdate) return
-        // upd_whats_new is the one-line changelog; it lives beside the version check so it
-        // gets rewritten whenever the version does.
-        _updateStatus.value = s(R.string.upd_installed, appVersion, s(R.string.upd_whats_new))
-        postNotice(_updateStatus.value, NOTICE_INSTALLED)
+        // What changed comes from the release itself, once the update check has it — see
+        // whatsNew. The notice only says that it happened.
+        greet = true
+        postNotice(s(R.string.upd_installed, appVersion), NOTICE_INSTALLED)
+        maybeGreet()
     }
 
     /** Asks GitHub. Runs once at launch too, quietly — a failure just leaves the badge off. */
@@ -203,12 +228,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** True when GitHub answered. */
     private suspend fun checkUpdateOnce(): Boolean {
         _updateStatus.value = s(R.string.vm_checking)
+        // Developer mode reads a preview file instead of GitHub, if one has been put there.
+        cc.moon.internet.data.UpdateService.previewFile = if (store.state.value.devMode)
+            java.io.File(getApplication<Application>().getExternalFilesDir(null), "update-preview.json") else null
         val r = cc.moon.internet.data.UpdateService.latest()
         if (r == null) { _updateStatus.value = s(R.string.vm_check_failed); return false }
         _release.value = r
         _updateAvailable.value = cc.moon.internet.data.UpdateService.isNewer(r.version, appVersion)
-        _updateStatus.value =
-            if (_updateAvailable.value) s(R.string.vm_update_available, r.version) else s(R.string.vm_up_to_date)
+        _latestIsInstalled.value = !_updateAvailable.value &&
+            !cc.moon.internet.data.UpdateService.isNewer(appVersion, r.version)
+        maybeGreet()
+        // When there is one, the plate in the dialog says so in green; the line is for everything else.
+        _updateStatus.value = if (_updateAvailable.value) "" else s(R.string.vm_up_to_date)
         val st = store.state.value
         if (_updateAvailable.value && st.notificationsEnabled && st.notifyAppUpdate)
             postNotice(s(R.string.vm_update_available, r.version), NOTICE_UPDATE)

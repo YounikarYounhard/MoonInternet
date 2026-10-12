@@ -29,23 +29,36 @@ public static class UpdateService
     /// <summary>Extension of the file this platform installs, used to pick an asset off the release.</summary>
     public static string AssetExtension { get; set; } = ".exe";
 
+    /// <summary>
+    /// Developer mode only: a file standing in for GitHub's answer — the releases list or a single
+    /// release, as the API writes it — so the update dialog and a release's notes can be looked at
+    /// before anything is published.
+    /// </summary>
+    public static string? PreviewFile { get; set; }
+
     /// <summary>The newest release, or null if GitHub could not be reached or has none.</summary>
     public static async Task<ReleaseInfo?> LatestAsync(CancellationToken ct = default)
     {
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Get, Api);
-            req.Headers.UserAgent.ParseAdd("MoonInternet");          // GitHub rejects a missing UA
-            req.Headers.Accept.ParseAdd("application/vnd.github+json");
+            string json;
+            if (PreviewFile is { } preview && File.Exists(preview)) json = await File.ReadAllTextAsync(preview, ct);
+            else
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Get, Api);
+                req.Headers.UserAgent.ParseAdd("MoonInternet");          // GitHub rejects a missing UA
+                req.Headers.Accept.ParseAdd("application/vnd.github+json");
 
-            using var res = await Http.SendAsync(req, ct);
-            if (!res.IsSuccessStatusCode) return null;
+                using var res = await Http.SendAsync(req, ct);
+                if (!res.IsSuccessStatusCode) return null;
+                json = await res.Content.ReadAsStringAsync(ct);
+            }
 
-            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync(ct));
-            if (doc.RootElement.ValueKind != JsonValueKind.Array) return null;
+            using var doc = JsonDocument.Parse(json);
+            var releases = doc.RootElement.ValueKind == JsonValueKind.Array
+                ? doc.RootElement.EnumerateArray().ToList() : new List<JsonElement> { doc.RootElement };
 
-            var root = doc.RootElement.EnumerateArray()
-                .FirstOrDefault(r => !r.TryGetProperty("draft", out var d) || !d.GetBoolean());
+            var root = releases.FirstOrDefault(r => !r.TryGetProperty("draft", out var d) || !d.GetBoolean());
             if (root.ValueKind != JsonValueKind.Object) return null;
 
             var tag = root.GetProperty("tag_name").GetString() ?? "";

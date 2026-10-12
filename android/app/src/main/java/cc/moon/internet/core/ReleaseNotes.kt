@@ -54,6 +54,39 @@ object ReleaseNotes {
     }
 
     /**
+     * The part of the notes meant for this app — port of the desktop's `ForPlatform`. One release
+     * ships both apps, and the notes are written as a section per platform, `## ПК` and
+     * `## Телефон`, so the phone shows what changed on the phone. Kept: the introduction
+     * (everything before the first heading) and this platform's own section, without its heading.
+     * Notes written without platform sections — every release before 0.9.6 — come back whole.
+     */
+    fun forPlatform(markdown: String?, phone: Boolean): List<NoteBlock> {
+        val all = parse(markdown)
+        if (all.none { it.kind == NoteKind.HEADING && platformOf(it.text) != null }) return all
+        val mine = mutableListOf<NoteBlock>()
+        var intro = true
+        var ours = false
+        for (b in all) {
+            if (b.kind == NoteKind.HEADING) { intro = false; ours = platformOf(b.text) == phone; continue }
+            if (intro || ours) mine += b
+        }
+        return mine
+    }
+
+    private val pcWords = setOf("пк", "компьютер", "компьютера", "windows", "pc", "desktop")
+    private val phoneWords = setOf("телефон", "телефона", "смартфон", "android", "phone")
+
+    /** True for the phone's heading, false for the desktop's, null for any other — by whole word. */
+    private fun platformOf(heading: String): Boolean? {
+        val words = heading.lowercase().split(Regex("""[^\p{L}]+""")).filter { it.isNotEmpty() }
+        return when {
+            words.any { it in pcWords } -> false
+            words.any { it in phoneWords } -> true
+            else -> null
+        }
+    }
+
+    /**
      * Drops the emphasis markers. The emphasis is carried by the block's kind instead, so leaving
      * the asterisks in would only put them on screen.
      */

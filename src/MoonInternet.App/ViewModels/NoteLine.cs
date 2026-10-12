@@ -16,6 +16,9 @@ public sealed class NoteLine
     public FontWeight FontWeight { get; init; } = FontWeights.Normal;
     public Brush Foreground { get; init; } = Muted;
     public Thickness Margin { get; init; }
+    /// <summary>A bullet draws its dash in a column of its own, so a wrapped line lines up under
+    /// the text rather than under the dash.</summary>
+    public bool IsBullet { get; init; }
 
     private static readonly Brush Muted = ServerItem.Frozen(0xCF, 0xC7, 0xEC);
     private static readonly Brush Bright = ServerItem.Frozen(0xEC, 0xE9, 0xF5);
@@ -33,11 +36,11 @@ public sealed class NoteLine
             Text = b.Text, FontSize = 12.5, FontWeight = FontWeights.SemiBold,
             Foreground = Accent, Margin = new Thickness(0, 9, 0, 3),
         },
-        // The dash is put back rather than kept, so every bullet lines up under the same one
-        // whichever of the three the notes happened to use.
+        // The dash is drawn by the template rather than kept, so every bullet lines up under the
+        // same one whichever of the three the notes happened to use.
         NoteKind.Bullet => new NoteLine
         {
-            Text = "–  " + b.Text, Margin = new Thickness(6, 0, 0, 4),
+            Text = b.Text, IsBullet = true, Margin = new Thickness(2, 0, 0, 5),
         },
         _ => new NoteLine { Text = b.Text, Margin = new Thickness(0, 0, 0, 8) },
     };

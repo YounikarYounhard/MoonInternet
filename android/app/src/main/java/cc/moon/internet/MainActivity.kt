@@ -149,6 +149,8 @@ class MainActivity : ComponentActivity() {
                 val updateAvailable by vm.updateAvailable.collectAsState()
                 val release by vm.release.collectAsState()
                 val updateStatus by vm.updateStatus.collectAsState()
+                val whatsNew by vm.whatsNew.collectAsState()
+                val latestIsInstalled by vm.latestIsInstalled.collectAsState()
                 val downloadProgress by vm.downloadProgress.collectAsState()
                 val switchingMode by vm.switchingMode.collectAsState()
                 // Remembered, not recomputed: a fresh list instance on every recomposition is a
@@ -523,24 +525,17 @@ class MainActivity : ComponentActivity() {
 
                         }
 
-                        if (showUpdate) UpdateDialog(
-
+                        if (showUpdate || whatsNew) UpdateDialog(
                             currentVersion = vm.appVersion,
-
                             release = release,
-
                             status = updateStatus,
-
                             available = updateAvailable,
-
+                            latestIsInstalled = latestIsInstalled,
+                            whatsNew = whatsNew && !showUpdate,
                             progress = downloadProgress,
-
                             onCheck = { vm.checkUpdate() },
-
                             onDownload = { vm.downloadAndInstall() },
-
-                            onDismiss = { showUpdate = false },
-
+                            onDismiss = { showUpdate = false; vm.dismissWhatsNew() },
                         )
 
                     }

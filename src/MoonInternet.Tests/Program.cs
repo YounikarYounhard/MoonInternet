@@ -803,6 +803,18 @@ string FixtureDir()
     Check("notes: emphasis inside a line is stripped, not printed",
         notes[7] is { Kind: NoteKind.Paragraph } p && p.Text == "Хвост с выделением внутри.");
     Check("notes: nothing in, nothing out", MoonInternet.Core.Parsing.ReleaseNotes.Parse(null).Count == 0);
+
+    // One release, two apps: each shows the introduction and its own section only.
+    const string split = "Крупное обновление.\n\n---\n\n## 💻 ПК\n\n**Что нового**\n\n– Ядро на ПК.\n\n"
+        + "## Телефон\n\n**Что нового**\n\n– Ядро на телефоне.\n\n## Установка\n\nСкачайте файл.";
+    var pc = MoonInternet.Core.Parsing.ReleaseNotes.ForPlatform(split, NotePlatform.Pc);
+    var phone = MoonInternet.Core.Parsing.ReleaseNotes.ForPlatform(split, NotePlatform.Phone);
+    Check("notes: the desktop keeps the intro and its own section",
+        pc.Select(b => b.Text).SequenceEqual(new[] { "Крупное обновление.", "Что нового", "Ядро на ПК." }));
+    Check("notes: the phone keeps the intro and its own section",
+        phone.Select(b => b.Text).SequenceEqual(new[] { "Крупное обновление.", "Что нового", "Ядро на телефоне." }));
+    Check("notes: notes without platform sections come back whole",
+        MoonInternet.Core.Parsing.ReleaseNotes.ForPlatform("## Что нового\n\n– Пункт.", NotePlatform.Pc).Count == 2);
 }
 
 string fixtures = FixtureDir();

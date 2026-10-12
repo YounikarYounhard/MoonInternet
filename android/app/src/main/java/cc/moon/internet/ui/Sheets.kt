@@ -297,78 +297,118 @@ fun CoreInstallingOverlay(percent: Int) {
     }
 }
 
+/**
+ * The update check, and the notes of the version just installed — the same card, as on the
+ * desktop. The notes are the phone's section of the release only and get room to be read: they
+ * used to sit in a box a few lines tall under the version row.
+ */
 @Composable
 fun UpdateDialog(
     currentVersion: String,
     release: cc.moon.internet.data.ReleaseInfo?,
     status: String,
     available: Boolean,
+    latestIsInstalled: Boolean,
+    whatsNew: Boolean,
     progress: Int?,
     onCheck: () -> Unit,
     onDownload: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val notes = release?.notes.orEmpty()
+    val showNotes = notes.isNotBlank() && (available || latestIsInstalled) &&
+        remember(notes) { cc.moon.internet.core.ReleaseNotes.forPlatform(notes, phone = true).isNotEmpty() }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Moon.Card,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.FileDownload, null, tint = Moon.AccentText, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.sheets_011), color = Moon.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Surface(shape = RoundedCornerShape(9.dp), color = Moon.Accent.copy(alpha = 0.16f), modifier = Modifier.size(30.dp)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(if (whatsNew) Icons.Filled.AutoAwesome else Icons.Filled.FileDownload, null,
+                             tint = Moon.AccentText, modifier = Modifier.size(17.dp))
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    if (whatsNew) stringResource(R.string.upd_notes_for, currentVersion) else stringResource(R.string.sheets_011),
+                    color = Moon.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                )
             }
         },
         text = {
             Column {
-                Row {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.sheets_012), color = Moon.TextSecondary, fontSize = 11.5.sp)
-                        Text(currentVersion, color = Moon.TextPrimary, fontSize = 15.sp,
-                             fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.sheets_013), color = Moon.TextSecondary, fontSize = 11.5.sp)
-                        Text(release?.version ?: "—", color = Moon.TextPrimary, fontSize = 15.sp,
-                             fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
-                    }
-                }
-                progress?.let { p ->
-                    if (p >= 0) LinearProgressIndicator({ p / 100f }, Modifier.fillMaxWidth().padding(top = 12.dp),
-                                                        color = Moon.Accent, trackColor = Moon.BorderSoft)
-                    else LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp),
-                                                 color = Moon.Accent, trackColor = Moon.BorderSoft)
-                }
-                if (status.isNotBlank()) {
-                    Text(status, color = Moon.AccentText, fontSize = 12.5.sp,
-                         modifier = Modifier.padding(top = 12.dp))
-                }
-                if (available && !release?.notes.isNullOrBlank()) {
+                if (!whatsNew) {
+                    // Installed → latest, side by side in one plate.
                     Surface(
                         shape = RoundedCornerShape(12.dp), color = Color(0xFF0B0916),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2150)),
-                        modifier = Modifier.padding(top = 12.dp).heightIn(max = 240.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(stringResource(R.string.sheets_012), color = Moon.TextSecondary, fontSize = 11.5.sp)
+                                Text(currentVersion, color = Moon.TextPrimary, fontSize = 16.sp,
+                                     fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                            }
+                            if (available) Icon(Icons.Filled.ArrowForward, null, tint = Moon.TextMuted,
+                                                modifier = Modifier.padding(horizontal = 10.dp).size(16.dp))
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                Text(stringResource(if (available) R.string.upd_available else R.string.sheets_013),
+                                     color = Moon.TextSecondary, fontSize = 11.5.sp)
+                                Text(release?.version ?: "—", color = if (available) Moon.Green else Moon.TextPrimary,
+                                     fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                            }
+                        }
+                    }
+                    progress?.let { p ->
+                        if (p >= 0) LinearProgressIndicator({ p / 100f }, Modifier.fillMaxWidth().padding(top = 12.dp),
+                                                            color = Moon.Accent, trackColor = Moon.BorderSoft)
+                        else LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp),
+                                                     color = Moon.Accent, trackColor = Moon.BorderSoft)
+                    }
+                    if (status.isNotBlank()) {
+                        Text(status, color = Moon.AccentText, fontSize = 12.5.sp,
+                             modifier = Modifier.padding(start = 2.dp, top = 10.dp))
+                    }
+                }
+                if (showNotes) {
+                    if (!whatsNew) {
+                        Text(stringResource(R.string.upd_notes_for, release!!.version), color = Moon.TextPrimary,
+                             fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                             modifier = Modifier.padding(start = 2.dp, top = 14.dp, bottom = 8.dp))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp), color = Color(0xFF0B0916),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A2150)),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp),
                     ) {
                         ReleaseNotesText(
-                            release!!.notes,
-                            Modifier.verticalScroll(rememberScrollState()).padding(14.dp, 12.dp),
+                            notes,
+                            Modifier.verticalScroll(rememberScrollState()).padding(16.dp, 8.dp, 14.dp, 10.dp),
                         )
                     }
                 }
             }
         },
         confirmButton = {
-            if (available) {
-                TextButton(onClick = onDownload, enabled = progress == null) {
+            when {
+                whatsNew -> TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.upd_ok), color = Moon.Accent, fontWeight = FontWeight.SemiBold)
+                }
+                available -> TextButton(onClick = onDownload, enabled = progress == null) {
                     Text(stringResource(R.string.sheets_014), color = Moon.Accent, fontWeight = FontWeight.SemiBold)
                 }
-            } else {
-                TextButton(onClick = onCheck) { Text(stringResource(R.string.sheets_015), color = Moon.Accent) }
+                else -> TextButton(onClick = onCheck) { Text(stringResource(R.string.sheets_015), color = Moon.Accent) }
             }
         },
         dismissButton = {
-            if (available) TextButton(onClick = onCheck) { Text(stringResource(R.string.sheets_015), color = Moon.TextSecondary) }
-            else TextButton(onClick = onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) }
+            when {
+                whatsNew -> {}
+                available -> TextButton(onClick = onCheck) { Text(stringResource(R.string.sheets_015), color = Moon.TextSecondary) }
+                else -> TextButton(onClick = onDismiss) { Text(stringResource(R.string.sheets_009), color = Moon.TextSecondary) }
+            }
         },
     )
 }
@@ -473,7 +513,8 @@ private fun LogButton(text: String, onClick: () -> Unit, primary: Boolean = fals
  */
 @Composable
 fun ReleaseNotesText(markdown: String, modifier: Modifier = Modifier) {
-    val blocks = remember(markdown) { cc.moon.internet.core.ReleaseNotes.parse(markdown) }
+    // The phone's part only: one release ships both apps, and the desktop's news is not news here.
+    val blocks = remember(markdown) { cc.moon.internet.core.ReleaseNotes.forPlatform(markdown, phone = true) }
     Column(modifier) {
         blocks.forEach { b ->
             when (b.kind) {
@@ -485,12 +526,13 @@ fun ReleaseNotesText(markdown: String, modifier: Modifier = Modifier) {
                     b.text, color = Moon.AccentText, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 9.dp, bottom = 3.dp),
                 )
-                // The dash is put back rather than kept, so every bullet lines up under the same
+                // The dash gets a column of its own, so a wrapped line lines up under the text
+                // rather than under the dash — and it is drawn here, so every bullet uses the same
                 // one whichever of the three the notes happened to use.
-                cc.moon.internet.core.NoteKind.BULLET -> Text(
-                    "–  ${b.text}", color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp,
-                    modifier = Modifier.padding(start = 6.dp, bottom = 4.dp),
-                )
+                cc.moon.internet.core.NoteKind.BULLET -> Row(Modifier.padding(start = 2.dp, bottom = 5.dp)) {
+                    Text("–", color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.width(14.dp))
+                    Text(b.text, color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp)
+                }
                 else -> Text(
                     b.text, color = Color(0xFFCFC7EC), fontSize = 12.sp, lineHeight = 18.sp,
                     modifier = Modifier.padding(bottom = 8.dp),

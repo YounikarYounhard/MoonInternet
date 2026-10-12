@@ -362,65 +362,117 @@
             </Border>
         </Border>
 
-        <!-- ===== Обновление (overlay) ===== -->
+        <!-- ===== Обновление / Что нового (overlay) =====
+             One card for both: the update check, and the notes of the version just installed,
+             which opens by itself on the first run after an update. The notes are the desktop's
+             section of the release only, and get the room to be read: they used to sit in a
+             box a few lines tall under a header row the width of a phone. -->
         <Border Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="65" Background="#B3060410"
                 Visibility="{Binding ShowUpdateDialog, Converter={StaticResource BoolVis}}">
-            <Border Width="340" MaxHeight="520" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16"
-                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20">
-                <StackPanel>
+            <Border Width="376" MaxHeight="660" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="18"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="20,18,20,18">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="{DynamicResource S_MainWindow_035}" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Border Width="30" Height="30" CornerRadius="9" Background="#2A8B7CF6" Margin="0,0,10,0">
+                                <TextBlock Text="{Binding UpdateDialogGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource AccentText}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{Binding UpdateDialogTitle}" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"/>
                         </StackPanel>
                         <Button HorizontalAlignment="Right" Style="{StaticResource GlyphButton}" Content="&#xE8BB;" Command="{Binding CloseUpdateDialogCommand}"/>
                     </Grid>
 
-                    <Grid Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="{DynamicResource S_MainWindow_036}" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
-                            <TextBlock Text="{Binding AppVersion}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="{DynamicResource S_MainWindow_037}" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
-                            <TextBlock Text="{Binding LatestVersion}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,0"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- indeterminate when the server does not send a length -->
-                    <ProgressBar Height="4" Margin="0,12,0,0" Foreground="{StaticResource Accent}"
-                                 Background="{StaticResource BorderSoft}" BorderThickness="0"
-                                 Minimum="0" Maximum="100" Value="{Binding DownloadPercent, Mode=OneWay, FallbackValue=0}"
-                                 IsIndeterminate="{Binding DownloadPercent, Converter={StaticResource NegOne}}"
-                                 Visibility="{Binding IsDownloading, Converter={StaticResource BoolVis}}"/>
-                    <TextBlock Text="{Binding UpdateStatus}" Foreground="{StaticResource AccentText}" FontSize="12.5" Margin="0,12,0,0" TextWrapping="Wrap"/>
-
-                    <Border CornerRadius="12" Background="#0B0916" BorderBrush="#2A2150" BorderThickness="1"
-                            Padding="14,12" Margin="0,12,0,0" MaxHeight="230"
-                            Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <!-- Laid out rather than dumped: the notes arrive as Markdown and the
-                                 literal ## and ** used to go straight onto the screen. -->
-                            <ItemsControl ItemsSource="{Binding UpdateNoteLines}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Text}" FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}"
-                                                   Foreground="{Binding Foreground}" Margin="{Binding Margin}"
-                                                   TextWrapping="Wrap" LineHeight="18"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+                    <!-- Installed → available, side by side in one plate -->
+                    <Border Grid.Row="1" Margin="0,16,0,0" CornerRadius="12" Background="#0B0916" BorderBrush="#2A2150" BorderThickness="1"
+                            Padding="14,10" Visibility="{Binding ShowUpdateVersions, Converter={StaticResource BoolVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource S_MainWindow_036}" Foreground="{StaticResource TextSecondary}" FontSize="11.5"/>
+                                <TextBlock Text="{Binding AppVersion}" FontSize="16" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="&#xE72A;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource TextMuted}"
+                                       VerticalAlignment="Center" Margin="10,0"
+                                       Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}"/>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                <TextBlock Text="{Binding LatestVersionLabel}" Foreground="{StaticResource TextSecondary}" FontSize="11.5" HorizontalAlignment="Right"/>
+                                <TextBlock Text="{Binding LatestVersion}" FontSize="16" FontWeight="SemiBold" Margin="0,2,0,0" HorizontalAlignment="Right">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding UpdateAvailable}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource Green}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
-                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_038}" Command="{Binding CheckUpdateCommand}" Padding="16,9" Margin="0,0,8,0"/>
-                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_MainWindow_039}" Command="{Binding DownloadUpdateCommand}" Padding="22,9"
-                                IsEnabled="{Binding IsDownloading, Converter={StaticResource InvBool}}"
-                                Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolVis}}"/>
+                    <StackPanel Grid.Row="2" Visibility="{Binding ShowUpdateVersions, Converter={StaticResource BoolVis}}">
+                        <!-- indeterminate when the server does not send a length -->
+                        <ProgressBar Height="4" Margin="0,12,0,0" Foreground="{StaticResource Accent}"
+                                     Background="{StaticResource BorderSoft}" BorderThickness="0"
+                                     Minimum="0" Maximum="100" Value="{Binding DownloadPercent, Mode=OneWay, FallbackValue=0}"
+                                     IsIndeterminate="{Binding DownloadPercent, Converter={StaticResource NegOne}}"
+                                     Visibility="{Binding IsDownloading, Converter={StaticResource BoolVis}}"/>
+                        <TextBlock Text="{Binding UpdateStatus}" Foreground="{StaticResource AccentText}" FontSize="12.5" Margin="2,10,0,0" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
-                </StackPanel>
+
+                    <DockPanel Grid.Row="3" Margin="0,14,0,0" Visibility="{Binding HasUpdateNotes, Converter={StaticResource BoolVis}}">
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding UpdateNotesTitle}" FontSize="13" FontWeight="SemiBold" Margin="2,0,0,8"
+                                   Visibility="{Binding ShowUpdateVersions, Converter={StaticResource BoolVis}}"/>
+                        <Border CornerRadius="12" Background="#0B0916" BorderBrush="#2A2150" BorderThickness="1" Padding="16,6,12,10">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="400">
+                                <!-- Laid out rather than dumped: the notes arrive as Markdown and the
+                                     literal ## and ** used to go straight onto the screen. -->
+                                <ItemsControl ItemsSource="{Binding UpdateNoteLines}" Margin="0,0,4,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="{Binding Margin}">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <TextBlock Text="–" Width="14" FontSize="{Binding FontSize}" Foreground="{Binding Foreground}" LineHeight="19"
+                                                           Visibility="{Binding IsBullet, Converter={StaticResource BoolVis}}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}"
+                                                           Foreground="{Binding Foreground}" TextWrapping="Wrap" LineHeight="19"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </DockPanel>
+
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="{DynamicResource S_MainWindow_038}" Command="{Binding CheckUpdateCommand}" Padding="16,9" Margin="0,0,8,0"
+                                Visibility="{Binding ShowUpdateVersions, Converter={StaticResource BoolVis}}"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_MainWindow_039}" Command="{Binding DownloadUpdateCommand}" Padding="20,9"
+                                IsEnabled="{Binding IsDownloading, Converter={StaticResource InvBool}}"
+                                Visibility="{Binding ShowDownloadButton, Converter={StaticResource BoolVis}}"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="{DynamicResource S_Upd_Ok}" Command="{Binding CloseUpdateDialogCommand}" Padding="26,9"
+                                Visibility="{Binding WhatsNewMode, Converter={StaticResource BoolVis}}"/>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Border>
 

@@ -27,18 +27,26 @@ object UpdateService {
     // beta, so it answers 404 and the check looks like a network failure.
     private const val API = "https://api.github.com/repos/YounikarYounhard/MoonInternet/releases?per_page=5"
 
+    /**
+     * Developer mode only: a file standing in for GitHub's answer — the releases list or a single
+     * release, as the API writes it — so the update dialog and a release's notes can be looked at
+     * before anything is published. Pushed over a cable into the app's external files folder.
+     */
+    @Volatile var previewFile: java.io.File? = null
+
     suspend fun latest(): ReleaseInfo? = withContext(Dispatchers.IO) {
         runCatching {
-            val c = (URL(API).openConnection() as HttpURLConnection).apply {
-                setRequestProperty("User-Agent", "MoonInternet")   // GitHub rejects a missing UA
-                setRequestProperty("Accept", "application/vnd.github+json")
-                connectTimeout = 12_000
-                readTimeout = 12_000
+            val body = previewFile?.takeIf { it.exists() }?.readText() ?: run {
+                val c = (URL(API).openConnection() as HttpURLConnection).apply {
+                    setRequestProperty("User-Agent", "MoonInternet")   // GitHub rejects a missing UA
+                    setRequestProperty("Accept", "application/vnd.github+json")
+                    connectTimeout = 12_000
+                    readTimeout = 12_000
+                }
+                c.inputStream.bufferedReader().use { it.readText() }.also { c.disconnect() }
             }
-            val body = c.inputStream.bufferedReader().use { it.readText() }
-            c.disconnect()
 
-            val arr = JSONArray(body)
+            val arr = body.trim().let { if (it.startsWith("[")) JSONArray(it) else JSONArray().put(org.json.JSONObject(it)) }
             for (i in 0 until arr.length()) {
                 val r = arr.getJSONObject(i)
                 if (r.optBoolean("draft")) continue

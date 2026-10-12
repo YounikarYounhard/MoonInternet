@@ -287,4 +287,15 @@ class CoreLogicTest {
         assertEquals("127.0.0.1", target.getString("address"))
         assertEquals(cc.moon.internet.vpn.AwgRunner.PORT, target.getInt("port"))
     }
+
+    @Test
+    fun `release notes show the intro and this platform's section only`() {
+        val notes = "Крупное обновление.\n\n---\n\n## 💻 ПК\n\n**Что нового**\n\n– Ядро на ПК.\n\n" +
+            "## Телефон\n\n**Что нового**\n\n– Ядро на телефоне.\n\n## Установка\n\nСкачайте файл."
+        assertEquals(listOf("Крупное обновление.", "Что нового", "Ядро на телефоне."),
+            cc.moon.internet.core.ReleaseNotes.forPlatform(notes, phone = true).map { it.text })
+        assertEquals(listOf("Крупное обновление.", "Что нового", "Ядро на ПК."),
+            cc.moon.internet.core.ReleaseNotes.forPlatform(notes, phone = false).map { it.text })
+        assertEquals(2, cc.moon.internet.core.ReleaseNotes.forPlatform("## Что нового\n\n– Пункт.", phone = true).size)
+    }
 }

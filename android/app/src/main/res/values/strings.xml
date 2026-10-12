@@ -261,8 +261,8 @@
     <string name="sheets_010">"Не удалось построить QR-код"</string>
     <string name="sheets_011">"Обновление"</string>
     <string name="sheets_012">"Установлена"</string>
-    <string name="sheets_013">"На GitHub"</string>
-    <string name="sheets_014">"Скачать"</string>
+    <string name="sheets_013">"Последняя"</string>
+    <string name="sheets_014">"Скачать и установить"</string>
     <string name="sheets_015">"Проверить"</string>
     <string name="sheets_016">"Логов пока нет."</string>
     <string name="routingscreen_001">"Назад"</string>
@@ -417,9 +417,11 @@
     <string name="pin_active_subscription_sub">"Подписка, через которую идёт подключение, поднимается в начало списка"</string>
     <string name="notify_after">"Что нового в версии"</string>
     <string name="notify_after_sub">"После установки обновления один раз показать, что изменилось"</string>
-    <string name="upd_installed">"Обновлено до %1$s. %2$s"</string>
+    <string name="upd_notes_for">"Что нового в %1$s"</string>
+    <string name="upd_available">"Доступна"</string>
+    <string name="upd_ok">"Понятно"</string>
+    <string name="upd_installed">"Moon Internet обновлён до %1$s"</string>
     <!-- Что нового. Правится вместе с versionName в build.gradle.kts, каждый выпуск. -->
-    <string name="upd_whats_new">"Появился режим Zapret — обход блокировок без сервера. Trojan через gRPC больше не заваливает сервер соединениями."</string>
     <string name="routing_title">"Маршрутизация"</string>
     <string name="routing_subtitle">"Профили: какой трафик идёт через VPN, а какой мимо"</string>
     <string name="routing_add">"Новый профиль"</string>
