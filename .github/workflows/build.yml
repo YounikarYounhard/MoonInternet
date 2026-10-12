@@ -67,6 +67,32 @@ jobs:
         shell: pwsh
         run: pwsh -File build/build-awgproxy.ps1 -Android -Sync
 
+      # sing-box carries Hysteria2 on the phone (xray's Hysteria2 does not survive Russian
+      # filtering). 20 MB and not in the repo, like the AAR — so it is built here, with the Go it
+      # is pinned to (see the script), and cached against the script that builds it.
+      - uses: actions/cache@v4
+        id: singbox
+        with:
+          path: android/app/src/main/jniLibs/arm64-v8a/libsingbox.so
+          key: libsingbox-${{ hashFiles('android/build-singbox.ps1') }}
+
+      - uses: actions/setup-go@v5
+        if: steps.singbox.outputs.cache-hit != 'true'
+        with:
+          go-version: '1.23'
+
+      - name: Build libsingbox.so
+        if: steps.singbox.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: pwsh -File android/build-singbox.ps1
+
+      - name: Check the engines are in place
+        run: |
+          for f in libsingbox.so libbyedpi.so libmoonload.so; do
+            test -s "android/app/src/main/jniLibs/arm64-v8a/$f" || { echo "::error::missing $f"; exit 1; }
+          done
+          ls -la android/app/src/main/jniLibs/arm64-v8a
+
       - name: Unpack the signing key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
