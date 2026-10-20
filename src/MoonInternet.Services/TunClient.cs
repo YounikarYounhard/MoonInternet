@@ -27,6 +27,34 @@ public static class TunClient
     }
 
     public static bool IsAvailable() => Send("PING", 1500) == "OK";
+
+    /// <summary>
+    /// The helper answers, or is started and given a few seconds to. It runs as a scheduled task, and
+    /// a task that was stopped — on battery, after 72 h, by a crash — stayed down until a reboot or a
+    /// reinstall, while every connect quietly fell back to the system proxy. The installer lets a
+    /// signed-in user run the task, so the app starts it itself.
+    /// </summary>
+    public static bool EnsureRunning()
+    {
+        if (IsAvailable()) return true;
+        try
+        {
+            using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "schtasks", Arguments = "/run /tn MoonInternetTun",
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+            });
+            p?.WaitForExit(5000);
+        }
+        catch { return false; }
+        for (int i = 0; i < 16; i++)
+        {
+            Thread.Sleep(500);
+            if (IsAvailable()) return true;
+        }
+        return false;
+    }
     // The helper now blocks until the TUN adapter is actually up (~10-20 s) before replying, so allow for it.
     // serverIps go direct in the TUN so xray's connection to the VPN server can't loop back into the tunnel.
     // appRouteMode/apps = per-app split routing (base64 so exe names with spaces survive the space-delimited protocol).

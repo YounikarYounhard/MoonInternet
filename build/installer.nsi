@@ -101,9 +101,17 @@ Section "Установка"
   CreateShortcut "$SMPROGRAMS\${APPNAME}.lnk" "$AppDir\MoonInternet.exe"
   CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$AppDir\MoonInternet.exe"
 
-  ; privileged TUN helper as a SYSTEM scheduled task (created in our elevated context — no separate UAC)
-  nsExec::Exec 'schtasks /create /tn ${TASKNAME} /tr "\"$AppDir\MoonInternet.TunService.exe\"" /sc onstart /ru SYSTEM /rl highest /f'
-  nsExec::Exec 'schtasks /run /tn ${TASKNAME}'
+  ; privileged TUN helper as a SYSTEM scheduled task (created in our elevated context — no separate UAC).
+  ; Registered by a script, not by a bare schtasks: Windows' defaults on a task stop it on battery, kill
+  ; it after 72 h and never restart it, and the app then fell back to the system proxy. See the script.
+  File "tun-task.ps1"
+  nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -File "$AppDir\tun-task.ps1" -Exe "$AppDir\MoonInternet.TunService.exe" -Name ${TASKNAME}'
+  Pop $0
+  StrCmp $0 "0" taskdone
+    ; PowerShell refused — the plain task still beats none.
+    nsExec::Exec 'schtasks /create /tn ${TASKNAME} /tr "\"$AppDir\MoonInternet.TunService.exe\"" /sc onstart /ru SYSTEM /rl highest /f'
+    nsExec::Exec 'schtasks /run /tn ${TASKNAME}'
+  taskdone:
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "${UNINSTKEY}" "DisplayName" "${APPNAME}"
