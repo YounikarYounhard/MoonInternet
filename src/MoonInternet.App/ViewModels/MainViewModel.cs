@@ -1193,6 +1193,7 @@ public partial class MainViewModel : ObservableObject
     private bool _sampling;
     private void ResetTraffic()
     {
+        ForgetAdapters();   // a new session may be a new adapter
         // No reading here: the first sample after this becomes the baseline (see ApplyBytes). Reading
         // the counters right here meant an xray subprocess — or, with nothing listening, a two-second
         // connect to a dead local port — on the window's thread, at the moment of every connect.
@@ -1240,6 +1241,46 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// The adapters the traffic counters read, found once and kept. Listing them was done every
+    /// second, and on Windows that is a GetPerAdapterInfo per adapter: with a few dozen virtual ones
+    /// (old VPN clients leave them behind) a single listing took 1.5 s and leaked about 1.3 MB of
+    /// native memory, so the app held a core busy and grew by a megabyte a second — 26 GB once, until
+    /// Windows gave up. Reading counters off an adapter already in hand is one GetIfEntry2 and costs
+    /// nothing. The list is redone when the network changes, when a reading fails, and on connect.
+    /// </summary>
+    private static List<System.Net.NetworkInformation.NetworkInterface>? _adapters;
+    private static Func<System.Net.NetworkInformation.NetworkInterface, bool>? _adapterFilter;
+    private static DateTime _adaptersAt = DateTime.MinValue;
+
+    private static List<System.Net.NetworkInformation.NetworkInterface> Adapters(
+        Func<System.Net.NetworkInformation.NetworkInterface, bool> filter)
+    {
+        // A different question, or a miss that is worth retrying — but not every
+        // second: an adapter still coming up is asked about again in five.
+        bool stale = _adapters is null || !ReferenceEquals(filter, _adapterFilter)
+                     || (_adapters.Count == 0 && DateTime.UtcNow - _adaptersAt > TimeSpan.FromSeconds(5));
+        if (stale)
+        {
+            _adapters = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces().Where(filter).ToList();
+            _adapterFilter = filter;
+            _adaptersAt = DateTime.UtcNow;
+        }
+        return _adapters!;
+    }
+
+    private static void ForgetAdapters() => _adapters = null;
+
+    static MainViewModel()
+    {
+        // A card came or went: the kept list may be missing it or holding a dead one.
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += (_, _) => ForgetAdapters();
+    }
+
+    private static readonly Func<System.Net.NetworkInformation.NetworkInterface, bool> IsOurTun = n =>
+        n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up
+        && n.Name.StartsWith("MoonTun", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// The live counters, from whatever carries the traffic: the cards in Zapret mode, the adapter for
     /// AmneziaWG on its own adapter (real packets, so its counters are honest — unlike a gVisor TUN's),
     /// xray's inbound stats otherwise, sing-box's Clash API for Hysteria2 TUN. Slow — a subprocess or a
@@ -1282,15 +1323,13 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            foreach (var ni in Adapters(IsOurTun))
             {
-                if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
-                if (!ni.Name.StartsWith("MoonTun", StringComparison.OrdinalIgnoreCase)) continue;
                 var s = ni.GetIPv4Statistics();
                 return (s.BytesReceived, s.BytesSent);
             }
         }
-        catch { }
+        catch { ForgetAdapters(); }   // the adapter went away: look again next time
         return null;
     }
     // Speed in BITS like a speedtest (Mbps). Decimal units (÷1000), so 6.5 MB/s → 52.0 Мбит/с.
@@ -1636,7 +1675,21 @@ public partial class MainViewModel : ObservableObject
 
     public string ProxyUser => string.IsNullOrEmpty(_settings.ProxyUser) ? "—" : _settings.ProxyUser!;
     public string ProxyPassMasked => string.IsNullOrEmpty(_settings.ProxyPass) ? "—" : new string('•', Math.Min(12, _settings.ProxyPass!.Length));
-    public string LocalProxyInfo => _conn.SocksPort > 0 ? $"Mixed (SOCKS5 + HTTP): {_conn.SocksPort}" : "Mixed (SOCKS5 + HTTP)";
+    /// <summary>
+    /// The two ports as they really are. It said "Mixed (SOCKS5 + HTTP): N" with the SOCKS port, but
+    /// that port speaks SOCKS only — HTTP is on the other one — so a client set up as HTTP on it got
+    /// nothing. When one engine serves both on a single port, it is shown once.
+    /// </summary>
+    public string LocalProxyInfo
+    {
+        get
+        {
+            bool live = ConnectionState == ConnectionState.Connected && _conn.SocksPort > 0;
+            int socks = live ? _conn.SocksPort : 10808, http = live ? _conn.HttpPort : 10809;
+            string ports = socks == http ? $"SOCKS5 + HTTP 127.0.0.1:{socks}" : $"SOCKS5 127.0.0.1:{socks} · HTTP 127.0.0.1:{http}";
+            return live ? ports : string.Format(Localization.Loc.T("S_VM_ProxyPortsIdle"), ports);
+        }
+    }
     [RelayCommand] private void CopyProxyUser() { try { System.Windows.Clipboard.SetText(_settings.ProxyUser ?? ""); Status = Localization.Loc.T("S_VM_201"); } catch { } }
     [RelayCommand] private void CopyProxyPass() { try { System.Windows.Clipboard.SetText(_settings.ProxyPass ?? ""); Status = Localization.Loc.T("S_VM_202"); } catch { } }
     [RelayCommand] private void ResetProxyCreds() { GenProxyCreds(); ApplyTuning(); OnPropertyChanged(nameof(ProxyUser)); OnPropertyChanged(nameof(ProxyPassMasked)); ReconnectIfConnected(); Status = Localization.Loc.T("S_VM_203"); }
@@ -1727,6 +1780,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnConnectionStateChanged(ConnectionState value)
     {
         if (value != ConnectionState.Connecting) ConnectingStatus = "";
+        OnPropertyChanged(nameof(LocalProxyInfo));
         if (value != ConnectionState.Connected) _pillPingMs = -2;   // a reading belongs to one session
         OnPropertyChanged(nameof(CheckPingText)); OnPropertyChanged(nameof(HasCheckPing));
         if (value != ConnectionState.Connected) { UploadSpeed = DownloadSpeed = SessionTraffic = "—"; }
@@ -1920,7 +1974,7 @@ public partial class MainViewModel : ObservableObject
         // so when the switch is off the cached list has to set it going instead.
         if (UpdateSubsOnStart)
             foreach (var u in _settings.SubscriptionUrls.ToList())
-                _ = ImportUrl(u, dropIfGone: !_settings.CachedSubs.Any(c => c.Url == u));
+                _ = ImportUrl(u, dropIfGone: !_settings.CachedSubs.Any(c => c.Url == u), quiet: false, loud: false);
         else if (Subscriptions.FirstOrDefault() is { } cached)
             _ = MaybeAutoConnect(cached);
         _themeReady = true; // now theme edits (via UI) may apply+save
@@ -3425,7 +3479,7 @@ public partial class MainViewModel : ObservableObject
     {
         NewSubName = "";
         foreach (var s in Subscriptions.ToList())
-            if (s.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) await ImportUrl(s.Url, quiet: quiet);
+            if (s.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) await ImportUrl(s.Url, quiet: quiet, loud: !quiet);
     }
 
     [RelayCommand]
@@ -3445,7 +3499,14 @@ public partial class MainViewModel : ObservableObject
     /// it: when the panel says it does not exist (404/410), take it off the list quietly. A network
     /// failure removes nothing; only "this subscription is gone" does.
     /// </param>
-    private async Task<bool> ImportUrl(string url, bool dropIfGone = false, bool quiet = false)
+    /// <param name="loud">
+    /// A failure goes to the red line on Home only when somebody pressed for this refresh. The
+    /// launch and the hourly refresh failing — the subscription host unreachable for a while, which
+    /// the censor's box does to foreign hosts in waves — said "Ошибка загрузки: The SSL connection
+    /// could not be established" under a connection that was working fine, and stayed there.
+    /// The servers from the last load are still there either way.
+    /// </param>
+    private async Task<bool> ImportUrl(string url, bool dropIfGone = false, bool quiet = false, bool loud = true)
     {
         try
         {
@@ -3495,6 +3556,7 @@ public partial class MainViewModel : ObservableObject
                   + (SelectedRouting is not null ? $" · routing «{SelectedRouting.Name}»" : "")
                 : Localization.Loc.T("S_VM_220");
             MoonInternet.Core.DevLog.Log("подписка", $"обновлена {HostOf(url)}: серверов {sub.Count}");
+            if (_subErrorShown) { _subErrorShown = false; ErrorText = ""; }   // the failure it reported is over
             await MaybeAutoConnect(sub, ping: !quiet);
             return true;
         }
@@ -3512,10 +3574,23 @@ public partial class MainViewModel : ObservableObject
             // looked exactly like one that worked: a laptop sat on week-old AmneziaWG keys the panel
             // no longer accepted, and nothing anywhere said its updates had stopped.
             MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)} не обновилась: {ex.GetType().Name}: {ex.Message}");
-            ErrorText = Status = "Ошибка загрузки: " + ex.Message;
+            string name = Subscriptions.FirstOrDefault(x => x.Url == url)?.Name is { Length: > 0 } n ? n : HostOf(url);
+            string why = Localization.Loc.T(ex switch
+            {
+                TaskCanceledException => "S_VM_SubWhyTimeout",
+                System.Net.Http.HttpRequestException { StatusCode: not null } => "S_VM_SubWhyHttp",
+                System.Net.Http.HttpRequestException h when h.InnerException is System.Security.Authentication.AuthenticationException
+                                                       || h.Message.Contains("SSL", StringComparison.OrdinalIgnoreCase) => "S_VM_SubWhyTls",
+                _ => "S_VM_SubWhyNet",
+            });
+            Status = string.Format(Localization.Loc.T("S_VM_SubFailed"), name, why);
+            if (loud) { ErrorText = Status; _subErrorShown = true; }
             return false;
         }
     }
+
+    /// <summary>The red line on Home is a subscription failure — the next good refresh clears it.</summary>
+    private bool _subErrorShown;
 
     private async Task MaybeAutoConnect(SubscriptionVM sub, bool ping = true)
     {
@@ -3789,7 +3864,7 @@ public partial class MainViewModel : ObservableObject
             // helper calls that wait for the old adapter to go — seconds of a frozen window, which is
             // the hitch on every connect. Its events reach the window through the dispatcher already.
             var (profile, mode, firstRouting) = (SelectedServer.Profile, TunMode ? TunnelMode.Tun : TunnelMode.SystemProxy, deferRouting ? null : routing);
-            await Task.Run(() => _conn.ConnectAsync(profile, mode, firstRouting));
+            await Task.Run(() => _conn.ConnectAsync(profile, mode, firstRouting, routingWanted: routing is not null));
             if (ConnectionState != ConnectionState.Connected) { if (Status == $"Подключение к {SelectedServer.Label}…" || Status.StartsWith("Подключение")) Status = Localization.Loc.T("S_VM_232"); return; } // cancelled/aborted
             _connectedAt = DateTime.Now; ResetTraffic();
             ReportConnected();

@@ -158,6 +158,26 @@ public static class Pinger
     /// </summary>
     public static int? PhysicalIfIndex()
     {
+        // Remembered, not looked up per call: listing the adapters costs Windows a GetPerAdapterInfo
+        // for every one of them, which with a few dozen virtual adapters takes over a second and
+        // leaks native memory on every call (measured: ~1.3 MB a call with 42 adapters). The answer
+        // only changes when the network does, so that is when it is asked again.
+        var cached = _physical;
+        if (cached.At > DateTime.UtcNow.AddSeconds(-60)) return cached.Index;
+        int? found = FindPhysical();
+        _physical = (DateTime.UtcNow, found);
+        return found;
+    }
+
+    private static (DateTime At, int? Index) _physical = (DateTime.MinValue, null);
+
+    static Pinger()
+    {
+        NetworkChange.NetworkAddressChanged += (_, _) => _physical = (DateTime.MinValue, null);
+    }
+
+    private static int? FindPhysical()
+    {
         foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
         {
             if (ni.OperationalStatus != OperationalStatus.Up) continue;

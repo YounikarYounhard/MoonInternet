@@ -81,7 +81,7 @@ public sealed class XrayRunner : IProxyRunner
         if (!CoreAvailable) throw new FileNotFoundException("xray core not found", _exePath);
         Stop();
 
-        (SocksPort, HttpPort) = PortFinder.Pair();
+        (SocksPort, HttpPort) = PortFinder.Stable();
         do { ApiPort = PortFinder.Free(); } while (ApiPort == SocksPort || ApiPort == HttpPort);
         File.WriteAllText(_configPath, XrayConfigBuilder.Build(profile, routing, SocksPort, HttpPort, ApiPort));
 

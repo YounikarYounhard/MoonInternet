@@ -486,6 +486,12 @@
     <s:String x:Key="S_Dev_On">Режим разработчика включён</s:String>
     <s:String x:Key="S_Cores_Fetching">Качаю…</s:String>
     <s:String x:Key="S_Cores_NoCatalog">Не удалось получить список ядер</s:String>
+    <s:String x:Key="S_VM_SubFailed">«{0}» не обновилась — {1}. Серверы из прошлой загрузки на месте.</s:String>
+    <s:String x:Key="S_VM_SubWhyTimeout">сервер подписки не ответил вовремя</s:String>
+    <s:String x:Key="S_VM_SubWhyHttp">сервер подписки вернул ошибку</s:String>
+    <s:String x:Key="S_VM_SubWhyTls">не удалось установить защищённое соединение с сервером подписки</s:String>
+    <s:String x:Key="S_VM_SubWhyNet">нет связи с сервером подписки</s:String>
+    <s:String x:Key="S_VM_ProxyPortsIdle">{0} — когда свободны; заняты другим приложением → другие</s:String>
     <s:String x:Key="S_VM_NoReply">нет ответа</s:String>
     <s:String x:Key="S_Cores_NeedTitle">Нужно ядро</s:String>
     <s:String x:Key="S_Cores_NeedBody">Для протокола {0} требуется ядро «{1}». Установить его сейчас?</s:String>

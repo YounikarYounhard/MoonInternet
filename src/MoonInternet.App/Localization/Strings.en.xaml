@@ -516,6 +516,12 @@
     <s:String x:Key="S_Dev_On">Developer mode is on</s:String>
     <s:String x:Key="S_Cores_Fetching">Downloading…</s:String>
     <s:String x:Key="S_Cores_NoCatalog">Could not fetch the engine list</s:String>
+    <s:String x:Key="S_VM_SubFailed">“{0}” was not refreshed — {1}. The servers from the last load are still there.</s:String>
+    <s:String x:Key="S_VM_SubWhyTimeout">the subscription server did not answer in time</s:String>
+    <s:String x:Key="S_VM_SubWhyHttp">the subscription server returned an error</s:String>
+    <s:String x:Key="S_VM_SubWhyTls">a secure connection to the subscription server could not be made</s:String>
+    <s:String x:Key="S_VM_SubWhyNet">the subscription server could not be reached</s:String>
+    <s:String x:Key="S_VM_ProxyPortsIdle">{0} — when free; taken by another app → others</s:String>
     <s:String x:Key="S_VM_NoReply">no reply</s:String>
     <s:String x:Key="S_Cores_NeedTitle">An engine is needed</s:String>
     <s:String x:Key="S_Cores_NeedBody">{0} needs the «{1}» engine. Install it now?</s:String>

@@ -55,9 +55,10 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Shows every Status message as a toast for a few seconds. The view model has written about
-    /// seventy of them — copied, updated, failed, switching server — into a property that was
-    /// bound nowhere, so none of them ever reached the screen.
+    /// Shows every Status message as a toast for a few seconds — in developer mode only. They are
+    /// the app narrating itself (subscription refreshed, routing applied, server switched), useful
+    /// when looking for a fault and noise the rest of the time. What a user must see — a failed
+    /// connect, a tunnel that fell back to the proxy — goes to the error line on Home instead.
     /// </summary>
     private void WatchStatus()
     {
@@ -72,7 +73,7 @@ public partial class MainWindow : Window
             if (e.PropertyName != nameof(MainViewModel.Status)) return;
             Dispatcher.Invoke(() =>
             {
-                if (string.IsNullOrWhiteSpace(vm.Status)) return;
+                if (string.IsNullOrWhiteSpace(vm.Status) || !vm.DevMode) return;
                 ToastText.Text = vm.Status;
                 Toast.BeginAnimation(OpacityProperty, null);   // cancel a fade still in flight
                 Toast.Opacity = 1;

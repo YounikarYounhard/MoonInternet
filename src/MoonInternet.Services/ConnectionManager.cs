@@ -58,6 +58,7 @@ public sealed class ConnectionManager : IDisposable
     /// <summary>True while AmneziaWG carries the traffic on its own adapter. No xray and no sing-box on
     /// this path: no routing rules to re-apply, and the counters are the adapter's.</summary>
     public bool AwgDirect { get; private set; }
+    private bool _lastRoutingWanted;
 
     /// <summary>xray traffic totals (recv=download, sent=upload) for the live counters. Null if xray isn't the active
     /// core or stats are unavailable (e.g. Hysteria2 TUN, which runs a lone sing-box → use <see cref="SingBoxTraffic"/>).</summary>
@@ -189,7 +190,7 @@ public sealed class ConnectionManager : IDisposable
                     await Task.Delay(5000);
                 }
                 if (_userDisconnect) return;
-                try { await ConnectAsync(server, mode, routing); return; } catch { /* retry */ }
+                try { await ConnectAsync(server, mode, routing, _lastRoutingWanted); return; } catch { /* retry */ }
             }
             // Gave up. Kill-switch: leave the system proxy pointing at the dead port so proxy-aware
             // traffic stays blocked (fail-closed) instead of leaking; the user must disconnect manually.
@@ -209,7 +210,12 @@ public sealed class ConnectionManager : IDisposable
 
     public static bool TunServiceAvailable() => TunClient.IsAvailable();
 
-    public async Task ConnectAsync(OutboundProfile profile, TunnelMode mode, RoutingProfile? routing = null)
+    /// <param name="routingWanted">
+    /// Routing is on for this connect even if <paramref name="routing"/> is null for now (geo files
+    /// still downloading). AmneziaWG then goes behind xray instead of on its own adapter, which
+    /// carries everything and could not sort a byte — routing used to be silently ignored there.
+    /// </param>
+    public async Task ConnectAsync(OutboundProfile profile, TunnelMode mode, RoutingProfile? routing = null, bool routingWanted = false)
     {
         Disconnect();
         DevLog.Log("подключение", $"{profile.Name} · режим {(mode == TunnelMode.Tun ? "TUN" : "системный прокси")}");
@@ -217,11 +223,16 @@ public sealed class ConnectionManager : IDisposable
         AwgDirect = false;
         _lastMode = mode;
         _lastRouting = routing;
+        _lastRoutingWanted = routingWanted || routing is not null;
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
         Set(ConnectionState.Connecting);
         try
         {
+            // Before anything asks it: a TUN connect needs the helper, and finding it gone used to
+            // mean the system proxy for the rest of the day.
+            if (mode == TunnelMode.Tun && !await Task.Run(TunClient.EnsureRunning, ct))
+                DevLog.Log("туннель", "служба TUN не отвечает и не запустилась");
             // The WireGuard family splits by whether it is obfuscated:
             //  • plain WG  → sing-box (TUN + wireguard outbound + router), which already works;
             //  • AmneziaWG → awgproxy, the only engine that speaks the obfuscation. It falls through
@@ -239,6 +250,7 @@ public sealed class ConnectionManager : IDisposable
             // SOCKS → a second TCP stack. Whatever the helper cannot do (an engine it cannot verify,
             // an older helper) falls through to that SOCKS path below, which still works, only slower.
             if (profile.Wireguard is { IsAmnezia: true } awgc && mode == TunnelMode.Tun && _awg.CoreAvailable
+                && !routingWanted && routing is null
                 && TunClient.IsAvailable() && await ConnectAwgTunAsync(profile, awgc, ct))
                 return;
 
