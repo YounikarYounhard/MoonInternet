@@ -70,15 +70,29 @@ enum class SettingsPage(
 fun SettingsScreen(
     state: AppState,
     onOpen: (SettingsPage) -> Unit,
+    onRestart: () -> Unit,
+    restarting: Boolean,
     listState: androidx.compose.foundation.lazy.LazyListState,
 ) {
+    var confirmRestart by remember { mutableStateOf(false) }
+    var showSupport by remember { mutableStateOf(false) }
+
     Column(Modifier.fillMaxSize().background(Moon.WinBg)) {
         Column(Modifier.padding(start = 26.dp, end = 24.dp, top = 18.dp, bottom = 14.dp)) {
-            // The pill sits on the title's own line, not centred on the title+version block —
-            // that is where the desktop puts it.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.settingsscreen_001), fontSize = 26.sp, fontWeight = FontWeight.Bold,
-                     color = Moon.TextPrimary, modifier = Modifier.weight(1f))
+                     color = Moon.TextPrimary, modifier = Modifier.weight(1f).padding(end = 4.dp),
+                     maxLines = 2, overflow = TextOverflow.Ellipsis)
+                IconButton(
+                    onClick = { showSupport = true }, modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(Icons.Filled.SupportAgent, stringResource(R.string.settings_support), tint = Moon.AccentText)
+                }
+                IconButton(
+                    onClick = { confirmRestart = true }, modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(Icons.Filled.PowerSettingsNew, stringResource(R.string.settings_restart), tint = Moon.AccentText)
+                }
                 LanguageToggle()
             }
             Text("Moon Internet · $APP_VERSION", fontSize = 12.5.sp, color = Moon.TextSecondary,
@@ -99,6 +113,26 @@ fun SettingsScreen(
                 HubCard(p.icon, stringResource(p.titleRes), stringResource(p.subtitleRes)) { onOpen(p) }
             }
         }
+    }
+
+    if (showSupport) SupportDialog(onDismiss = { showSupport = false })
+
+    if (confirmRestart || restarting) {
+        AlertDialog(
+            onDismissRequest = { if (!restarting) confirmRestart = false },
+            title = { Text(stringResource(R.string.settings_restart)) },
+            text = { Text(stringResource(if (restarting) R.string.settings_restart_progress else R.string.settings_restart_warning)) },
+            confirmButton = {
+                TextButton(enabled = !restarting, onClick = { confirmRestart = false; onRestart() }) {
+                    Text(stringResource(R.string.settings_restart_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !restarting, onClick = { confirmRestart = false }) {
+                    Text(stringResource(R.string.settings_restart_cancel))
+                }
+            },
+        )
     }
 }
 

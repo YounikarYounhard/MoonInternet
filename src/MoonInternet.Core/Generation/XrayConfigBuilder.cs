@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using MoonInternet.Core.Models;
+using MoonInternet.Core.Parsing;
 
 namespace MoonInternet.Core.Generation;
 
@@ -135,7 +136,7 @@ public static class XrayConfigBuilder
             config["api"] = new Dictionary<string, object?> { ["tag"] = "api", ["services"] = new[] { "StatsService" } };
         }
         if (routing is not null) config["dns"] = BuildDns(routing);
-        return JsonSerializer.Serialize(config, Pretty);
+        return XraySubscription.Apply(JsonSerializer.Serialize(config, Pretty), p, routing is not null);
     }
 
     // ---- routing / dns (HAPP / INCY) ------------------------------------
@@ -222,6 +223,8 @@ public static class XrayConfigBuilder
 
     public static Dictionary<string, object?> BuildOutbound(OutboundProfile p, string tag = "proxy")
     {
+        if (XraySubscription.CopyOutbound(p, tag) is { } source)
+            return JsonSerializer.Deserialize<Dictionary<string, object?>>(source.ToJsonString())!;
         var o = new Dictionary<string, object?> { ["tag"] = tag, ["protocol"] = ProtoName(p.Protocol) };
         o["settings"] = p.Protocol switch
         {

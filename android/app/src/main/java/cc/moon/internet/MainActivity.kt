@@ -5,10 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Bundle
+import android.os.Process
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.CubicBezierEasing
@@ -81,11 +84,28 @@ class MainActivity : ComponentActivity() {
      * from the other end: the notification's "Сервер" button set it and nothing ever read it.
      */
     private var navRequest by androidx.compose.runtime.mutableStateOf<String?>(null)
+    private var restarting by mutableStateOf(false)
 
     override fun attachBaseContext(base: Context) =
         super.attachBaseContext(cc.moon.internet.data.Lang.wrap(base))
 
     private val vm: MainViewModel by viewModels()
+
+    private fun restartApp() {
+        if (restarting) return
+        restarting = true
+        if (runCatching { startActivity(RestartActivity.request(this)) }.isFailure) {
+            restarting = false
+            Toast.makeText(this, R.string.settings_restart_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        lifecycleScope.launch {
+            vm.prepareForRestart()
+            MoonVpnService.stopForRestart(this@MainActivity)
+            finish()
+            Process.killProcess(Process.myPid())
+        }
+    }
 
     /** Camera QR scan; the decoded text goes through the same import path as a pasted link. */
     private val scanQr = registerForActivityResult(ScanQrContract()) { text ->
@@ -458,7 +478,10 @@ class MainActivity : ComponentActivity() {
                                     onClearLogs = { vm.clearLogs() },
                                     onViewLog = { logView = vm.logsTail() },
                                 )
-                            } ?: SettingsScreen(state = state, onOpen = { settingsPage = it }, listState = settingsScroll)
+                            } ?: SettingsScreen(
+                                state = state, onOpen = { settingsPage = it }, onRestart = ::restartApp,
+                                restarting = restarting, listState = settingsScroll,
+                            )
                         }
                         }   // Crossfade
 

@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.Proxy
+import org.json.JSONObject
 
 /**
  * Fetches a subscription. Panels put the interesting bits in HTTP headers, exactly like the
@@ -24,10 +26,13 @@ object SubscriptionService {
         val expiryFraction: Double,
         val updateMinutes: Int,
         val routingLinks: List<String>,
+        val isJson: Boolean,
+        val icon: String?,
+        val headerImage: String?,
     )
 
     suspend fun fetch(url: String, hwid: String? = null): Fetched = withContext(Dispatchers.IO) {
-        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+        val conn = (URL(url).openConnection(Proxy.NO_PROXY) as HttpURLConnection).apply {
             connectTimeout = 20_000
             readTimeout = 20_000
             instanceFollowRedirects = true
@@ -36,11 +41,23 @@ object SubscriptionService {
             hwid?.let { setRequestProperty("X-HWID", it) }
         }
         try {
-            val body = conn.inputStream.bufferedReader().readText()
+            val body = conn.inputStream.use { input ->
+                val bytes = input.readUpTo(8 * 1024 * 1024) ?: error("subscription too large")
+                val charset = conn.contentType?.let { Regex("charset=([^;]+)", RegexOption.IGNORE_CASE).find(it) }
+                    ?.groupValues?.getOrNull(1)?.trim()?.trim('"')?.let { runCatching { charset(it) }.getOrNull() }
+                    ?: Charsets.UTF_8
+                String(bytes, charset).trimStart('\uFEFF')
+            }
             val parsed = SubscriptionParser.parse(body)
 
+            val inline = body.lineSequence().map(String::trim).filter(String::isNotEmpty)
+                .takeWhile { it.startsWith('#') }.mapNotNull { line ->
+                    val separator = line.indexOf(':')
+                    if (separator <= 1) null else line.substring(1, separator).lowercase() to line.substring(separator + 1).trim()
+                }.toMap()
             fun header(name: String) = conn.headerFields.entries
-                .firstOrNull { it.key?.equals(name, true) == true }?.value?.firstOrNull()
+                .firstOrNull { it.key?.equals(name, true) == true }?.value?.firstOrNull() ?: inline[name]
+            val metadata = if (body.trimStart().startsWith('{')) runCatching { JSONObject(body) }.getOrNull() else null
 
             val info = parseUserInfo(header("subscription-userinfo"))
             Fetched(
@@ -54,8 +71,44 @@ object SubscriptionService {
                 updateMinutes = header("profile-update-interval")?.toIntOrNull()?.times(60) ?: 0,
                 routingLinks = SubscriptionParser.routingLinks(body) +
                     listOfNotNull(header("routing")),
+                isJson = parsed.isJson,
+                icon = readImage(conn.url, header("profile-icon") ?: header("profile-logo") ?: metadata?.optString("icon")),
+                headerImage = readImage(conn.url, header("profile-header-image") ?: header("subscription-banner") ?: metadata?.optString("headerImage")),
             )
         } finally { conn.disconnect() }
+    }
+
+    private fun readImage(base: URL, value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        return runCatching {
+            val url = URL(base, value)
+            if (url.protocol !in setOf("http", "https") || url.userInfo != null ||
+                url.protocol != base.protocol || !url.host.equals(base.host, true) ||
+                (url.port.takeIf { it != -1 } ?: url.defaultPort) != (base.port.takeIf { it != -1 } ?: base.defaultPort))
+                return null
+            val connection = url.openConnection(Proxy.NO_PROXY) as HttpURLConnection
+            connection.instanceFollowRedirects = false
+            connection.connectTimeout = 4_000
+            connection.readTimeout = 4_000
+            try {
+                if (connection.responseCode !in 200..299 || connection.contentType?.substringBefore(';') !in
+                    setOf("image/png", "image/jpeg", "image/gif", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"))
+                    return null
+                val data = connection.inputStream.use { it.readUpTo(512 * 1024) } ?: return null
+                Base64.encodeToString(data, Base64.NO_WRAP)
+            } finally { connection.disconnect() }
+        }.getOrNull()
+    }
+
+    private fun java.io.InputStream.readUpTo(limit: Int): ByteArray? {
+        val output = java.io.ByteArrayOutputStream()
+        val chunk = ByteArray(8192)
+        while (true) {
+            val read = read(chunk)
+            if (read < 0) return output.toByteArray()
+            if (output.size() + read > limit) return null
+            output.write(chunk, 0, read)
+        }
     }
 
     /** Panels encode text headers as "base64:<b64>" (sometimes plain). */

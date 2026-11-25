@@ -131,9 +131,9 @@ public sealed class ConnectionManager : IDisposable
     // (caught by the health watchdog). Either way the tunnel is routing into a dead proxy and passes no traffic,
     // so tear down and reconnect. A real user's log showed the OLD build stuck exactly like this for ~19 HOURS
     // (dead TUN spamming "dial 127.0.0.1:<socks> refused" — no internet while "connected").
-    private void HandleDrop()
+    private void HandleDrop(bool networkMoved = false)
     {
-        if (_userDisconnect || !AutoReconnect || State != ConnectionState.Connected || Current is null || _reconnecting) return;
+        if (_userDisconnect || (!networkMoved && !AutoReconnect) || State != ConnectionState.Connected || Current is null || _reconnecting) return;
         _ = ReconnectAsync(Current, _lastMode, _lastRouting);
     }
 
@@ -286,6 +286,14 @@ public sealed class ConnectionManager : IDisposable
                 ? await ResolveServerIpsAsync(profile.Address) : Array.Empty<string>();
             ct.ThrowIfCancellationRequested();
             var connectProfile = serverIps.Count > 0 ? profile.CloneForConnectIp(serverIps[0]) : profile;
+            if (mode == TunnelMode.Tun && profile.IsJson)
+            {
+                var extra = profile.AdditionalHosts.Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Where(host => !host.Equals(profile.Address, StringComparison.OrdinalIgnoreCase));
+                var resolved = await Task.WhenAll(extra.Select(ResolveServerIpsAsync));
+                serverIps = serverIps.Concat(resolved.SelectMany(ips => ips)).Distinct().ToArray();
+                ct.ThrowIfCancellationRequested();
+            }
 
             Report("Запуск ядра…");
             var xrayProfile = connectProfile;
@@ -309,7 +317,11 @@ public sealed class ConnectionManager : IDisposable
                 xrayProfile = new OutboundProfile { Protocol = ProtocolType.Socks, Address = "127.0.0.1", Port = _awg.SocksPort, Name = profile.Name };
             }
             _xray.Start(xrayProfile, routing, geoDir);
-            if (!await WaitPortAsync(_xray.SocksPort, ct)) throw new InvalidOperationException("core did not open the local proxy port");
+            if (!await WaitPortAsync(_xray.SocksPort, ct))
+            {
+                if (_xray.RejectedUnencryptedTransport) throw new UnencryptedPublicConnectionException();
+                throw new InvalidOperationException("core did not open the local proxy port");
+            }
 
             _tunActive = false;
             TunFallbackReason = null;
@@ -465,7 +477,7 @@ public sealed class ConnectionManager : IDisposable
             if (nowOut is null || nowOut == _roamIfIndex) return;   // same card, nothing to rebuild
             _roamIfIndex = nowOut;
 
-            HandleDrop();
+            HandleDrop(networkMoved: true);
         }
         catch { /* the next change will try again; this must not take the app down */ }
     }
@@ -614,3 +626,6 @@ public sealed class ConnectionManager : IDisposable
 
     public void Dispose() => Disconnect();
 }
+
+public sealed class UnencryptedPublicConnectionException()
+    : InvalidOperationException("Xray requires TLS or VLESS encryption for this public server.");

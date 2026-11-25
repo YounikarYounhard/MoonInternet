@@ -45,6 +45,8 @@ data class ServerProfile(
 
     val wg: WireGuardConfig? = null,
 ) {
+    val isJson: Boolean get() = raw?.trimStart()?.startsWith('{') == true
+
     /** Two-letter country code parsed from a flag emoji in the name, e.g. 🇫🇮 → "fi". */
     val countryCode: String?
         get() {
@@ -148,7 +150,9 @@ data class ServerProfile(
             // Not lower-cased: a uuid is hex either way, but a trojan password is a password.
             val cred = id?.takeIf { it.isNotBlank() } ?: password.orEmpty()
             val host = address.lowercase()
-            return if (cred.isNotBlank()) "$protocol:$cred@$host:$port" else "$protocol:$host:$port"
+            val key = if (cred.isNotBlank()) "$protocol:$cred@$host:$port" else "$protocol:$host:$port"
+            // Two named JSON routes can share a primary endpoint and use different backups.
+            return if (isJson) "$key#json:$name" else key
         }
 
     /**
@@ -309,6 +313,9 @@ data class Subscription(
     val expiryFraction: Double = -1.0,
     val updateIntervalMinutes: Int = 0,
     val fetchedAt: Long = 0,
+    val isJson: Boolean = false,
+    val icon: String? = null,
+    val headerImage: String? = null,
 ) {
     /**
      * Servers added by hand rather than fetched from somewhere. There is nothing to re-fetch them

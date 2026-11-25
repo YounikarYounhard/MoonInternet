@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shell;
+using System.Windows.Threading;
 using H.NotifyIcon;
 using MoonInternet.App.ViewModels;
 
@@ -11,10 +14,18 @@ public partial class MainWindow : Window
 {
     private readonly TaskbarIcon _tray;
     private bool _exiting;
+    private bool _fitQueued;
+    private double _contentScale = 1;
+    private readonly double _preferredWidth;
+    private readonly double _preferredHeight;
 
     public MainWindow()
     {
         InitializeComponent();
+        _preferredWidth = Width;
+        _preferredHeight = Height;
+        DpiChanged += (_, _) => QueueWorkAreaFit();
+        StateChanged += (_, _) => QueueWorkAreaFit();
         _tray = BuildTray();
         Loaded += (_, _) => ThemeService.ApplyToWindow(this, App.ActiveTheme);
         WatchStatus();
@@ -68,18 +79,21 @@ public partial class MainWindow : Window
         { To = 0, Duration = TimeSpan.FromMilliseconds(280) };
         hide.Tick += (_, _) => { hide.Stop(); Toast.BeginAnimation(OpacityProperty, fade); };
 
+        void Show(string message) => Dispatcher.Invoke(() =>
+        {
+            if (string.IsNullOrWhiteSpace(message) || !IsVisible || WindowState == WindowState.Minimized) return;
+            ToastText.Text = message;
+            Toast.BeginAnimation(OpacityProperty, null);
+            Toast.Opacity = 1;
+            hide.Stop();
+            hide.Start();
+        });
+
+        vm.UserNotice += Show;
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName != nameof(MainViewModel.Status)) return;
-            Dispatcher.Invoke(() =>
-            {
-                if (string.IsNullOrWhiteSpace(vm.Status) || !vm.DevMode) return;
-                ToastText.Text = vm.Status;
-                Toast.BeginAnimation(OpacityProperty, null);   // cancel a fade still in flight
-                Toast.Opacity = 1;
-                hide.Stop();
-                hide.Start();
-            });
+            if (e.PropertyName == nameof(MainViewModel.Status) && vm.DevMode)
+                Show(vm.Status);
         };
     }
 
@@ -207,12 +221,43 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
         if (PresentationSource.FromVisual(this) is HwndSource src) src.AddHook(WndProc);
+        QueueWorkAreaFit();
     }
 
-    private static IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private void QueueWorkAreaFit()
+    {
+        if (_fitQueued) return;
+        _fitQueued = true;
+        Dispatcher.InvokeAsync(() =>
+        {
+            _fitQueued = false;
+            if (!IsVisible || WindowState != WindowState.Normal) return;
+            WindowPlacement.Fit(this, new WindowInteropHelper(this).Handle, _preferredWidth, _preferredHeight);
+
+            // Keep room for the connection controls and the scrollable list on short desktops.
+            const double minimumLayoutHeight = 520;
+            var scale = Math.Min(1, Math.Min(Width / _preferredWidth, Height / minimumLayoutHeight));
+            if (_contentScale == scale) return;
+            _contentScale = scale;
+            WindowContent.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
+            var chrome = WindowChrome.GetWindowChrome(this);
+            if (chrome.IsFrozen)
+            {
+                chrome = (WindowChrome)chrome.Clone();
+                WindowChrome.SetWindowChrome(this, chrome);
+            }
+            chrome.CaptionHeight = TitleBar.Height * scale;
+        }, DispatcherPriority.Loaded);
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         const int WM_NCLBUTTONDBLCLK = 0x00A3; // caption double-click → maximize; swallow it
         if (msg == WM_NCLBUTTONDBLCLK) handled = true;
+        const int WM_SETTINGCHANGE = 0x001A, WM_DISPLAYCHANGE = 0x007E, WM_EXITSIZEMOVE = 0x0232;
+        const int SPI_SETWORKAREA = 0x002F;
+        if (msg is WM_DISPLAYCHANGE or WM_EXITSIZEMOVE || msg == WM_SETTINGCHANGE && wParam.ToInt64() == SPI_SETWORKAREA)
+            QueueWorkAreaFit();
         return IntPtr.Zero;
     }
 
@@ -232,9 +277,24 @@ public partial class MainWindow : Window
         if (resetToHome && DataContext is MainViewModel vm) vm.ResetToHome();
         Show();
         WindowState = WindowState.Normal;
+        QueueWorkAreaFit();
         ShowInTaskbar = true;
         Activate();
         Topmost = true; Topmost = false;   // pull to front even if another window had focus
+    }
+
+    internal void RestartApp()
+    {
+        if (_exiting) return;
+        try { App.LaunchRestart(); }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            App.Log(ex);
+            MessageBox.Show(this, Localization.Loc.T("S_Settings_RestartFailed"),
+                Localization.Loc.T("S_Settings_Restart"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        ExitApp();
     }
 
     private void ExitApp()

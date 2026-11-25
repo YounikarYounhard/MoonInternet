@@ -4,6 +4,7 @@ import cc.moon.internet.core.Protocol
 import cc.moon.internet.core.ServerProfile
 import cc.moon.internet.core.XrayConfig
 import cc.moon.internet.core.freeLocalPort
+import cc.moon.internet.data.SupportDiagnostics
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,6 +18,18 @@ import org.junit.Test
  * Runs on the JVM (no device), so `gradlew testReleaseUnitTest` catches these before an install.
  */
 class CoreLogicTest {
+
+    @Test
+    fun `support diagnostics export only allowlisted event names`() {
+        assertEquals(
+            "00:00:01 tunnel.requested\n00:00:03 subscription.failed",
+            SupportDiagnostics.summarize(listOf(
+                "00:00:03  подписка: private.example не обновилась: vless://secret",
+                "00:00:02  адрес: https://secret.invalid/?id=private",
+                "00:00:01  туннель: поднимаю: secret-token",
+            )),
+        )
+    }
 
     private fun server(
         protocol: Protocol = Protocol.TROJAN,
@@ -33,6 +46,35 @@ class CoreLogicTest {
     private fun firstTrafficRule(cfg: JSONObject): JSONObject {
         val rules = cfg.getJSONObject("routing").getJSONArray("rules")
         return (0 until rules.length()).map(rules::getJSONObject).first { it.optString("outboundTag") != "dns-out" }
+    }
+
+    @Test
+    fun `json subscription keeps backup and rewrites provider input`() {
+        val text = """
+            {
+              "servers": [{
+                "remarks": "Failover",
+                "inbounds": [{"tag":"panel-socks","port":19081,"protocol":"socks","listen":"0.0.0.0"}],
+                "outbounds": [
+                  {"tag":"proxy","protocol":"vless","settings":{"vnext":[{"address":"a.example","port":443,"users":[{"id":"11111111-2222-4333-8444-555555555555","encryption":"none"}]}]}},
+                  {"tag":"backup","protocol":"vless","settings":{"vnext":[{"address":"b.example","port":443,"users":[{"id":"11111111-2222-4333-8444-555555555555","encryption":"none"}]}]}}
+                ],
+                "routing": {"balancers":[{"tag":"auto","selector":["proxy","backup"]}],
+                           "rules":[{"type":"field","inboundTag":["panel-socks"],"balancerTag":"auto"}]}
+              }]
+            }
+        """.trimIndent()
+        val profile = cc.moon.internet.core.SubscriptionParser.parse("\uFEFF$text").servers.single()
+        assertEquals("Failover", profile.name)
+        assertEquals("a.example", profile.address)
+        assertTrue(profile.isJson)
+        assertTrue(profile.key != profile.copy(name = "Alternate route").key)
+        val config = JSONObject(XrayConfig.build(profile))
+        assertFalse(config.getJSONArray("inbounds").toString().contains("19081"))
+        assertTrue(config.getJSONArray("outbounds").toString().contains("backup"))
+        val routing = config.getJSONObject("routing")
+        assertEquals(1, routing.getJSONArray("balancers").length())
+        assertTrue(routing.getJSONArray("rules").toString().contains("""["socks-in","tun-in"]"""))
     }
 
     // ---- DNS: one handshake per lookup is what got the foreign servers banned -----------
@@ -134,6 +176,10 @@ class CoreLogicTest {
             sni = "h.example", obfsPassword = "sala", extra = mapOf("up" to "50", "down" to "200"),
         )
         val cfg = JSONObject(cc.moon.internet.core.SingBoxHy2Config.build(s, 1092))
+        val resolver = cfg.getJSONObject("dns").getJSONArray("servers").getJSONObject(0)
+        assertEquals("udp", resolver.getString("type"))
+        assertEquals("1.1.1.1", resolver.getString("server"))
+        assertEquals("dns-direct", cfg.getJSONObject("route").getString("default_domain_resolver"))
         val proxy = cfg.getJSONArray("outbounds").getJSONObject(0)
         assertEquals("hysteria2", proxy.getString("type"))
         assertEquals("pw", proxy.getString("password"))

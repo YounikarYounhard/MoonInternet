@@ -77,6 +77,25 @@
     <s:String x:Key="S_SettingsView_016">Diagnostics and journals</s:String>
     <s:String x:Key="S_SettingsView_017">About</s:String>
     <s:String x:Key="S_SettingsView_018">Versions, links, system</s:String>
+    <s:String x:Key="S_Settings_Support">Support</s:String>
+    <s:String x:Key="S_Settings_SupportFailed">Couldn't prepare the report or open GitHub.</s:String>
+    <s:String x:Key="S_Support_Description">Describe the problem or add a screenshot</s:String>
+    <s:String x:Key="S_Support_ChooseScreenshot">Choose screenshot</s:String>
+    <s:String x:Key="S_Support_RemoveScreenshot">Remove screenshot</s:String>
+    <s:String x:Key="S_Support_Screenshot">Screenshot</s:String>
+    <s:String x:Key="S_Support_IncludeDiagnostics">Include diagnostic events</s:String>
+    <s:String x:Key="S_Support_Public">GitHub reports are public. Check your description and screenshot for personal data, keys, and subscription links.</s:String>
+    <s:String x:Key="S_Support_Preparing">Preparing report…</s:String>
+    <s:String x:Key="S_Support_OpenIssue">Open GitHub</s:String>
+    <s:String x:Key="S_Support_InvalidScreenshot">Couldn't read this screenshot. Choose a PNG or JPEG up to 10 MB.</s:String>
+    <s:String x:Key="S_Support_ScreenshotOnly">The screenshot shows the problem.</s:String>
+    <s:String x:Key="S_Support_Diagnostics">Diagnostics</s:String>
+    <s:String x:Key="S_Support_Paste">Paste the copied text into the new issue description on GitHub.</s:String>
+    <s:String x:Key="S_Support_PasteWithScreenshot">Paste the copied text and attach your selected screenshot on GitHub.</s:String>
+    <s:String x:Key="S_Support_BrowserHint">Paste the prepared text in your browser. You can attach a screenshot in the GitHub form.</s:String>
+    <s:String x:Key="S_Settings_Restart">Restart the app</s:String>
+    <s:String x:Key="S_Settings_RestartWarning">Moon Internet will close completely and reopen. Any active VPN connection will disconnect.</s:String>
+    <s:String x:Key="S_Settings_RestartFailed">Couldn't restart Moon Internet.</s:String>
     <s:String x:Key="S_SettingsView_019">FONT</s:String>
 
     <!-- Settings: connection -->
@@ -305,6 +324,7 @@
     <s:String x:Key="S_MainWindow_020">Add</s:String>
     <s:String x:Key="S_MainWindow_021">Connection configuration</s:String>
     <s:String x:Key="S_MainWindow_022">Close</s:String>
+    <s:String x:Key="S_MainWindow_Minimize">Minimize</s:String>
     <s:String x:Key="S_MainWindow_023">Copy</s:String>
     <s:String x:Key="S_MainWindow_024">Ping</s:String>
     <s:String x:Key="S_MainWindow_Stability">Real ping</s:String>
@@ -443,6 +463,8 @@
     <s:String x:Key="S_VM_230">Pick a server</s:String>
     <s:String x:Key="S_VM_231">xray core not found (cores folder)</s:String>
     <s:String x:Key="S_VM_232">Cancelled</s:String>
+    <s:String x:Key="S_VM_ConnectFailed">Could not connect</s:String>
+    <s:String x:Key="S_VM_ConnectNeedsEncryption">This server needs TLS, REALITY, or VLESS encryption. Ask your provider for an updated link.</s:String>
     <s:String x:Key="S_VM_233">Routing downloaded — applying…</s:String>
     <s:String x:Key="S_VM_234">The moon is drifting off…</s:String>
     <s:String x:Key="S_VM_235">xray core not found</s:String>

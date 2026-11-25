@@ -39,7 +39,9 @@ public static class ServerKey
         // Not lower-cased: a UUID is hex either way, but a trojan password is a password.
         string cred = p.Id is { Length: > 0 } id ? id : p.Password ?? "";
         string host = p.Address.ToLowerInvariant();
-        return cred.Length > 0 ? $"{p.Protocol}:{cred}@{host}:{p.Port}" : $"{p.Protocol}:{host}:{p.Port}";
+        var key = cred.Length > 0 ? $"{p.Protocol}:{cred}@{host}:{p.Port}" : $"{p.Protocol}:{host}:{p.Port}";
+        // Full profiles can share the primary endpoint and still carry different named route sets.
+        return p.IsJson ? key + "#json:" + p.Name : key;
     }
 
     /// <summary>

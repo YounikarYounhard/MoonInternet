@@ -9,14 +9,16 @@ package cc.moon.internet.core
  */
 object SubscriptionParser {
 
-    data class Result(val servers: List<ServerProfile>, val announcement: String)
+    data class Result(val servers: List<ServerProfile>, val announcement: String, val isJson: Boolean = false)
 
     private val placeholderHosts = setOf(
         "", "127.0.0.1", "localhost", "0.0.0.0", "::1", "example.com", "example.org"
     )
 
     fun parse(body: String): Result {
-        val text = decodeIfBase64(body)
+        val text = decodeIfBase64(body).trimStart('\uFEFF').trimStart()
+        if (text.startsWith('[') || text.startsWith('{'))
+            return Result(XraySubscription.parse(text).distinctBy { it.key }, "", isJson = true)
         val servers = mutableListOf<ServerProfile>()
         val notes = mutableListOf<String>()
 
@@ -38,7 +40,7 @@ object SubscriptionParser {
                 } else servers += p
             }
 
-        return Result(servers, notes.joinToString("\n"))
+        return Result(servers.distinctBy { it.key }, notes.joinToString("\n"))
     }
 
     /** Extracts happ:// or incy:// routing links found in the body. */
@@ -49,12 +51,12 @@ object SubscriptionParser {
             .toList()
 
     private fun decodeIfBase64(body: String): String {
-        val t = body.trim()
+        val t = body.trim().trimStart('\uFEFF').trimStart()
         // A links list always contains "://" in the clear; otherwise assume base64.
         if (t.contains("://")) return t
         return try {
-            val decoded = String(ShareLinkParser.b64(t))
-            if (decoded.contains("://")) decoded else t
+            val decoded = String(ShareLinkParser.b64(t), Charsets.UTF_8).trimStart('\uFEFF').trimStart()
+            if (decoded.contains("://") || decoded.startsWith('[') || decoded.startsWith('{')) decoded else t
         } catch (_: Exception) { t }
     }
 }

@@ -37,6 +37,8 @@ class MoonVpnService : VpnService() {
         const val EXTRA_AWG = "awg"
         /** The Hysteria2 share link, when the chosen server is one — sing-box carries those. */
         const val EXTRA_HY2 = "hy2"
+        /** AmneziaWG carries the TUN itself (fast, no routing) rather than sitting behind xray. */
+        const val EXTRA_AWG_DIRECT = "awgDirect"
         const val ACTION_RECONNECT = "cc.moon.internet.RECONNECT"
         const val ACTION_PING = "cc.moon.internet.PING"
         const val ACTION_PAUSE = "cc.moon.internet.PAUSE"
@@ -48,6 +50,8 @@ class MoonVpnService : VpnService() {
         @Volatile private var lastTun: Boolean = true
         @Volatile private var lastZapret: String? = null
         @Volatile private var lastAwg: String? = null
+        @Volatile private var lastHy2: String? = null
+        @Volatile private var lastAwgDirect: Boolean = true
         @Volatile private var lastAppMode: String = "off"
         @Volatile private var lastApps: List<String> = emptyList()
 
@@ -118,6 +122,7 @@ class MoonVpnService : VpnService() {
             zapretStrategy: String? = null,
             awgConfig: String? = null,
             hy2Link: String? = null,
+            awgDirect: Boolean = true,
         ) {
             androidx.core.content.ContextCompat.startForegroundService(
                 ctx,
@@ -132,6 +137,7 @@ class MoonVpnService : VpnService() {
                 putExtra(EXTRA_ZAPRET, zapretStrategy)
                 putExtra(EXTRA_AWG, awgConfig)
                 putExtra(EXTRA_HY2, hy2Link)
+                putExtra(EXTRA_AWG_DIRECT, awgDirect)
             },
             )
         }
@@ -143,6 +149,17 @@ class MoonVpnService : VpnService() {
                 androidx.core.content.ContextCompat.startForegroundService(
                     ctx, Intent(ctx, MoonVpnService::class.java).apply { action = ACTION_DISCONNECT })
             }
+        }
+
+        suspend fun stopForRestart(ctx: Context) {
+            val service = current
+            if (service != null) {
+                service.intentionalStop = true
+                service.scope.cancel()
+                withTimeoutOrNull(3000) { service.scope.coroutineContext.job.join() }
+            }
+            ctx.stopService(Intent(ctx, MoonVpnService::class.java))
+            withTimeoutOrNull(5000) { service?.destroyed?.await() }
         }
     }
 
@@ -162,9 +179,10 @@ class MoonVpnService : VpnService() {
     private var lastRx = -1L
     private val singBox by lazy { SingBoxRunner(this) }
     private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
-    private var currentNetwork: android.net.Network? = null
+    @Volatile private var currentNetwork: android.net.Network? = null
     // see the companion: one clock, shared with the UI
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val destroyed = CompletableDeferred<Unit>()
 
     override fun onCreate() {
         super.onCreate()
@@ -189,7 +207,7 @@ class MoonVpnService : VpnService() {
                 val cfg = lastConfig
                 if (cfg.isNullOrBlank()) { stopSelf(); return START_NOT_STICKY }
                 // a paused tunnel closed its fd; startTunnel builds a fresh one
-                startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret, lastAwg)
+                startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret, lastAwg, lastHy2, lastAwgDirect)
             }
 
             ACTION_PING -> {
@@ -211,6 +229,7 @@ class MoonVpnService : VpnService() {
                     intent.getStringExtra(EXTRA_ZAPRET),
                     intent.getStringExtra(EXTRA_AWG),
                     intent.getStringExtra(EXTRA_HY2),
+                    intent.getBooleanExtra(EXTRA_AWG_DIRECT, true),
                 )
             }
         }
@@ -220,6 +239,7 @@ class MoonVpnService : VpnService() {
     private fun startTunnel(
         config: String, profileName: String, mtu: Int, appMode: String, apps: List<String>,
         tun: Boolean = true, zapret: String? = null, awg: String? = null, hy2: String? = null,
+        awgDirect: Boolean = true,
     ) {
         cc.moon.internet.data.DevLog.log("туннель", "поднимаю: $profileName")
         _state.value = State.Connecting
@@ -230,6 +250,9 @@ class MoonVpnService : VpnService() {
         awgHandshake.value = 0
         lastConfig = config; lastProfile = profileName; lastMtu = mtu
         lastTun = tun; lastAppMode = appMode; lastApps = apps; lastZapret = zapret; lastAwg = awg
+        // Hysteria2 too: a reconnect — the notification's Старт after a pause, the auto-reconnect —
+        // was redone without it, so sing-box never came back and the tunnel carried nothing.
+        lastHy2 = hy2; lastAwgDirect = awgDirect
         startForeground(NOTIFICATION_ID, notification(profileName, connecting = true))
 
         // One connect at a time. Tapping through the server list hunting for a working one sends
@@ -262,8 +285,12 @@ class MoonVpnService : VpnService() {
                 // Proxy mode runs the core with no TUN: only the local SOCKS/HTTP listeners, and
                 // no VPN interface — the same shape INCY's ProxyOnlyService has, which is an
                 // ordinary foreground service rather than a VpnService.
+                // AmneziaWG on the TUN directly only while no routing is asked for: then the engine
+                // takes the packets itself and nothing can sort them. With routing on it sits behind
+                // xray as a SOCKS outbound, like in proxy mode, and every rule applies.
+                val direct = wg != null && awgDirect
                 val fd = if (tun) {
-                    establish(profileName, mtu, appMode, apps, wg)
+                    establish(profileName, mtu, appMode, apps, if (direct) wg else null)
                         ?: run { askForVpnSlot(); return@launch }
                 } else null
                 tunFd = fd
@@ -283,7 +310,7 @@ class MoonVpnService : VpnService() {
                 // Without one (proxy mode) awgproxy is a SOCKS listener that xray's outbound
                 // dials, so it has to be listening before the core starts — same order as byedpi.
                 if (wg != null) {
-                    awgRunner.start(wg, fd)?.let { why ->
+                    awgRunner.start(wg, if (direct) fd else null)?.let { why ->
                         lastError.value = why
                         _state.value = State.Disconnected; stopTunnel(); return@launch
                     }
@@ -305,7 +332,7 @@ class MoonVpnService : VpnService() {
                 }
 
                 intentionalStop = false
-                awgTun = wg?.takeIf { fd != null }
+                awgTun = wg?.takeIf { fd != null && direct }
                 lastRx = -1L; lastRxAt = System.currentTimeMillis()
                 if (awgTun == null) {
                     runner = XrayRunner(this@MoonVpnService) { onCoreDropped() }
@@ -313,6 +340,7 @@ class MoonVpnService : VpnService() {
                 }
 
                 connectedAt = System.currentTimeMillis()
+                watchValidation()
                 _state.value = State.Connected
                 // One measurement straight away: the ping line used to stay empty until the
                 // notification's own button was pressed.
@@ -331,7 +359,6 @@ class MoonVpnService : VpnService() {
                 throw e
             } catch (e: Throwable) {
                 android.util.Log.e("MoonVpn", "connect failed", e)
-                android.util.Log.e("MoonVpn", "config was:\n$config")
                 lastError.value = "Не удалось подключиться: ${e.message ?: e.javaClass.simpleName}"
                 stopTunnel()
             }
@@ -493,7 +520,11 @@ class MoonVpnService : VpnService() {
             // its own «Проверить», aimed at a site that is actually blocked.
             // Skipped while traffic is arriving: that already proves the link, and a probe then is
             // a handshake to the server for nothing.
-            if (tick % 60 == 30 && lastZapret == null && runner != null &&
+            // While the shade is warning, every ten seconds instead: out of airplane mode, mobile
+            // data still coming up, "не работает" — and it stayed that way for a minute after the
+            // link was fine, until the Пинг button was pressed.
+            val warning = linkDead.value || noNetwork.value
+            if ((tick % 60 == 30 || (warning && tick % 10 == 5)) && lastZapret == null && runner != null &&
                 System.currentTimeMillis() - lastRxAt > 20_000) scope.launch {
                 runCatching { judgeLink() }
             }
@@ -549,6 +580,8 @@ class MoonVpnService : VpnService() {
      *    can, so the tunnel is still fine and a reconnect would be a break we caused ourselves.
      *    Losing the one we were using is the only event that actually kills it.
      */
+    private var roamJob: kotlinx.coroutines.Job? = null
+
     private fun watchNetwork() {
         stopWatchingNetwork()
         val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
@@ -556,27 +589,44 @@ class MoonVpnService : VpnService() {
             .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
             .build()
+        val validated = linkedMapOf<android.net.Network, android.net.NetworkCapabilities>()
+        var seenNetwork = false
         val callback = object : android.net.ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: android.net.Network) {
-                // Remember the first real network we see; a second one appearing beside it changes
-                // nothing for a socket that is already open.
-                if (currentNetwork == null) currentNetwork = network
+            override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) {
+                if (caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)) validated[network] = caps
+                else validated.remove(network)
+                reevaluate()
             }
 
             override fun onLost(network: android.net.Network) {
-                if (network != currentNetwork) return
-                currentNetwork = null
-                scope.launch {
-                    // Let the replacement settle: right after a loss there is often nothing to
-                    // bind to yet, and reconnecting into nothing only burns an attempt.
-                    kotlinx.coroutines.delay(1500)
-                    if (_state.value != State.Connected || lastAwg == null) return@launch
-                    currentNetwork = cm.activeNetwork?.takeIf { net ->
-                        cm.getNetworkCapabilities(net)
-                            ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN) == true
-                    }
-                    android.util.Log.i("MoonVpn", "awg roam: network changed, reconnecting")
-                    onCoreDropped()
+                validated.remove(network)
+                reevaluate()
+            }
+
+            private fun reevaluate() {
+                val next = validated.keys.firstOrNull { it == cm.activeNetwork }
+                    ?: validated.entries.firstOrNull { (_, caps) ->
+                        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                            caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)
+                    }?.key
+                    ?: validated.keys.firstOrNull()
+                if (next == currentNetwork) return
+                currentNetwork = next
+                roamJob?.cancel()
+                if (next == null) return
+
+                val replace = seenNetwork
+                seenNetwork = true
+                if (!replace) return
+
+                roamJob = scope.launch {
+                    delay(1500)
+                    val cfg = lastConfig ?: return@launch
+                    val awg = lastAwg ?: return@launch
+                    if (_state.value != State.Connected || currentNetwork != next || intentionalStop) return@launch
+                    cc.moon.internet.data.DevLog.log("туннель", "AmneziaWG: сеть сменилась, восстанавливаю соединение")
+                    roamJob = null
+                    startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret, awg, lastHy2, lastAwgDirect)
                 }
             }
         }
@@ -585,6 +635,8 @@ class MoonVpnService : VpnService() {
     }
 
     private fun stopWatchingNetwork() {
+        roamJob?.cancel()
+        roamJob = null
         networkCallback?.let { cb ->
             runCatching {
                 getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb)
@@ -594,9 +646,45 @@ class MoonVpnService : VpnService() {
         currentNetwork = null
     }
 
+    /**
+     * Asks again the moment the phone's own network is usable — validated by Android, which is
+     * "the internet answers", not merely "a network appeared". Only while the shade is warning:
+     * otherwise there is nothing to correct.
+     */
+    private var validationCallback: android.net.ConnectivityManager.NetworkCallback? = null
+
+    private fun watchValidation() {
+        stopWatchingValidation()
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val request = android.net.NetworkRequest.Builder()
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
+        val cb = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) {
+                if (!caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)) return
+                if (!(linkDead.value || noNetwork.value) || _state.value != State.Connected) return
+                scope.launch {
+                    delay(1500)   // let the core redial over it first
+                    runCatching { judgeLink() }
+                    runCatching { updateNotification(_activeProfile.value.orEmpty(), connecting = false) }
+                }
+            }
+        }
+        runCatching { cm.registerNetworkCallback(request, cb) }.onSuccess { validationCallback = cb }
+    }
+
+    private fun stopWatchingValidation() {
+        validationCallback?.let { cb ->
+            runCatching { getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
+        }
+        validationCallback = null
+    }
+
     private fun stopCore() {
         intentionalStop = true
         stopWatchingNetwork()
+        stopWatchingValidation()
         runCatching { byedpi.stop() }
         runCatching { awgRunner.stop() }
         runCatching { singBox.stop() }
@@ -632,7 +720,7 @@ class MoonVpnService : VpnService() {
                 repeat(5) {
                     kotlinx.coroutines.delay(st.reconnectDelaySec.coerceIn(1, 60) * 1000L)
                     if (intentionalStop) return@launch
-                    startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret, lastAwg)
+                    startTunnel(cfg, lastProfile, lastMtu, lastAppMode, lastApps, lastTun, lastZapret, lastAwg, lastHy2, lastAwgDirect)
                     // startTunnel is itself async; give it room to land before judging it
                     kotlinx.coroutines.delay(6000)
                     if (_state.value == State.Connected) return@launch
@@ -674,7 +762,16 @@ class MoonVpnService : VpnService() {
     }
 
     override fun onRevoke() { stopTunnel() }          // user disabled the VPN from system settings
-    override fun onDestroy() { current = null; stopCore(); scope.cancel(); super.onDestroy() }
+    override fun onDestroy() {
+        current = null
+        scope.cancel()
+        try {
+            stopCore()
+        } finally {
+            super.onDestroy()
+            destroyed.complete(Unit)
+        }
+    }
 
     // ---- notification ----------------------------------------------------
     /**

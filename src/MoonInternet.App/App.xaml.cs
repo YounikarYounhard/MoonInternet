@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Threading;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 using MoonInternet.App.Models;
@@ -10,6 +11,7 @@ public partial class App : Application
 {
     private static readonly string LogPath = MoonInternet.Core.AppPaths.In("error.log");
     private const string InstanceKey = "MoonInternet.SingleInstance.v1";
+    private const string RestartArgument = "--restart-after";
     private Mutex? _instanceMutex;
     private EventWaitHandle? _showSignal;
     private MainWindow? _window;
@@ -25,6 +27,17 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Opening the mutex before the old process exits would only wake the old window.
+        if (e.Args is [RestartArgument, var pid] && int.TryParse(pid, out var previousPid)
+            && !WaitForPreviousInstance(previousPid))
+        {
+            Localization.Loc.Apply(Localization.Loc.Resolve(AppSettings.Load().Language));
+            MessageBox.Show(Localization.Loc.T("S_Settings_RestartFailed"),
+                Localization.Loc.T("S_Settings_Restart"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            Shutdown();
+            return;
+        }
+
         // Single instance: if a Moon Internet is already running (even hidden in the tray), wake ITS window and
         // quit this launch — no duplicate app, no second tunnel/connection.
         _instanceMutex = new Mutex(true, InstanceKey, out bool isFirst);
@@ -51,6 +64,27 @@ public partial class App : Application
         _window = new MainWindow();
         MainWindow = _window;
         _window.Show();
+    }
+
+    internal static void LaunchRestart()
+    {
+        var executable = Environment.ProcessPath ?? throw new InvalidOperationException("No application path.");
+        var start = new ProcessStartInfo(executable);
+        if (Path.GetFileNameWithoutExtension(executable).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+            start.ArgumentList.Add(typeof(App).Assembly.Location);
+        start.ArgumentList.Add(RestartArgument);
+        start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start the application.");
+    }
+
+    private static bool WaitForPreviousInstance(int pid)
+    {
+        try
+        {
+            using var previous = Process.GetProcessById(pid);
+            return previous.WaitForExit(30_000);
+        }
+        catch (ArgumentException) { return true; } // Already exited.
     }
 
     private void OnDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)

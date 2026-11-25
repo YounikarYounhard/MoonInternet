@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,6 +47,24 @@ import cc.moon.internet.R
  * The desktop's shared XAML styles, one Composable each. Sizes and paddings are copied from
  * App.xaml / SettingsView.xaml so a screen ported from XAML lines up without re-tuning.
  */
+
+@Composable
+fun SubscriptionImage(encoded: String?, modifier: Modifier, maxEdge: Int) {
+    val picture = remember(encoded, maxEdge) {
+        if (encoded == null || encoded.length > 700_000) null else runCatching {
+            val bytes = android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+            val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+            val size = maxOf(options.outWidth, options.outHeight)
+            if (size <= 0 || size > 8192) return@runCatching null
+            options.inSampleSize = Integer.highestOneBit((size / maxEdge).coerceAtLeast(1))
+            options.inJustDecodeBounds = false
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.asImageBitmap()
+        }.getOrNull()
+    }
+    if (picture != null)
+        androidx.compose.foundation.Image(picture, null, modifier, contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+}
 
 /** One place for the version, fed by versionName in build.gradle.kts. */
 val APP_VERSION: String get() = cc.moon.internet.BuildConfig.VERSION_NAME

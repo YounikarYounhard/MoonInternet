@@ -3,6 +3,7 @@ package cc.moon.internet.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
 import cc.moon.internet.R
 import cc.moon.internet.core.*
 import cc.moon.internet.data.GeoService
@@ -322,7 +323,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         // the tunnel reports failures on its own thread — surface them instead of silently going dark
-        viewModelScope.launch { vpnError.filterNotNull().collect { _status.value = it } }
+        viewModelScope.launch {
+            vpnError.filterNotNull().collect {
+                cc.moon.internet.data.DevLog.log("туннель", it)
+                _status.value = when {
+                    it.contains("vless without TLS or other encryption is prohibited", ignoreCase = true) ||
+                        it.contains("trojan without TLS is prohibited", ignoreCase = true) ->
+                        s(R.string.vm_connect_needs_encryption)
+                    store.state.value.devMode -> it
+                    else -> s(R.string.vm_tunnel_failed)
+                }
+            }
+        }
         viewModelScope.launch { autoPingLoop() }
         viewModelScope.launch { autoUpdateSubsLoop() }
         // The filter is remembered across runs, so a stale one survives a rename or a deleted
@@ -421,7 +433,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (u.isBlank()) return@launch
         // a bare share link is a single server, not a subscription
         if (!u.startsWith("http", true)) {
-            ShareLinkParser.parse(u)?.let { p ->
+            (WireGuardParser.parseProfile(u) ?: ShareLinkParser.parse(u) ?: SubscriptionParser.parse(u).servers.singleOrNull())?.let { p ->
                 store.update { st ->
                     // One bucket for everything pasted or scanned by hand. Every paste used to mint
                     // its own pseudo-subscription, so five links drew five cards each holding one
@@ -447,12 +459,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val wasKnown = store.state.value.subscriptions.any { it.url == u }
         runCatching { SubscriptionService.fetch(u, hwidHeader()) }
             .onSuccess { f ->
+                if (f.servers.isEmpty()) {
+                    _status.value = s(R.string.vm_sub_empty)
+                    _busy.value = false
+                    return@launch
+                }
                 store.update { st ->
                     val sub = Subscription(
                         url = u,
                         name = name.ifBlank { f.title ?: hostOf(u) },
                         servers = f.servers,
                         announcement = f.announcement,
+                        isJson = f.isJson,
+                        icon = f.icon,
+                        headerImage = f.headerImage,
                         trafficText = f.trafficText,
                         expiryText = f.expiryText,
                         trafficFraction = f.trafficFraction,
@@ -479,7 +499,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 warnAboutSubscription(f.title ?: hostOf(u), u, f)
                 pingAll()
             }
-            .onFailure { _status.value = s(R.string.vm_load_error, it.message) }
+            .onFailure {
+                cc.moon.internet.data.DevLog.log("подписка", "${hostOf(u)}: ${it.javaClass.simpleName}")
+                _status.value = s(R.string.vm_sub_update_failed)
+            }
         _busy.value = false
     }
 
@@ -549,12 +572,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // its own portal page, the fetch "succeeds", nothing parses out of it — and writing
             // that down replaces a working subscription with an empty one. Which is what losing
             // every server on a flaky network looks like from the inside. Keep what we had.
-            if (f.servers.isEmpty() && store.state.value.subscriptions
-                    .firstOrNull { it.url == u }?.servers?.isNotEmpty() == true) {
+            if (f.servers.isEmpty()) {
                 cc.moon.internet.data.DevLog.log(
                     "подписка", "${hostOf(u)}: ответ без серверов — оставляю прежние")
-                _status.value = s(R.string.vm_sub_empty)
-                return@onSuccess
+                return false
             }
             store.update { st ->
                 st.copy(subscriptions = st.subscriptions.map {
@@ -566,6 +587,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         // behaves this way.
                         servers = f.servers,
                         announcement = f.announcement,
+                        isJson = f.isJson,
+                        icon = f.icon,
+                        headerImage = f.headerImage,
                         trafficText = f.trafficText,
                         expiryText = f.expiryText,
                         trafficFraction = f.trafficFraction,
@@ -585,7 +609,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }.onFailure {
             // A background refresh says nothing on screen, so the log is the only trace. Without it
             // a subscription that had quietly stopped updating looked exactly like a current one.
-            cc.moon.internet.data.DevLog.log("подписка", "${hostOf(u)} не обновилась: ${it.message ?: it.javaClass.simpleName}")
+            cc.moon.internet.data.DevLog.log("подписка", "${hostOf(u)} не обновилась: ${it.javaClass.simpleName}")
         }.isSuccess
 
     /**
@@ -1251,6 +1275,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // Hysteria2 likewise: xray's own implementation does not survive РФ filtering, so
             // sing-box carries it and the core only dials into it.
             hy2Link = if (s.protocol == cc.moon.internet.core.Protocol.HYSTERIA2) s.raw else null,
+            // Routing on → AmneziaWG behind xray, so the rules apply; off → straight on the TUN.
+            awgDirect = !(st.useRouting && store.activeRouting() != null),
         )
     }
 
@@ -1350,6 +1376,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun disconnect() {
         MoonVpnService.lastError.value = null      // a stopped tunnel is not a failure
         MoonVpnService.stop(getApplication())
+    }
+
+    suspend fun prepareForRestart() {
+        viewModelScope.cancel()
+        store.waitForWrites()
     }
 
     // ---- live counters ---------------------------------------------------

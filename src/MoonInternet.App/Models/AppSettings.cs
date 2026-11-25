@@ -10,6 +10,9 @@ public sealed class CachedSub
     public string Url { get; set; } = "";
     public string Name { get; set; } = "";
     public string Announcement { get; set; } = "";
+    public bool IsJson { get; set; }
+    public byte[]? Icon { get; set; }
+    public byte[]? HeaderImage { get; set; }
     public string TrafficText { get; set; } = "—";
     public string ExpiryText { get; set; } = "∞";
     public List<string> Links { get; set; } = new();

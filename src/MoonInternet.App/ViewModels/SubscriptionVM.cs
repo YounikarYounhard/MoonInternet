@@ -2,6 +2,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.IO;
+using System.Windows.Media.Imaging;
 using System.Windows;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -17,6 +19,40 @@ public partial class SubscriptionVM : ObservableObject
     public ObservableCollection<ServerItem> Servers { get; } = new();
     public ICollectionView ServersView { get; }
     public IReadOnlyList<RoutingProfile> Routing { get; private set; } = Array.Empty<RoutingProfile>();
+
+    public byte[]? IconBytes { get; private set; }
+    public byte[]? HeaderBytes { get; private set; }
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasIcon))] private BitmapSource? icon;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasHeaderImage))] private BitmapSource? headerImage;
+    public bool HasIcon => Icon is not null;
+    public bool HasHeaderImage => HeaderImage is not null;
+
+    public void SetArtwork(byte[]? icon, byte[]? header)
+    {
+        IconBytes = icon;
+        HeaderBytes = header;
+        Icon = Decode(icon, 64);
+        HeaderImage = Decode(header, 960);
+    }
+
+    private static BitmapSource? Decode(byte[]? bytes, int width)
+    {
+        if (bytes is not { Length: > 0 and <= 524288 }) return null;
+        try
+        {
+            using var stream = new MemoryStream(bytes, writable: false);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.DecodePixelWidth = width;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch (Exception ex) when (ex is IOException or NotSupportedException or ArgumentException)
+        { return null; }
+    }
 
     [ObservableProperty] private string name;
     [ObservableProperty] private string trafficText = "—";
@@ -126,6 +162,10 @@ public partial class SubscriptionVM : ObservableObject
     /// </summary>
     public bool IsLoose => Url.StartsWith("clipboard:", StringComparison.Ordinal);
     public bool IsSubscription => !IsLoose;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(DisplayName))] private bool isJson;
+    public string DisplayName => (IsJson || Servers.Any(s => s.Profile.IsJson)) ? $"{Name} · JSON" : Name;
+
+    partial void OnNameChanged(string value) => OnPropertyChanged(nameof(DisplayName));
 
     /// <summary>
     /// What the red line in the ⋯ menu says. A subscription is unsubscribed from; «Мои
@@ -157,19 +197,23 @@ public partial class SubscriptionVM : ObservableObject
         // Every row is rebuilt here, so anything measured would go with it — and a subscription
         // that refreshes on a timer would blank the whole column of numbers each time it did.
         var lastPing = Servers.Where(x => x.FavKey is not null)
-                              .ToDictionary(x => x.FavKey!, x => x.Ping);
+                              .GroupBy(x => x.FavKey!)
+                              .ToDictionary(g => g.Key, g => g.First().Ping);
         Servers.Clear();
         var ann = new List<string>();
         int order = 0;
+        var seen = new HashSet<string>();
         foreach (var p in profiles)
         {
             if (IsAnnouncement(p)) { if (!string.IsNullOrWhiteSpace(p.Name)) ann.Add(p.Name.Trim()); continue; }
+            if (!seen.Add(ServerKey.Of(p))) continue;
             var item = new ServerItem(p) { SubscriptionName = Name, Order = order++ };
             item.IsFavorite = FavoriteLookup?.Invoke(item.FavKey) ?? false;
             if (item.FavKey is { } k && lastPing.TryGetValue(k, out var ms)) item.Ping = ms;
             Servers.Add(item);
         }
         Announcement = string.Join("\n", ann);
+        OnPropertyChanged(nameof(DisplayName));
     }
 
     /// <summary>Panel welcome/notice from the <c>Announce</c> HTTP header. Overrides the fake-node text when non-empty.</summary>
@@ -229,11 +273,10 @@ internal static class ServerComparers
     /// The server the tunnel is currently running on, or null. Set by the view model; every mode
     /// puts it first, because that is the row you go looking for while it is live.
     /// </summary>
-    public static string? ActiveRaw;
+    public static ServerItem? ActiveRow;
     private static int Active(ServerItem x, ServerItem y)
     {
-        if (ActiveRaw is null) return 0;
-        return (y.FavKey == ActiveRaw).CompareTo(x.FavKey == ActiveRaw);
+        return ReferenceEquals(y, ActiveRow).CompareTo(ReferenceEquals(x, ActiveRow));
     }
 
     public static readonly IComparer ByDefault = Comparer<object>.Create((a, b) =>

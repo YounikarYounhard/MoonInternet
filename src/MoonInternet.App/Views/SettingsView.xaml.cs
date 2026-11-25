@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using MoonInternet.App.Localization;
 
 namespace MoonInternet.App.Views;
 
@@ -10,6 +11,19 @@ public partial class SettingsView : UserControl
     {
         InitializeComponent();
         IsVisibleChanged += (_, e) => { if (e.NewValue is true) ResetScroll(); };
+    }
+
+    private void OpenSupport_Click(object sender, RoutedEventArgs e)
+    {
+        if (Window.GetWindow(this) is Window owner) new SupportWindow(owner).ShowDialog();
+    }
+
+    private void Restart_Click(object sender, RoutedEventArgs e)
+    {
+        if (Window.GetWindow(this) is not MainWindow window) return;
+        var choice = MessageBox.Show(window, Loc.T("S_Settings_RestartWarning"), Loc.T("S_Settings_Restart"),
+            MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
+        if (choice == MessageBoxResult.OK) window.RestartApp();
     }
 
     /// <summary>

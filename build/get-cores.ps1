@@ -13,8 +13,9 @@ $cores  = Join-Path $root 'cores'
 $tmp    = Join-Path $env:TEMP "moon-cores-$(Get-Random)"
 New-Item -ItemType Directory -Force -Path $cores, $tmp | Out-Null
 
-function Get-Release([string]$repo, [string]$pattern) {
-    $api = "https://api.github.com/repos/$repo/releases/latest"
+function Get-Release([string]$repo, [string]$pattern, [string]$tag) {
+    $release = if ($tag) { "tags/$tag" } else { 'latest' }
+    $api = "https://api.github.com/repos/$repo/releases/$release"
     # Anonymous calls to the GitHub API are rate-limited per IP, and a CI runner shares its IP with
     # everybody else's builds — so on Actions this is the difference between working and a flat 403.
     # Locally there is usually no token and none is needed.
@@ -27,6 +28,9 @@ function Get-Release([string]$repo, [string]$pattern) {
     $out = Join-Path $tmp $asset.name
     Write-Host "  $repo $($rel.tag_name) -> $($asset.name)"
     Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $out -UseBasicParsing
+    if ($asset.digest -like 'sha256:*' -and (Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash -ne $asset.digest.Substring(7)) {
+        throw "$repo : SHA-256 mismatch for $($asset.name)"
+    }
     return $out
 }
 
@@ -39,11 +43,11 @@ try {
     Write-Host 'Fetching cores...' -ForegroundColor Cyan
 
     # xray-core — VLESS / VMess / Trojan / Shadowsocks + routing
-    $z = Get-Release 'XTLS/Xray-core' 'Xray-windows-64.zip'
+    $z = Get-Release 'XTLS/Xray-core' 'Xray-windows-64.zip' 'v26.11.9'
     Expand-Into $z (Join-Path $cores 'xray')
 
     # sing-box — TUN, Hysteria2, WireGuard
-    $z = Get-Release 'SagerNet/sing-box' '*windows-amd64.zip'
+    $z = Get-Release 'SagerNet/sing-box' 'sing-box-1.14.4-windows-amd64.zip' 'v1.14.4'
     $sb = Join-Path $tmp 'sb'; Expand-Into $z $sb
     $exe = Get-ChildItem $sb -Recurse -Filter 'sing-box.exe' | Select-Object -First 1
     New-Item -ItemType Directory -Force -Path (Join-Path $cores 'singbox') | Out-Null

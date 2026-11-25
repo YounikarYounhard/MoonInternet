@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using MoonInternet.Core;
 using MoonInternet.Core.Generation;
 using MoonInternet.Core.Models;
 using MoonInternet.Core.Parsing;
@@ -258,6 +259,13 @@ if (args.Length > 0)
 
 // Minimal assert-based self-check for the parsers (no test framework by design).
 int passed = 0, failed = 0;
+Check("support diagnostics export only allowlisted event names",
+    SupportDiagnostics.Summarize([
+        "00:00:03  подписка: private.example не обновилась: vless://secret",
+        "00:00:02  адрес: https://secret.invalid/?id=private",
+        "00:00:01  туннель: не поднялся (secret-token) — перешёл на системный прокси",
+    ]) == "00:00:01 tunnel.proxy_fallback\n00:00:03 subscription.failed");
+
 void Check(string name, bool ok)
 {
     if (ok) { passed++; }
@@ -341,6 +349,33 @@ Check("subscription order", sub[0].Name == "A" && sub[1].Name == "B");
 // --- Xray config generation ---
 JsonElement Root(string json) => JsonDocument.Parse(json).RootElement;
 JsonElement Proxy(JsonElement root) => root.GetProperty("outbounds")[0];
+
+// Xray files supplied by panels keep the failover outbounds and our own local listeners.
+var fullSubscription = """
+{
+  "servers": [{
+    "remarks": "Failover",
+    "inbounds": [{"tag":"panel-socks","port":19081,"protocol":"socks","listen":"0.0.0.0"}],
+    "outbounds": [
+      {"tag":"proxy","protocol":"vless","settings":{"vnext":[{"address":"a.example","port":443,"users":[{"id":"11111111-2222-4333-8444-555555555555","encryption":"none"}]}]}},
+      {"tag":"backup","protocol":"vless","settings":{"vnext":[{"address":"b.example","port":443,"users":[{"id":"11111111-2222-4333-8444-555555555555","encryption":"none"}]}]}}
+    ],
+    "routing": {"balancers":[{"tag":"auto","selector":["proxy","backup"]}],
+               "rules":[{"type":"field","inboundTag":["panel-socks"],"balancerTag":"auto"}]}
+  }]
+}
+""";
+var fullProfile = SubscriptionParser.Parse("\uFEFF" + fullSubscription).Single();
+var fullGenerated = Root(XrayConfigBuilder.Build(fullProfile, socksPort: 10819));
+Check("JSON subscription uses the main endpoint", fullProfile.IsJson && fullProfile.Name == "Failover" && fullProfile.Address == "a.example");
+Check("base64 JSON attachment is decoded", SubscriptionParser.Parse(B64(fullSubscription)).Count == 1);
+Check("named JSON routes may share one endpoint", ServerKey.Of(fullProfile) != ServerKey.Of(
+    SubscriptionParser.Parse(fullSubscription.Replace("Failover", "Alternate route")).Single()));
+Check("JSON copies backup and balancer", fullGenerated.GetProperty("outbounds").EnumerateArray().Any(o => o.GetProperty("tag").GetString() == "backup")
+    && fullGenerated.GetProperty("routing").GetProperty("balancers").GetArrayLength() == 1);
+Check("JSON listeners belong to Moon", fullGenerated.GetProperty("inbounds")[0].GetProperty("port").GetInt32() == 10819
+    && fullGenerated.GetProperty("routing").GetProperty("rules").EnumerateArray()
+        .Any(r => r.TryGetProperty("inboundTag", out var inbound) && inbound[0].GetString() == "socks-in"));
 
 // VLESS over XHTTP (packet-up) — the tricky new transport from the real subscription
 var xhttp = ShareLinkParser.Parse(

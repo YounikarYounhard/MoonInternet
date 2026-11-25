@@ -14,13 +14,10 @@
     Pure Go, no cgo: an android/arm64 build would need the NDK for nothing, and a linux/arm64
     binary runs on Android as it is. Only the QUIC tag is on — Hysteria2 is all this has to carry.
 
-    Usage:  powershell -ExecutionPolicy Bypass -File android\build-singbox.ps1 [-Tag v1.13.14]
+    Usage:  powershell -ExecutionPolicy Bypass -File android\build-singbox.ps1 [-Tag v1.14.4]
 #>
-#   The tag is bounded by the Go in the toolchain, not by taste: sing-box 1.13 needs Go 1.24, and
-#   asking a 1.23 to build it makes it reach for a newer toolchain over the network — which from
-#   here answers 403. 1.11.15 is what this toolchain builds, and its Hysteria2 is the same engine
-#   the desktop runs. Raise both together when Go gets updated.
-param([string]$Tag = 'v1.11.15')
+# Keep this tag aligned with the Windows engine and CI's Go toolchain.
+param([string]$Tag = 'v1.14.4')
 
 $ErrorActionPreference = 'Stop'
 $proj = Split-Path $PSScriptRoot -Parent
@@ -46,7 +43,7 @@ function Invoke-Native {
 $tc = if ($env:MOON_TOOLCHAIN) { $env:MOON_TOOLCHAIN }
       elseif (Test-Path 'C:\moonbuild') { 'C:\moonbuild' }
       else { [IO.Path]::GetTempPath() }
-$go = if (Test-Path (Join-Path $tc 'go\bin\go.exe')) { Join-Path $tc 'go\bin\go.exe' }
+$go = if (Test-Path (Join-Path $tc 'go126\bin\go.exe')) { Join-Path $tc 'go126\bin\go.exe' }
       elseif (Get-Command go -ErrorAction SilentlyContinue) { (Get-Command go).Source }
       else { $null }
 if (-not $go) { throw "go not found (set MOON_TOOLCHAIN, or put Go on PATH)" }

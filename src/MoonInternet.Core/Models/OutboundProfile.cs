@@ -8,7 +8,9 @@ public sealed class OutboundProfile
 {
     public ProtocolType Protocol { get; set; }
     public string Name { get; set; } = "";
-    public string? Raw { get; set; }        // original share link (vless://…) — for Copy URL / QR
+    public string? Raw { get; set; }        // original share link or an Xray JSON profile
+    public bool IsJson => Parsing.XraySubscription.IsConfig(Raw);
+    public IEnumerable<string> AdditionalHosts => Parsing.XraySubscription.Hosts(this);
 
     // Endpoint
     public string Address { get; set; } = "";

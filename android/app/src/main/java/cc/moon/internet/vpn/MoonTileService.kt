@@ -113,6 +113,7 @@ class MoonTileService : TileService() {
                 // to start neither — from here AmneziaWG and Hysteria2 dialled into an empty port.
                 awgConfig = if (server.wg?.isAmnezia == true) server.raw else null,
                 hy2Link = if (server.protocol == cc.moon.internet.core.Protocol.HYSTERIA2) server.raw else null,
+                awgDirect = !(st.useRouting && store.activeRouting() != null),
             )
         }
     }

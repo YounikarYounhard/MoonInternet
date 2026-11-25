@@ -117,9 +117,10 @@
                                             <ControlTemplate TargetType="Button">
                                                 <Border x:Name="hb" Background="Transparent" CornerRadius="14" Padding="14,12">
                                                     <Grid>
-                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" x:Name="chev" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource TextSecondary}" Margin="0,0,11,0"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <Image Grid.Column="1" Width="18" Height="18" Margin="0,0,7,0" Source="{Binding Icon}" Visibility="{Binding HasIcon, Converter={StaticResource BoolVis}}"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding DisplayName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                     </Grid>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
@@ -158,6 +159,12 @@
                                 </Grid>
 
                                 <!-- Its own row, same as on Home — beside the icons it only had half the card. -->
+                                <Image Source="{Binding HeaderImage}" Height="72" Margin="12,0,12,10" Stretch="UniformToFill" ClipToBounds="True">
+                                    <Image.Visibility><MultiBinding Converter="{StaticResource AllVis}">
+                                        <Binding Path="HasHeaderImage"/>
+                                        <Binding Path="DataContext.ShowSubHeader" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                    </MultiBinding></Image.Visibility>
+                                </Image>
                                 <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SubMeter}" Margin="14,0,14,11"
                                                   Visibility="{Binding IsSubscription, Converter={StaticResource BoolVis}}"/>
 

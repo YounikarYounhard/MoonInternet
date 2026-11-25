@@ -1732,7 +1732,14 @@ public partial class MainViewModel : ObservableObject
     /// refusal to connect looked exactly like a click that did not register.
     /// </summary>
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasError))] private string errorText = "";
-    public bool HasError => ErrorText.Length > 0;
+    public bool HasError => DevMode && ErrorText.Length > 0;
+    public event Action<string>? UserNotice;
+
+    private void ShowFeedback(string message)
+    {
+        Status = message;
+        if (!DevMode) UserNotice?.Invoke(message);
+    }
     public string ConnectButtonText => ConnectionState switch
     {
         ConnectionState.Connected => Localization.Loc.T("S_VM_010"),
@@ -1795,10 +1802,12 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(MoonAwake));
         OnPropertyChanged(nameof(TrayToggleText));
         // Only the two settled states are worth a popup; Connecting is on the way to both.
-        if (value == ConnectionState.Connected)
-            Notifier.Connection("Moon Internet", string.Format(Localization.Loc.T("S_VM_023"), SelectedServer?.Label));
-        else if (value == ConnectionState.Disconnected)
-            Notifier.Connection("Moon Internet", Localization.Loc.T("S_VM_024"));
+        if (value == ConnectionState.Connecting) return;
+        string notice = value == ConnectionState.Connected
+            ? string.Format(Localization.Loc.T("S_VM_023"), SelectedServer?.Label)
+            : Localization.Loc.T("S_VM_024");
+        Notifier.Connection("Moon Internet", notice);
+        if (!DevMode && NotificationsEnabled && NotifyConnection) UserNotice?.Invoke(notice);
     }
     // Frozen and shared, same reason as the ping brushes.
     private static readonly Brush RingConnected = ServerItem.Frozen(0x34, 0xD3, 0x99);
@@ -2358,7 +2367,7 @@ public partial class MainViewModel : ObservableObject
     /// Not a secret and not a trick — just the standing convention for "I know what I am doing",
     /// and the same gesture on both platforms so there is one thing to remember rather than two.
     /// </summary>
-    [ObservableProperty] private bool devMode;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasError))] private bool devMode;
 
     private int _versionTaps;
 
@@ -2384,6 +2393,7 @@ public partial class MainViewModel : ObservableObject
         DevMode = false;
         _settings.DevMode = false;
         _settings.Save();
+        UpdateService.PreviewFile = null;
     }
 
     /// <summary>Which file the viewer is showing; null = whichever log was written to last.</summary>
@@ -2556,9 +2566,9 @@ public partial class MainViewModel : ObservableObject
     /// <summary>True when the pinned row actually changed, i.e. the lists need re-sorting.</summary>
     private bool PinSelectedServer()
     {
-        var key = PinActiveServer ? SelectedServer?.FavKey : null;
-        if (key == ServerComparers.ActiveRaw) return false;
-        ServerComparers.ActiveRaw = key;
+        var row = PinActiveServer ? SelectedServer : null;
+        if (ReferenceEquals(row, ServerComparers.ActiveRow)) return false;
+        ServerComparers.ActiveRow = row;
         return true;
     }
 
@@ -3116,6 +3126,37 @@ public partial class MainViewModel : ObservableObject
     /// The server last picked, looked for first in the group it was picked from. A copy in «Мои
     /// подключения» has the same name as the original, and by name alone the original always won.
     /// </summary>
+    /// <summary>
+    /// After a subscription's rows were rebuilt: point the selection at the new row for the same
+    /// server and draw its outline. A refresh makes new row objects, the old selected one is no
+    /// longer in any list, and the outline is drawn only when the selection changes — so it went
+    /// missing after an update ("пропадает обводка активной подписки"), until another click.
+    /// </summary>
+    /// <summary>
+    /// The row is the server we are connected through. By key as well as by reference: a refresh
+    /// builds new rows, and the one for the live server then holds a different profile object.
+    /// </summary>
+    private bool IsLive(ServerItem s) =>
+        IsConnected && _conn.Current is { } c
+        && (ReferenceEquals(s.Profile, c) || (ReferenceEquals(s, SelectedServer)
+            && s.FavKey is { } k && k == ServerKey.Of(c)));
+
+    private void SetSubscriptionServers(SubscriptionVM sub, IEnumerable<OutboundProfile> profiles)
+    {
+        var previous = SelectedServer;
+        var previousKey = previous is not null && sub.Servers.Contains(previous) ? previous.FavKey : null;
+        _restoringServer = true;
+        try
+        {
+            sub.SetServers(profiles);
+            SelectedServer = previousKey is null ? previous
+                : sub.Servers.FirstOrDefault(row => row.FavKey == previousKey) ?? sub.Servers.FirstOrDefault()
+                    ?? AllServers.FirstOrDefault();
+        }
+        finally { _restoringServer = false; }
+        foreach (var x in AllServers) x.IsSelected = ReferenceEquals(x, SelectedServer);
+    }
+
     private ServerItem? LastServer(IEnumerable<ServerItem> pool)
     {
         var list = pool as IList<ServerItem> ?? pool.ToList();
@@ -3181,7 +3222,7 @@ public partial class MainViewModel : ObservableObject
         // answers "is the machine up", not "does this connection work" — and for AmneziaWG it could
         // not even resolve the name through a tunnel that carried nothing, so the pill stayed empty
         // and the row went to "—" instead of saying the connection is dead.
-        if (IsConnected && ReferenceEquals(s.Profile, _conn.Current))
+        if (IsLive(s))
             return await ThroughConnectionAsync(PingTestUrl,
                 _conn.ActiveMode == TunnelMode.SystemProxy ? _conn.HttpPort : null,
                 Math.Max(PingTimeoutMs, 5000)).ConfigureAwait(false);
@@ -3293,6 +3334,9 @@ public partial class MainViewModel : ObservableObject
         if (entry is null) { entry = new CachedSub { Url = sub.Url }; _settings.CachedSubs.Add(entry); }
         entry.Name = sub.Name;
         entry.Announcement = sub.Announcement;
+        entry.IsJson = sub.IsJson;
+        entry.Icon = sub.IconBytes;
+        entry.HeaderImage = sub.HeaderBytes;
         entry.TrafficText = sub.TrafficText;
         entry.ExpiryText = sub.ExpiryText;
         entry.Links = sub.Servers.Select(s => s.ShareUrl).Where(u => !string.IsNullOrEmpty(u)).Select(u => u!).ToList();
@@ -3351,12 +3395,15 @@ public partial class MainViewModel : ObservableObject
             foreach (var link in c.Links)
             {
                 // WireGuard/AmneziaWG configs need their own parser — ShareLinkParser only knows vless/trojan/…
-                if (WireGuardParser.TryParseProfile(link, out var wp) && wp is not null) profiles.Add(wp);
+                if (link.TrimStart().StartsWith('{')) profiles.AddRange(SubscriptionParser.Parse(link));
+                else if (WireGuardParser.TryParseProfile(link, out var wp) && wp is not null) profiles.Add(wp);
                 else if (ShareLinkParser.TryParse(link, out var p, out _) && p is not null) profiles.Add(p);
             }
             if (profiles.Count == 0) continue;
             sub.SetServers(profiles);
             sub.SetAnnouncement(c.Announcement);
+            sub.IsJson = c.IsJson;
+            sub.SetArtwork(c.Icon, c.HeaderImage);
             sub.SetCachedInfo(c.TrafficText, c.ExpiryText);
             sub.ApplySort(ServerSort);
             Subscriptions.Add(sub);
@@ -3511,7 +3558,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             Status = Localization.Loc.T("S_VM_219");
-            var (content, info, title, announce, subUpdateMin) = await SubscriptionService.FetchFullAsync(url);
+            var (content, info, title, announce, subUpdateMin, icon, header) = await SubscriptionService.FetchFullAsync(url);
             if (subUpdateMin > 0) { _subUpdateMin = subUpdateMin; OnPropertyChanged(nameof(SubUpdateHint)); }
             // dialog name wins, else the panel's profile-title, else the host
             string name = !string.IsNullOrWhiteSpace(NewSubName) ? NewSubName.Trim()
@@ -3524,17 +3571,20 @@ public partial class MainViewModel : ObservableObject
             // nothing, and writing that down replaces a working subscription with an empty one and
             // saves the emptiness to disk. Which is what "all my subscriptions disappeared" looks
             // like from the inside. Keep what we had and say what happened.
-            if (content.Servers.Count == 0 && sub is { Count: > 0 })
+            if (content.Servers.Count == 0)
             {
                 MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)}: ответ без серверов — оставляю прежние");
-                ErrorText = Status = Localization.Loc.T("S_VM_SubEmpty");
+                Status = Localization.Loc.T("S_VM_SubEmpty");
+                if (loud) { ErrorText = Status; _subErrorShown = true; ShowFeedback(Status); }
                 return false;
             }
 
             if (sub is null) { sub = new SubscriptionVM(url, name, FilterServer); Subscriptions.Add(sub); }
             else if (!string.IsNullOrWhiteSpace(NewSubName)) sub.Name = NewSubName.Trim();  // keep name on plain refresh
-            sub.SetServers(content.Servers);
+            SetSubscriptionServers(sub, content.Servers);
             sub.SetInfo(info);
+            sub.IsJson = content.IsJson;
+            sub.SetArtwork(icon, header);
             WarnAboutSubscription(sub, info);
             sub.SetAnnouncement(announce);          // panel welcome/notice from the Announce header (overrides fake-node text)
             sub.SetRouting(content.Routing);
@@ -3573,7 +3623,7 @@ public partial class MainViewModel : ObservableObject
             // Out loud, and into the log. On Status alone — bound nowhere — a refresh that failed
             // looked exactly like one that worked: a laptop sat on week-old AmneziaWG keys the panel
             // no longer accepted, and nothing anywhere said its updates had stopped.
-            MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)} не обновилась: {ex.GetType().Name}: {ex.Message}");
+            MoonInternet.Core.DevLog.Log("подписка", $"{HostOf(url)} не обновилась: {ex.GetType().Name}");
             string name = Subscriptions.FirstOrDefault(x => x.Url == url)?.Name is { Length: > 0 } n ? n : HostOf(url);
             string why = Localization.Loc.T(ex switch
             {
@@ -3584,7 +3634,7 @@ public partial class MainViewModel : ObservableObject
                 _ => "S_VM_SubWhyNet",
             });
             Status = string.Format(Localization.Loc.T("S_VM_SubFailed"), name, why);
-            if (loud) { ErrorText = Status; _subErrorShown = true; }
+            if (loud) { ErrorText = Status; _subErrorShown = true; ShowFeedback(Status); }
             return false;
         }
     }
@@ -3644,7 +3694,7 @@ public partial class MainViewModel : ObservableObject
         if (WireGuardParser.TryParseProfile(text, out var wgp) && wgp is not null)
         {
             var wsub = LooseSub();
-            wsub.SetServers(Merge(wsub, new[] { wgp }));
+            SetSubscriptionServers(wsub, Merge(wsub, new[] { wgp }));
             wsub.ApplySort(ServerSort);
             SaveSubCache(wsub);                     // persist it — pasted servers must survive a restart too
             RebuildRouting(); RefreshHomeSummary(); NotifyServerListChanged();
@@ -3657,7 +3707,7 @@ public partial class MainViewModel : ObservableObject
         if (content.Servers.Count == 0) { Status = Localization.Loc.T("S_VM_225"); return; }
 
         var sub = LooseSub();
-        sub.SetServers(Merge(sub, content.Servers));
+        SetSubscriptionServers(sub, Merge(sub, content.Servers));
         sub.SetRouting(content.Routing);
         SaveSubCache(sub);                      // pasted servers must survive a restart too
         sub.ApplySort(ServerSort);
@@ -3876,7 +3926,19 @@ public partial class MainViewModel : ObservableObject
             // down a working tunnel a minute after it came up, for nothing.
             if (deferRouting && !_conn.AwgDirect) _ = ApplyRoutingWhenReady(routing!);
         }
-        catch (Exception ex) { ErrorText = Status = "Не удалось подключиться: " + ex.Message; }
+        catch (Exception ex)
+        {
+            if (ex is UnencryptedPublicConnectionException)
+            {
+                ErrorText = Localization.Loc.T("S_VM_ConnectNeedsEncryption");
+                ShowFeedback(ErrorText);
+            }
+            else
+            {
+                ErrorText = "Не удалось подключиться: " + ex.Message;
+                ShowFeedback(DevMode ? ErrorText : Localization.Loc.T("S_VM_ConnectFailed"));
+            }
+        }
     }
 
     /// <summary>
@@ -4159,7 +4221,7 @@ public partial class MainViewModel : ObservableObject
             // The server we are connected through goes through the live tunnel, as the ordinary
             // pass does — never a second session of its own: for AmneziaWG that would move the
             // peer on the server and knock the live tunnel off.
-            var live = servers.FirstOrDefault(s => IsConnected && ReferenceEquals(s.Profile, _conn.Current));
+            var live = servers.FirstOrDefault(IsLive);
             var others = servers.Where(s => !ReferenceEquals(s, live)).ToList();
             var liveTask = live is null ? Task.CompletedTask
                 : Task.Run(async () => Put(live, await ProbeAsync(live, Pinger.PhysicalIfIndex()).ConfigureAwait(false)));
@@ -4184,5 +4246,10 @@ public partial class MainViewModel : ObservableObject
 
     [RelayCommand] private async Task SheetStability() { ShowServerSheet = false; await StabilityServer(SheetServer); }
 
-    public void Shutdown() { try { _settings.Save(); } catch { } _conn.Disconnect(); }
+    public void Shutdown()
+    {
+        _conn.CancelConnect();
+        try { _settings.Save(); } catch { }
+        _conn.Disconnect();
+    }
 }

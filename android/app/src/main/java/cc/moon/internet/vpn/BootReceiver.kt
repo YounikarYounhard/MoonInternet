@@ -67,6 +67,7 @@ class BootReceiver : BroadcastReceiver() {
                     // after a reboot without starting it dials into an empty port.
                     awgConfig = if (server.wg?.isAmnezia == true) server.raw else null,
                     hy2Link = if (server.protocol == cc.moon.internet.core.Protocol.HYSTERIA2) server.raw else null,
+                    awgDirect = !(st.useRouting && store.activeRouting() != null),
                 )
             } catch (_: Throwable) {
                 // A failed reconnect after a reboot is not worth a crash on a device that just

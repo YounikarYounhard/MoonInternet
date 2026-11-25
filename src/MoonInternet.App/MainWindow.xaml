@@ -111,7 +111,7 @@
         <shell:WindowChrome CaptionHeight="40" ResizeBorderThickness="0" CornerRadius="0" GlassFrameThickness="0"/>
     </shell:WindowChrome.WindowChrome>
 
-    <Grid Background="{StaticResource WinBg}">
+    <Grid x:Name="WindowContent" Background="{StaticResource WinBg}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>   <!-- titlebar -->
             <RowDefinition Height="*"/>       <!-- content -->
@@ -119,7 +119,7 @@
         </Grid.RowDefinitions>
 
         <!-- ===== Titlebar ===== -->
-        <Border Grid.Row="0" Background="{StaticResource TitleBar}" Height="40">
+        <Border x:Name="TitleBar" Grid.Row="0" Background="{StaticResource TitleBar}" Height="40">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
                     <Image Source="Assets/moon.png" Width="20" Height="20"/>
@@ -128,8 +128,10 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource GlyphButton}" Height="40" Content="&#xE921;" Click="Minimize_Click"/>
-                    <Button Style="{StaticResource GlyphButton}" Height="40" Content="&#xE8BB;" Click="Close_Click"/>
+                    <Button x:Name="WindowMinimize" Style="{StaticResource GlyphButton}" Height="40" Content="&#xE921;" Click="Minimize_Click"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="{DynamicResource S_MainWindow_Minimize}"/>
+                    <Button x:Name="WindowClose" Style="{StaticResource GlyphButton}" Height="40" Content="&#xE8BB;" Click="Close_Click"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="{DynamicResource S_MainWindow_022}"/>
                 </StackPanel>
             </Grid>
         </Border>

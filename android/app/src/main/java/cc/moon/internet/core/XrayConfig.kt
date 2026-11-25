@@ -259,6 +259,7 @@ object XrayConfig {
         bufferSizeKb(trafficPriority)?.let { kb -> level0.put("bufferSize", kb) }
         if (level0.length() > 0) policy.put("levels", JSONObject().put("0", level0))
         cfg.put("policy", policy)
+        XraySubscription.apply(cfg, server, useAppDns = routing != null)
         return cfg.toString(2)
     }
 
@@ -269,6 +270,7 @@ object XrayConfig {
         mux: Boolean = false,
         fragment: Boolean = false,
     ): JSONObject {
+        XraySubscription.copyOutbound(s, tag)?.let { return it }
         val o = JSONObject().put("tag", tag).put("protocol", protoName(s))
         o.put("settings", when (s.protocol) {
             Protocol.VLESS -> vnext(s, JSONObject()

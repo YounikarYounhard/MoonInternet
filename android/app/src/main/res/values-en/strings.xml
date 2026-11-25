@@ -40,6 +40,28 @@
     <string name="page_logs_sub">"Diagnostics and journals"</string>
     <string name="page_about">"About"</string>
     <string name="page_about_sub">"Versions, links, system"</string>
+    <string name="settings_support">"Support"</string>
+    <string name="settings_support_failed">"Couldn't prepare the report or open GitHub."</string>
+    <string name="support_description">"Describe the problem or add a screenshot"</string>
+    <string name="support_choose_screenshot">"Choose screenshot"</string>
+    <string name="support_remove_screenshot">"Remove screenshot"</string>
+    <string name="support_screenshot">"Screenshot"</string>
+    <string name="support_include_diagnostics">"Include diagnostic events"</string>
+    <string name="support_public">"GitHub reports are public. Check your description and screenshot for personal data, keys, and subscription links."</string>
+    <string name="support_preparing">"Preparing report…"</string>
+    <string name="support_open_issue">"Open GitHub"</string>
+    <string name="support_invalid_screenshot">"Couldn't read this screenshot. Choose a PNG or JPEG up to 10 MB."</string>
+    <string name="support_screenshot_only">"The screenshot shows the problem."</string>
+    <string name="support_diagnostics">"Diagnostics"</string>
+    <string name="support_paste">"Paste the copied text into the new issue description on GitHub."</string>
+    <string name="support_paste_with_screenshot">"Paste the copied text and attach your selected screenshot on GitHub."</string>
+    <string name="support_browser_hint">"Paste the prepared text in your browser. You can attach a screenshot in the GitHub form."</string>
+    <string name="settings_restart">"Restart the app"</string>
+    <string name="settings_restart_warning">"Moon Internet will close completely and reopen. Any active VPN connection will disconnect."</string>
+    <string name="settings_restart_failed">"Couldn't restart Moon Internet."</string>
+    <string name="settings_restart_progress">"Restarting…"</string>
+    <string name="settings_restart_confirm">"Restart"</string>
+    <string name="settings_restart_cancel">"Cancel"</string>
     <string name="page_privacy">"Privacy policy"</string>
     <string name="page_privacy_sub">"How the app handles your data"</string>
     <string name="page_approuting">"Per-app proxy"</string>
@@ -520,4 +542,6 @@
     <string name="dev_empty">"Nothing yet. Connect, refresh a subscription — events show up here."</string>
     <string name="dev_hint">"The same lines go to logcat under the MoonDev tag."</string>
     <string name="dev_off">"Turn developer mode off"</string>
+    <string name="vm_tunnel_failed">Could not connect</string>
+    <string name="vm_connect_needs_encryption">This server needs TLS, REALITY, or VLESS encryption. Ask your provider for an updated link.</string>
 </resources>

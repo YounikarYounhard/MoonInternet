@@ -1,0 +1,43 @@
+<Window x:Class="MoonInternet.App.Views.SupportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource S_Settings_Support}" Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{StaticResource WinBg}" Foreground="{StaticResource TextPrimary}"
+        FocusManager.FocusedElement="{Binding ElementName=Description}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="18">
+            <TextBlock Text="{DynamicResource S_Support_Description}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <TextBox x:Name="Description" Style="{StaticResource DarkTextBox}" MinHeight="84" MaxHeight="148"
+                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxLength="3000"
+                     AutomationProperties.Name="{DynamicResource S_Support_Description}" TextChanged="DescriptionChanged"/>
+            <WrapPanel Margin="0,10,0,0">
+                <Button x:Name="ChooseScreenshot" Style="{StaticResource SecondaryButton}" Click="ChooseScreenshot_Click"
+                        Content="{DynamicResource S_Support_ChooseScreenshot}" Margin="0,0,8,4"/>
+                <Button x:Name="RemoveScreenshot" Style="{StaticResource SecondaryButton}" Click="RemoveScreenshot_Click"
+                        Content="{DynamicResource S_Support_RemoveScreenshot}" Visibility="Collapsed"/>
+            </WrapPanel>
+            <Image x:Name="Preview" HorizontalAlignment="Left" MaxHeight="112" Stretch="Uniform"
+                   Margin="0,6,0,0" Visibility="Collapsed" AutomationProperties.Name="{DynamicResource S_Support_Screenshot}"/>
+            <CheckBox x:Name="IncludeDiagnostics" IsChecked="True" Margin="0,14,0,0">
+                <TextBlock Text="{DynamicResource S_Support_IncludeDiagnostics}" TextWrapping="Wrap"/>
+            </CheckBox>
+            <TextBlock Text="{DynamicResource S_Support_Public}" Foreground="{StaticResource TextSecondary}"
+                       Margin="0,10,0,4" TextWrapping="Wrap"/>
+            <TextBlock Text="{DynamicResource S_Support_BrowserHint}" Foreground="{StaticResource TextSecondary}"
+                       Margin="0,0,0,12" TextWrapping="Wrap"/>
+            <StackPanel x:Name="Preparing" Visibility="Collapsed" Margin="0,0,0,8">
+                <TextBlock Text="{DynamicResource S_Support_Preparing}" TextWrapping="Wrap"/>
+                <ProgressBar Height="3" IsIndeterminate="True" Margin="0,5,0,0"/>
+            </StackPanel>
+            <TextBlock x:Name="Notice" TextWrapping="Wrap" Foreground="{StaticResource AccentText}" Margin="0,0,0,8"
+                       Visibility="Collapsed" AutomationProperties.LiveSetting="Polite"/>
+            <WrapPanel HorizontalAlignment="Right">
+                <Button Style="{StaticResource SecondaryButton}" IsCancel="True"
+                        Content="{DynamicResource S_MainWindow_019}" Margin="0,0,8,0"/>
+                <Button x:Name="OpenReport" Style="{StaticResource PrimaryButton}" IsEnabled="False"
+                        Content="{DynamicResource S_Support_OpenIssue}" Click="OpenReport_Click"/>
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

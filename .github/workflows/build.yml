@@ -25,40 +25,11 @@ jobs:
         with:
           go-version: stable
 
-      # libv2ray.aar is xray-core wrapped for Android. It is not in the repo (19 MB of built
-      # third-party code), so CI builds it the same way android/build-xray.ps1 does, at the tag
-      # pinned there — HEAD once dropped an API the app calls and broke the release build — and
-      # caches it against that tag, because this build is the slow part of the job.
-      - id: upstream
-        run: echo "tag=$(grep -oP "Tag = '\K[^']+" android/build-xray.ps1)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@v4
-        id: aar
-        with:
-          path: android/app/libs/libv2ray.aar
-          key: libv2ray-${{ steps.upstream.outputs.tag }}
-
-      - name: Build libv2ray.aar
-        if: steps.aar.outputs.cache-hit != 'true'
+      - name: Fetch AndroidLibXrayLite
+        shell: pwsh
         env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
-        run: |
-          set -e
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/gobind@latest
-          test -n "${{ steps.upstream.outputs.tag }}" || { echo "::error::no tag in android/build-xray.ps1"; exit 1; }
-          git clone --depth 1 --branch "${{ steps.upstream.outputs.tag }}" https://github.com/2dust/AndroidLibXrayLite.git "$RUNNER_TEMP/xray"
-          cd "$RUNNER_TEMP/xray"
-          go get golang.org/x/mobile/bind
-          go mod tidy
-          "$(go env GOPATH)/bin/gomobile" init
-          # -checklinkname=0: xray pulls in wlynxg/anet, which reaches into net.zoneCache through
-          # //go:linkname. Go 1.23+ rejects that by default and the link fails. anet is what lets
-          # Android 11+ enumerate interfaces at all, so allow the linkname rather than drop it.
-          "$(go env GOPATH)/bin/gomobile" bind -target=android/arm64 -androidapi 24 \
-            -o libv2ray.aar -trimpath -ldflags="-s -w -checklinkname=0" .
-          mkdir -p "$GITHUB_WORKSPACE/android/app/libs"
-          cp libv2ray.aar "$GITHUB_WORKSPACE/android/app/libs/"
+          GH_TOKEN: ${{ github.token }}
+        run: pwsh -File android/build-xray.ps1
 
       # The signing key never lives in the repo. Without the secret the job still runs and
       # produces an unsigned APK — useful for a PR check, useless for installing over an
@@ -81,7 +52,7 @@ jobs:
       - uses: actions/setup-go@v5
         if: steps.singbox.outputs.cache-hit != 'true'
         with:
-          go-version: '1.23'
+          go-version: '1.26.5'
 
       - name: Build libsingbox.so
         if: steps.singbox.outputs.cache-hit != 'true'
@@ -100,6 +71,10 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         run: |
           if [ -z "$KEYSTORE_B64" ]; then
+            if [[ "$GITHUB_REF" == refs/tags/v* && "$GITHUB_REPOSITORY" == YounikarYounhard/MoonInternet ]]; then
+              echo "::error::Official Android releases require ANDROID_KEYSTORE_B64"
+              exit 1
+            fi
             echo "::warning::ANDROID_KEYSTORE_B64 is not set — the APK will be unsigned and will not install over an existing one"
             exit 0
           fi
@@ -200,7 +175,7 @@ jobs:
         run: |
           $v = ([xml](Get-Content src\MoonInternet.App\MoonInternet.App.csproj)).Project.PropertyGroup.Version |
                Where-Object { $_ } | Select-Object -First 1
-          $appver = ($v -split '\.')[0..2] -join '.'
+          $appver = $v
           # NSIS does not create the OutFile directory — it just says "Can't open output file"
           New-Item -ItemType Directory -Force -Path dist\setup | Out-Null
 
@@ -257,18 +232,29 @@ jobs:
           # compare is a click away on the release page anyway.
           sha=$(gh api "repos/$REPO/git/ref/tags/$TAG" --jq .object.sha)
           gh api "repos/$REPO/git/tags/$sha" --jq .message > notes.md 2>/dev/null || : > notes.md
+          title="Moon Internet $TAG"
+          if IFS= read -r first_line < notes.md && [[ "$first_line" == "Title: "* ]]; then
+            title="${first_line#Title: }"
+            tail -n +2 notes.md > body.md
+            mv body.md notes.md
+          fi
           cat notes.md
+
+          flags=(--prerelease=false --latest)
+          if [[ "$TAG" == *-* ]]; then
+            flags=(--prerelease)
+          fi
 
           # Create, or update if the tag was moved: `create` alone fails on a release that
           # already exists, which left a published release with no way to correct it.
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            gh release edit "$TAG" --repo "$REPO" --title "Moon Internet $TAG" --notes-file notes.md --prerelease
+            gh release edit "$TAG" --repo "$REPO" --title "$title" --notes-file notes.md "${flags[@]}"
             gh release upload "$TAG" --repo "$REPO" --clobber \
               rel/MoonInternet-Setup.exe rel/MoonInternet.apk
           else
             gh release create "$TAG" --repo "$REPO" \
-              --title "Moon Internet $TAG" \
+              --title "$title" \
               --notes-file notes.md \
-              --prerelease \
+              "${flags[@]}" \
               rel/MoonInternet-Setup.exe rel/MoonInternet.apk
           fi

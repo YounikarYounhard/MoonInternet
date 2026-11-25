@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.withLock
+import android.util.AtomicFile
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -206,7 +207,7 @@ data class AppState(
  */
 class Store(private val ctx: Context) {
 
-    private val file = File(ctx.filesDir, "state.json")
+    private val file = AtomicFile(File(ctx.filesDir, "state.json"))
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; prettyPrint = false }
 
     init {
@@ -222,9 +223,10 @@ class Store(private val ctx: Context) {
     val ready = _ready.asStateFlow()
     val state = _state.asStateFlow()
 
-    private companion object { const val CURRENT_VERSION = 16 }
-
-    private val loadOnce = kotlinx.coroutines.sync.Mutex()
+    private companion object {
+        const val CURRENT_VERSION = 16
+        val stateFileLock = kotlinx.coroutines.sync.Mutex()
+    }
     @Volatile private var loaded = false
 
     /**
@@ -232,7 +234,7 @@ class Store(private val ctx: Context) {
      * racing here meant the second one could read the file mid-write, fail to decode, fall back to
      * defaults — and then the next update() wrote those defaults over everything the user had.
      */
-    suspend fun load() = loadOnce.withLock {
+    suspend fun load() = stateFileLock.withLock {
         if (loaded) return@withLock
         loaded = true
         loadNow()
@@ -240,7 +242,7 @@ class Store(private val ctx: Context) {
 
     private suspend fun loadNow() = withContext(Dispatchers.IO) {
         val loaded = runCatching {
-            if (file.exists()) json.decodeFromString<AppState>(file.readText()) else AppState(settingsVersion = CURRENT_VERSION)
+            json.decodeFromString<AppState>(file.readFully().decodeToString())
         }.getOrDefault(AppState(settingsVersion = CURRENT_VERSION))
         // v2: probes are spaced out by default now, so a batch fills the list one row at a time
         // instead of snapping to thirty numbers at once.
@@ -312,13 +314,28 @@ class Store(private val ctx: Context) {
         }
     }
 
-    private fun save(st: AppState) = runCatching { file.writeText(json.encodeToString(st)) }
+    private fun save(st: AppState) = runCatching {
+        val bytes = json.encodeToString(st).encodeToByteArray()
+        val output = file.startWrite()
+        try {
+            output.write(bytes)
+            file.finishWrite(output)
+        } catch (e: Exception) {
+            file.failWrite(output)
+            throw e
+        }
+    }
 
     suspend fun update(block: (AppState) -> AppState) = withContext(Dispatchers.IO) {
-        val next = block(_state.value)
-        _state.value = next
-        runCatching { file.writeText(json.encodeToString(next)) }
+        stateFileLock.withLock {
+            val next = block(_state.value)
+            val saved = save(next)
+            _state.value = next
+            saved
+        }
     }
+
+    suspend fun waitForWrites() = stateFileLock.withLock { }
 
     // ---- convenience ------------------------------------------------------
     val allServers: List<ServerProfile>
@@ -643,7 +660,7 @@ class Store(private val ctx: Context) {
         val sort =
             if (st.sort == "favorite" && allServers.none { it.key in st.favorites }) "" else st.sort
         return orderServers(list, pings, st.favorites, sort, protocol,
-                            if (st.pinActive) selectedServer()?.key else null)
+                            if (st.pinActive) selectedServer()?.takeIf { selected -> list.any { it === selected } }?.key else null)
     }
 }
 

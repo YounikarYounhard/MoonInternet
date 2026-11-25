@@ -15,6 +15,8 @@ public sealed class XrayRunner : IProxyRunner
     private readonly string _configPath;
     private Process? _proc;
     private bool _stopping;
+    private volatile bool _rejectedUnencryptedTransport;
+    internal bool RejectedUnencryptedTransport => _rejectedUnencryptedTransport;
 
     public int SocksPort { get; private set; }
     public int HttpPort { get; private set; }
@@ -92,19 +94,31 @@ public sealed class XrayRunner : IProxyRunner
             WorkingDirectory = _assetDir,               // so xray finds wintun.dll etc.
             UseShellExecute = false,
             CreateNoWindow = true,
-            // Do NOT redirect stdout/stderr: we never drain them, and a full OS pipe would block xray
-            // mid-write and degrade the tunnel over time (the "server dies gradually" symptom).
-            RedirectStandardOutput = false,
-            RedirectStandardError = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
         };
         psi.ArgumentList.Add("-config");
         psi.ArgumentList.Add(_configPath);
         psi.EnvironmentVariables["XRAY_LOCATION_ASSET"] = assetDir; // geoip.dat/geosite.dat resolution
 
         _stopping = false;
-        _proc = Process.Start(psi) ?? throw new InvalidOperationException("failed to start xray");
-        _proc.EnableRaisingEvents = true;
-        _proc.Exited += (_, _) => { if (!_stopping) ProcessExited?.Invoke(); };
+        _rejectedUnencryptedTransport = false;
+        var proc = Process.Start(psi) ?? throw new InvalidOperationException("failed to start xray");
+        _proc = proc;
+        // Drain both streams and retain only this known reason. Other lines can contain profile data.
+        void ReadDiagnostic(object sender, DataReceivedEventArgs e)
+        {
+            if (ReferenceEquals(sender, _proc) && e.Data is { } line &&
+                (line.Contains("vless without TLS or other encryption is prohibited", StringComparison.OrdinalIgnoreCase)
+                || line.Contains("trojan without TLS is prohibited", StringComparison.OrdinalIgnoreCase)))
+                _rejectedUnencryptedTransport = true;
+        }
+        proc.OutputDataReceived += ReadDiagnostic;
+        proc.ErrorDataReceived += ReadDiagnostic;
+        proc.BeginOutputReadLine();
+        proc.BeginErrorReadLine();
+        proc.Exited += (_, _) => { if (!_stopping && ReferenceEquals(proc, _proc)) ProcessExited?.Invoke(); };
+        proc.EnableRaisingEvents = true;
     }
 
     public void Stop()

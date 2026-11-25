@@ -59,8 +59,8 @@ object SingBoxHy2Config {
         // a resolver, and keep it out of the proxy: resolving the server's own hostname through
         // the tunnel to that server cannot work.
         val dns = JSONObject().put("servers", JSONArray()
-            .put(JSONObject().put("tag", "dns-direct").put("address", "1.1.1.1").put("detour", "direct"))
-            .put(JSONObject().put("tag", "dns-backup").put("address", "8.8.8.8").put("detour", "direct")))
+            .put(JSONObject().put("type", "udp").put("tag", "dns-direct").put("server", "1.1.1.1"))
+            .put(JSONObject().put("type", "udp").put("tag", "dns-backup").put("server", "8.8.8.8")))
 
         return JSONObject()
             .put("log", JSONObject().put("level", "warn"))
@@ -75,7 +75,7 @@ object SingBoxHy2Config {
             .put("outbounds", JSONArray()
                 .put(proxy)
                 .put(JSONObject().put("type", "direct").put("tag", "direct")))
-            .put("route", JSONObject().put("final", "proxy"))
+            .put("route", JSONObject().put("final", "proxy").put("default_domain_resolver", "dns-direct"))
             .toString(2)
     }
 

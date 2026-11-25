@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -296,7 +297,8 @@ private fun SubGroup(
                     Icon(if (collapsed) Icons.Filled.ChevronRight else Icons.Filled.ExpandMore, null,
                          tint = Moon.TextSecondary, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(11.dp))
-                    Text(sub.name, Modifier.weight(1f), color = Moon.TextPrimary, fontSize = 14.sp,
+                    SubscriptionImage(sub.icon, Modifier.padding(end = 7.dp).size(18.dp).clip(RoundedCornerShape(4.dp)), 64)
+                    Text(if (sub.isJson || sub.servers.any { it.isJson }) "${sub.name} · JSON" else sub.name, Modifier.weight(1f), color = Moon.TextPrimary, fontSize = 14.sp,
                          fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Row(Modifier.padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -313,6 +315,9 @@ private fun SubGroup(
             }
 
             // Its own row, same as on Home — beside the icons it only had half the card.
+            if (showHeader) SubscriptionImage(sub.headerImage,
+                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 10.dp).height(72.dp)
+                    .clip(RoundedCornerShape(10.dp)), 720)
             if (!sub.isLoose) Box(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 11.dp)) {
                 SubMeter(sub.trafficText, sub.expiryText, sub.trafficFraction, sub.expiryFraction, subMeter)
             }

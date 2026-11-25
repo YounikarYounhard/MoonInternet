@@ -42,6 +42,28 @@
     <string name="page_logs_sub">"Диагностика и журналы"</string>
     <string name="page_about">"О приложении"</string>
     <string name="page_about_sub">"Версии, ссылки, система"</string>
+    <string name="settings_support">"Поддержка"</string>
+    <string name="settings_support_failed">"Не удалось подготовить отчёт или открыть GitHub."</string>
+    <string name="support_description">"Опишите проблему или приложите скриншот"</string>
+    <string name="support_choose_screenshot">"Выбрать скриншот"</string>
+    <string name="support_remove_screenshot">"Убрать скриншот"</string>
+    <string name="support_screenshot">"Скриншот"</string>
+    <string name="support_include_diagnostics">"Добавить события диагностики"</string>
+    <string name="support_public">"Отчёт на GitHub будет публичным. Проверьте описание и скриншот на наличие личных данных, ключей и ссылок подписок."</string>
+    <string name="support_preparing">"Подготавливаем отчёт…"</string>
+    <string name="support_open_issue">"Открыть GitHub"</string>
+    <string name="support_invalid_screenshot">"Не удалось открыть этот скриншот. Выберите PNG или JPEG до 10 МБ."</string>
+    <string name="support_screenshot_only">"Проблема показана на скриншоте."</string>
+    <string name="support_diagnostics">"Диагностика"</string>
+    <string name="support_paste">"Вставьте скопированный текст в описание новой задачи на GitHub."</string>
+    <string name="support_paste_with_screenshot">"Вставьте скопированный текст и прикрепите выбранный скриншот на GitHub."</string>
+    <string name="support_browser_hint">"В браузере вставьте подготовленный текст. Скриншот можно прикрепить в форме GitHub."</string>
+    <string name="settings_restart">"Перезапустить приложение"</string>
+    <string name="settings_restart_warning">"Moon Internet полностью закроется и откроется заново. Активное VPN-подключение будет разорвано."</string>
+    <string name="settings_restart_failed">"Не удалось перезапустить Moon Internet."</string>
+    <string name="settings_restart_progress">"Перезапуск…"</string>
+    <string name="settings_restart_confirm">"Перезапустить"</string>
+    <string name="settings_restart_cancel">"Отмена"</string>
     <string name="page_privacy">"Политика конфиденциальности"</string>
     <string name="page_privacy_sub">"Как приложение обращается с данными"</string>
     <string name="page_approuting">"Прокси по приложениям"</string>
@@ -523,4 +545,6 @@
     <string name="dev_empty">"Пока пусто. Подключитесь, обновите подписку — события появятся здесь."</string>
     <string name="dev_hint">"Те же строки уходят в logcat под тегом MoonDev."</string>
     <string name="dev_off">"Выключить режим разработчика"</string>
+    <string name="vm_tunnel_failed">Не удалось подключиться</string>
+    <string name="vm_connect_needs_encryption">Для этого сервера нужно подключение с TLS, REALITY или шифрованием VLESS. Запросите обновлённую ссылку.</string>
 </resources>
